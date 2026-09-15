@@ -1,0 +1,4 @@
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; overflow-x: clip; }
+body { width: 100%; margin: 0; overflow-x: clip; background: #fffcf8; font-family: Inter, Avenir, 'Segoe UI', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+::selection { color: #fff; background: #5e0a61; }

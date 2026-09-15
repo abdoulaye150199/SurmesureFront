@@ -1,0 +1,46 @@
+<main class="signup-page">
+  <section class="signup-card">
+    <div class="signup-visual">
+      <img src="/assets/loginimage.png" alt="Création Sur Mesure Style">
+      <div class="signup-visual-shade"></div>
+      <div class="signup-visual-content">
+        <img class="signup-logo" src="/assets/logo.png" alt="Sur Mesure Style">
+        <div class="signup-visual-copy">
+          <p>Votre style, votre histoire</p>
+          <h1>Be<br><em>unique.</em></h1>
+          <span>Créez votre univers avec Sur Mesure Style.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="signup-form-card">
+      <div class="signup-account-tabs" aria-label="Type de compte">
+        <button type="button" [class.active]="accountRole === 'client'" (click)="chooseAccount('client')">Je suis client</button>
+        <button type="button" [class.active]="accountRole === 'stylist'" (click)="chooseAccount('stylist')">Je suis styliste</button>
+      </div>
+      <p class="signup-kicker">{{ isStylist ? 'Inscription styliste' : 'Inscription client' }}</p>
+      <h2>Créer mon<br><em>compte.</em></h2>
+      <p class="signup-intro">{{ isStylist ? 'Présentez votre atelier et rejoignez les talents de notre communauté.' : 'Un espace personnel pour vos mesures, vos commandes et vos inspirations.' }}</p>
+
+      <form class="signup-form" (ngSubmit)="submit()">
+        <div class="signup-fields-row">
+          <div><label for="page-first-name">Prénom</label><input id="page-first-name" type="text" name="firstName" [(ngModel)]="firstName" placeholder="Awa" autocomplete="given-name" required></div>
+          <div><label for="page-last-name">Nom</label><input id="page-last-name" type="text" name="lastName" [(ngModel)]="lastName" placeholder="Diop" autocomplete="family-name" required></div>
+        </div>
+        <div *ngIf="isStylist"><label for="page-business-name">Nom de l’atelier</label><input id="page-business-name" type="text" name="businessName" [(ngModel)]="businessName" placeholder="Atelier Awa" required></div>
+        <div class="signup-fields-row">
+          <div><label for="page-phone">Téléphone</label><input id="page-phone" type="tel" name="phone" [(ngModel)]="phone" placeholder="+221 77 000 00 00" autocomplete="tel" required></div>
+          <div><label for="page-email">Adresse e-mail</label><input id="page-email" type="email" name="email" [(ngModel)]="email" placeholder="votre@email.com" autocomplete="email" required></div>
+        </div>
+        <div class="signup-fields-row">
+          <div><label for="page-password">Mot de passe</label><input id="page-password" type="password" name="password" [(ngModel)]="password" placeholder="10 caractères minimum" autocomplete="new-password" required></div>
+          <div><label for="page-password-confirmation">Confirmation</label><input id="page-password-confirmation" type="password" name="passwordConfirmation" [(ngModel)]="passwordConfirmation" placeholder="Retapez le mot de passe" autocomplete="new-password" required></div>
+        </div>
+        <p class="signup-error" *ngIf="error">{{ error }}</p>
+        <label class="signup-consent"><input type="checkbox" required> <span>J’accepte les conditions d’utilisation et la politique de confidentialité.</span></label>
+        <button class="signup-submit" type="submit" [disabled]="submitting">{{ submitting ? 'Création en cours…' : 'Créer mon compte' }} <span>→</span></button>
+      </form>
+      <p class="signup-login-link">Vous avez déjà un compte ? <button type="button" (click)="goToLogin()">Se connecter</button></p>
+    </div>
+  </section>
+</main>

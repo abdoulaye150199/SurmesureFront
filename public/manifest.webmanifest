@@ -1,0 +1,21 @@
+{
+  "name": "Sur Mesure Style",
+  "short_name": "Sur Mesure",
+  "description": "Vos créations sur mesure et votre atelier, partout avec vous.",
+  "lang": "fr-FR",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f7f2ed",
+  "theme_color": "#5e0a61",
+  "icons": [
+    {
+      "src": "assets/pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
