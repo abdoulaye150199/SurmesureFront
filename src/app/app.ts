@@ -3,7 +3,8 @@ import { AfterViewInit, Component, HostListener, OnDestroy } from '@angular/core
 import { FormsModule } from '@angular/forms';
 import { LoginComponent } from './login/login';
 import { SignupPageComponent } from './signup-page/signup-page';
-import { AuthService, AuthUser } from './auth/auth.service';
+import { AppAccountRole, AuthService, AuthUser } from './auth/auth.service';
+import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard';
 import {
   DashboardAppointment,
   DashboardCatalogItem,
@@ -15,7 +16,7 @@ import {
 } from './dashboard/dashboard.service';
 
 type Collection = 'Tout' | 'Cérémonie' | 'Boubous' | 'Ensembles';
-type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'signup';
+type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'admin' | 'signup';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -51,7 +52,7 @@ interface MeasurementDefinition {
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, LoginComponent, SignupPageComponent],
+  imports: [CommonModule, FormsModule, LoginComponent, SignupPageComponent, AdminDashboardComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -61,10 +62,10 @@ export class App implements AfterViewInit, OnDestroy {
   menuOpen = false;
   cartOpen = false;
   loginOpen = false;
-  loginRole: 'client' | 'stylist' = 'client';
+  loginRole: AppAccountRole = 'client';
   signupRole: 'client' | 'stylist' = 'client';
   activeView: AppView = 'home';
-  workspaceRole: 'client' | 'stylist' = 'stylist';
+  workspaceRole: AppAccountRole = 'stylist';
   installAvailable = false;
   selectedCreations: Creation[] = [];
   headerScrolled = false;
@@ -97,7 +98,8 @@ export class App implements AfterViewInit, OnDestroy {
 
   constructor(private readonly auth: AuthService, private readonly dashboard: DashboardService) {
     this.authenticatedUser = this.auth.user;
-    if (this.auth.appRole) this.workspaceRole = this.auth.appRole;
+    const appRole = this.auth.appRole;
+    if (appRole) this.workspaceRole = appRole;
   }
 
   readonly creations: Creation[] = [
@@ -165,7 +167,7 @@ export class App implements AfterViewInit, OnDestroy {
     return this.selectedCreations.length;
   }
 
-  get defaultWorkspaceRole(): 'client' | 'stylist' {
+  get defaultWorkspaceRole(): AppAccountRole {
     return this.auth.appRole ?? 'client';
   }
 
@@ -499,7 +501,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   setView(view: AppView): void {
-    if (view === 'client' || view === 'stylist') {
+    if (view === 'client' || view === 'stylist' || view === 'admin') {
       this.openWorkspace(view);
       return;
     }
@@ -512,10 +514,11 @@ export class App implements AfterViewInit, OnDestroy {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async openWorkspace(role: 'client' | 'stylist'): Promise<void> {
+  async openWorkspace(role: AppAccountRole): Promise<void> {
     if (!this.auth.isAuthenticated || this.auth.appRole !== role) {
       this.openLogin(role);
-      this.showToast(`Connectez-vous avec votre compte ${role === 'stylist' ? 'styliste' : 'client'}`);
+      const label = role === 'admin' ? 'Super Admin' : role === 'stylist' ? 'styliste' : 'client';
+      this.showToast(`Connectez-vous avec votre compte ${label}`);
       return;
     }
     if (!await this.auth.validateSession()) {
@@ -528,7 +531,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.workspaceRole = role;
     this.activeView = role;
     this.menuOpen = false;
-    void this.loadDashboard(role);
+    if (role !== 'admin') void this.loadDashboard(role);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -567,7 +570,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.installAvailable = false;
   }
 
-  openLogin(role: 'client' | 'stylist' = this.loginRole): void {
+  openLogin(role: AppAccountRole = this.loginRole): void {
     this.loginRole = role;
     this.loginOpen = true;
     this.menuOpen = false;
@@ -591,20 +594,20 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   onLoggedIn(user: AuthUser): void {
-    const role = user.role === 'STYLIST' ? 'stylist' : 'client';
+    const role: AppAccountRole = user.role === 'ADMIN' ? 'admin' : user.role === 'STYLIST' ? 'stylist' : 'client';
     const destination = role === 'client' ? this.pendingAuthView : null;
     this.pendingAuthView = null;
     this.authenticatedUser = user;
     this.loginOpen = false;
     this.workspaceRole = role;
     this.activeView = destination ?? role;
-    void this.loadDashboard(role);
+    if (role !== 'admin') void this.loadDashboard(role);
     this.showToast(`Bienvenue ${user.firstName}, votre espace est prêt.`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   onAccountCreated(user: AuthUser): void {
-    const role = user.role === 'STYLIST' ? 'stylist' : 'client';
+    const role: 'client' | 'stylist' = user.role === 'STYLIST' ? 'stylist' : 'client';
     const destination = role === 'client' ? this.pendingAuthView : null;
     this.pendingAuthView = null;
     this.authenticatedUser = user;

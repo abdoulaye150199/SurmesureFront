@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AccountRole } from '../login/login';
+import { SignupRole } from '../login/login';
 import { AuthService, AuthUser } from '../auth/auth.service';
 
 @Component({
@@ -13,13 +13,13 @@ import { AuthService, AuthUser } from '../auth/auth.service';
 })
 export class SignupPageComponent {
   @Output() readonly closed = new EventEmitter<void>();
-  @Output() readonly loginRequested = new EventEmitter<AccountRole>();
+  @Output() readonly loginRequested = new EventEmitter<SignupRole>();
   @Output() readonly accountCreated = new EventEmitter<AuthUser>();
-  @Input() set initialRole(value: AccountRole) {
+  @Input() set initialRole(value: SignupRole) {
     this.accountRole = value;
   }
 
-  accountRole: AccountRole = 'client';
+  accountRole: SignupRole = 'client';
   firstName = '';
   lastName = '';
   businessName = '';
@@ -36,7 +36,7 @@ export class SignupPageComponent {
     return this.accountRole === 'stylist';
   }
 
-  chooseAccount(role: AccountRole): void {
+  chooseAccount(role: SignupRole): void {
     this.accountRole = role;
     this.error = '';
   }

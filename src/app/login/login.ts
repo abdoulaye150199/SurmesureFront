@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AuthService, AuthUser } from '../auth/auth.service';
 
 export type AccountRole = 'client' | 'stylist' | 'admin';
-type SignupRole = Exclude<AccountRole, 'admin'>;
+export type SignupRole = Exclude<AccountRole, 'admin'>;
 
 @Component({
   selector: 'app-login',
