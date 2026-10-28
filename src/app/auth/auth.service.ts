@@ -1,6 +1,7 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { getApiUrl } from '../api-url';
 
 export type AppAccountRole = 'client' | 'stylist' | 'admin';
 export type ApiAccountRole = 'CLIENT' | 'STYLIST' | 'ADMIN';
@@ -75,7 +76,7 @@ export class AuthService {
   async validateSession(): Promise<boolean> {
     if (!this.token) return false;
     try {
-      const user = await firstValueFrom(this.http.get<AuthUser>(this.apiUrl('/auth/me')));
+      const user = await firstValueFrom(this.http.get<AuthUser>(getApiUrl('/auth/me')));
       if (!this.session) return false;
       this.session = { ...this.session, data: user };
       localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(this.session));
@@ -88,7 +89,7 @@ export class AuthService {
 
   async logout(): Promise<void> {
     try {
-      if (this.token) await firstValueFrom(this.http.post(this.apiUrl('/auth/logout'), {}));
+      if (this.token) await firstValueFrom(this.http.post(getApiUrl('/auth/logout'), {}));
     } finally {
       this.clearSession();
     }
@@ -101,7 +102,7 @@ export class AuthService {
 
   private async authenticate(endpoint: string, body: object): Promise<AuthUser> {
     try {
-      const session = await firstValueFrom(this.http.post<AuthSession>(this.apiUrl(endpoint), body));
+      const session = await firstValueFrom(this.http.post<AuthSession>(getApiUrl(endpoint), body));
       this.session = session;
       localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
       return session.data;
@@ -124,10 +125,4 @@ export class AuthService {
     }
   }
 
-  private apiUrl(endpoint: string): string {
-    const base = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:3001/v1'
-      : '/v1';
-    return `${base}${endpoint}`;
-  }
 }

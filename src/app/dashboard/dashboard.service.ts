@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { getApiUrl } from '../api-url';
 
 export type DashboardOrderStatus = 'pending' | 'inProgress' | 'completed' | 'delivered' | 'cancelled';
 export type DashboardAppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
@@ -136,22 +137,22 @@ export class DashboardService {
 
   async loadClientDashboard(): Promise<ClientDashboardSnapshot> {
     const [orders, measurements, appointments, catalog, stylists] = await Promise.all([
-      firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(this.apiUrl('/orders?limit=100'))),
-      firstValueFrom(this.http.get<DashboardMeasurement[]>(this.apiUrl('/measurements'))),
-      firstValueFrom(this.http.get<DashboardAppointment[]>(this.apiUrl('/appointments'))),
-      firstValueFrom(this.http.get<DashboardCatalogItem[]>(this.apiUrl('/catalog?limit=100'))),
-      firstValueFrom(this.http.get<DashboardStylist[]>(this.apiUrl('/stylists?limit=100'))),
+      firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(getApiUrl('/orders?limit=100'))),
+      firstValueFrom(this.http.get<DashboardMeasurement[]>(getApiUrl('/measurements'))),
+      firstValueFrom(this.http.get<DashboardAppointment[]>(getApiUrl('/appointments'))),
+      firstValueFrom(this.http.get<DashboardCatalogItem[]>(getApiUrl('/catalog?limit=100'))),
+      firstValueFrom(this.http.get<DashboardStylist[]>(getApiUrl('/stylists?limit=100'))),
     ]);
     return { orders: orders.data, measurements, appointments, catalog, stylists };
   }
 
   async loadStylistDashboard(userId: string): Promise<StylistDashboardSnapshot> {
     const [orders, measurements, appointments, catalog, stylists] = await Promise.all([
-      firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(this.apiUrl(`/stylist/${userId}/orders?limit=100`))),
-      firstValueFrom(this.http.get<CursorPage<DashboardMeasurement>>(this.apiUrl(`/stylist/${userId}/measurements?limit=100`))),
-      firstValueFrom(this.http.get<DashboardAppointment[]>(this.apiUrl(`/stylist/${userId}/appointments`))),
-      firstValueFrom(this.http.get<DashboardCatalogItem[]>(this.apiUrl('/catalog?limit=100'))),
-      firstValueFrom(this.http.get<DashboardStylist[]>(this.apiUrl('/stylists?limit=100'))),
+      firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(getApiUrl(`/stylist/${userId}/orders?limit=100`))),
+      firstValueFrom(this.http.get<CursorPage<DashboardMeasurement>>(getApiUrl(`/stylist/${userId}/measurements?limit=100`))),
+      firstValueFrom(this.http.get<DashboardAppointment[]>(getApiUrl(`/stylist/${userId}/appointments`))),
+      firstValueFrom(this.http.get<DashboardCatalogItem[]>(getApiUrl('/catalog?limit=100'))),
+      firstValueFrom(this.http.get<DashboardStylist[]>(getApiUrl('/stylists?limit=100'))),
     ]);
     const profile = stylists.find(stylist => stylist.userId === userId) ?? null;
     return {
@@ -164,29 +165,23 @@ export class DashboardService {
   }
 
   updateOrderStatus(id: string, status: DashboardOrderStatus): Promise<DashboardOrder> {
-    return firstValueFrom(this.http.patch<DashboardOrder>(this.apiUrl(`/orders/${id}`), { status }));
+    return firstValueFrom(this.http.patch<DashboardOrder>(getApiUrl(`/orders/${id}`), { status }));
   }
 
   saveClientMeasurements(stylistId: string, measurements: Record<string, number>): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.put<DashboardMeasurement>(this.apiUrl('/client/measurements'), { stylistId, measurements }));
+    return firstValueFrom(this.http.put<DashboardMeasurement>(getApiUrl('/client/measurements'), { stylistId, measurements }));
   }
 
   loadAdminDashboard(): Promise<AdminDashboardSnapshot> {
-    return firstValueFrom(this.http.get<AdminDashboardSnapshot>(this.apiUrl('/admin/dashboard')));
+    return firstValueFrom(this.http.get<AdminDashboardSnapshot>(getApiUrl('/admin/dashboard')));
   }
 
   setAdminUserStatus(id: string, active: boolean): Promise<AdminUser> {
-    return firstValueFrom(this.http.patch<AdminUser>(this.apiUrl(`/admin/users/${id}/status`), { active }));
+    return firstValueFrom(this.http.patch<AdminUser>(getApiUrl(`/admin/users/${id}/status`), { active }));
   }
 
   adminUpdateOrderStatus(id: string, status: DashboardOrderStatus): Promise<DashboardOrder> {
-    return firstValueFrom(this.http.patch<DashboardOrder>(this.apiUrl(`/admin/orders/${id}`), { status }));
+    return firstValueFrom(this.http.patch<DashboardOrder>(getApiUrl(`/admin/orders/${id}`), { status }));
   }
 
-  private apiUrl(endpoint: string): string {
-    const base = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://localhost:3001/v1'
-      : '/v1';
-    return `${base}${endpoint}`;
-  }
 }
