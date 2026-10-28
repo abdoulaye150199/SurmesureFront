@@ -34,11 +34,15 @@
           <label for="login-password">Mot de passe</label>
           <button type="button">Mot de passe oublié ?</button>
         </div>
-        <input id="login-password" type="password" name="loginPassword" [(ngModel)]="loginPassword" placeholder="Votre mot de passe" autocomplete="current-password" required>
+        <div class="password-field"><input id="login-password" [type]="showPassword ? 'text' : 'password'" name="loginPassword" [(ngModel)]="loginPassword" placeholder="Votre mot de passe" autocomplete="current-password" required><button type="button" class="password-toggle" (click)="showPassword = !showPassword" [attr.aria-label]="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'" [attr.aria-pressed]="showPassword">{{ showPassword ? 'Masquer' : 'Afficher' }}</button></div>
 
         <p class="signup-error" *ngIf="error">{{ error }}</p>
         <button class="login-submit" type="submit" [disabled]="submitting">{{ submitting ? 'Connexion…' : 'Se connecter' }} <span>→</span></button>
       </form>
+
+      <button class="login-demo" type="button" *ngIf="accountRole !== 'admin'" (click)="requestDemo()">
+        Explorer la démo {{ accountRole === 'stylist' ? 'styliste' : 'cliente' }} <span>→</span>
+      </button>
 
       <div class="login-divider" *ngIf="accountRole !== 'admin'"><span>ou continuer avec</span></div>
       <div class="login-socials" *ngIf="accountRole !== 'admin'">

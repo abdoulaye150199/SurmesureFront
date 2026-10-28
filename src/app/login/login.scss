@@ -25,12 +25,19 @@
 .login-form-panel input { width:100%; box-sizing:border-box; margin-bottom:23px; padding:11px 0; border:0; border-bottom:1px dashed rgba(72,0,72,.35); outline:0; background:transparent; color:#480048; font-size:12px; }
 .login-form-panel input:focus { border-bottom-style:solid; border-bottom-color:#5e0a61; }
 .login-form-panel input::placeholder { color:rgba(72,0,72,.5); }
+.password-field { position:relative; display:flex; align-items:center; }
+.password-field input { padding-right:58px; }
+.password-toggle { position:absolute; right:0; bottom:23px; padding:6px 0 6px 8px; border:0; background:transparent; color:#5e0a61; font-size:10px; font-weight:700; cursor:pointer; }
+.password-toggle:hover { text-decoration:underline; }
 .login-label-line { display:flex; justify-content:space-between; align-items:center; gap:12px; }
 .login-label-line button,.login-register button { padding:0; border:0; background:none; color:#5e0a61; font-size:10px; }
 .login-label-line button:hover,.login-register button:hover { text-decoration:underline; }
 .login-submit { display:flex; justify-content:space-between; align-items:center; margin-top:4px; padding:13px 17px; border:0; border-radius:25px; background:#5e0a61; color:#fff; font-size:11px; font-weight:700; transition:transform .25s,background .25s; }
 .login-submit span { font-size:20px; font-weight:400; line-height:.5; }
 .login-submit:hover { transform:translateY(-2px); background:#480048; color:#fff; }
+.login-demo { display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:12px; padding:12px 17px; border:1px solid rgba(94,10,97,.35); border-radius:25px; background:transparent; color:#5e0a61; font-size:11px; font-weight:700; cursor:pointer; transition:background .2s,color .2s; }
+.login-demo:hover { background:#f5edf4; color:#480048; }
+.login-demo span { font-size:18px; font-weight:400; }
 .login-divider { display:flex; align-items:center; gap:12px; margin:27px 0 16px; color:#746a6f; font-size:9px; text-transform:uppercase; letter-spacing:.12em; }
 .login-divider::before,.login-divider::after { content:''; height:1px; flex:1; background:rgba(72,0,72,.2); }
 .login-socials { display:flex; justify-content:center; gap:10px; }

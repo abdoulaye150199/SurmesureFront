@@ -77,6 +77,7 @@ export class App implements AfterViewInit, OnDestroy {
   dashboardLoading = false;
   dashboardError = '';
   loggingOut = false;
+  demoMode = false;
   clientOrders: DashboardOrder[] = [];
   clientMeasurements: DashboardMeasurement[] = [];
   clientAppointments: DashboardAppointment[] = [];
@@ -332,6 +333,11 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   async loadDashboard(role: 'client' | 'stylist'): Promise<void> {
+    if (this.demoMode) {
+      this.dashboardLoading = false;
+      this.dashboardError = '';
+      return;
+    }
     this.dashboardLoading = true;
     this.dashboardError = '';
     try {
@@ -402,7 +408,19 @@ export class App implements AfterViewInit, OnDestroy {
         ...(this.latestClientMeasurement?.measurements ?? {}),
         [this.editingMeasurement.key]: Number(this.measurementDraft),
       };
-      const saved = await this.dashboard.saveClientMeasurements(stylistId, values);
+      const saved = this.demoMode
+        ? {
+            id: this.latestClientMeasurement?.id ?? 'demo-measurement-client',
+            stylistId,
+            clientId: this.authenticatedUser?.id ?? 'demo-client-id',
+            clientName: `${this.authenticatedUser?.firstName ?? 'Fatou'} ${this.authenticatedUser?.lastName ?? 'Ndiaye'}`,
+            clientPhone: this.authenticatedUser?.phone ?? '+221 77 000 00 01',
+            measurements: values,
+            notes: 'Profil de mensurations de démonstration',
+            createdAt: this.latestClientMeasurement?.createdAt ?? new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }
+        : await this.dashboard.saveClientMeasurements(stylistId, values);
       this.clientMeasurements = [saved, ...this.clientMeasurements.filter(item => item.id !== saved.id)];
       this.showToast(`${this.editingMeasurement.label} mise à jour`);
       this.closeMeasurementEditor();
@@ -426,7 +444,9 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.updatingOrderId = order.id;
     try {
-      const updated = await this.dashboard.updateOrderStatus(order.id, nextStatus);
+      const updated = this.demoMode
+        ? { ...order, status: nextStatus, updatedAt: new Date().toISOString() }
+        : await this.dashboard.updateOrderStatus(order.id, nextStatus);
       this.stylistOrders = this.stylistOrders.map(item => item.id === updated.id ? updated : item);
       this.showToast(`Commande passée au statut « ${this.orderStatusLabel(nextStatus)} »`);
     } catch {
@@ -515,6 +535,13 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   async openWorkspace(role: AppAccountRole): Promise<void> {
+    if (this.demoMode && (role === 'client' || role === 'stylist')) {
+      this.workspaceRole = role;
+      this.activeView = role;
+      this.menuOpen = false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (!this.auth.isAuthenticated || this.auth.appRole !== role) {
       this.openLogin(role);
       const label = role === 'admin' ? 'Super Admin' : role === 'stylist' ? 'styliste' : 'client';
@@ -571,6 +598,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   openLogin(role: AppAccountRole = this.loginRole): void {
+    this.demoMode = false;
     this.loginRole = role;
     this.loginOpen = true;
     this.menuOpen = false;
@@ -594,6 +622,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   onLoggedIn(user: AuthUser): void {
+    this.demoMode = false;
     const role: AppAccountRole = user.role === 'ADMIN' ? 'admin' : user.role === 'STYLIST' ? 'stylist' : 'client';
     const destination = role === 'client' ? this.pendingAuthView : null;
     this.pendingAuthView = null;
@@ -607,6 +636,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   onAccountCreated(user: AuthUser): void {
+    this.demoMode = false;
     const role: 'client' | 'stylist' = user.role === 'STYLIST' ? 'stylist' : 'client';
     const destination = role === 'client' ? this.pendingAuthView : null;
     this.pendingAuthView = null;
@@ -625,11 +655,13 @@ export class App implements AfterViewInit, OnDestroy {
     if (this.loggingOut) return;
     this.loggingOut = true;
     try {
-      await this.auth.logout();
+      if (this.demoMode) this.auth.clearSession();
+      else await this.auth.logout();
     } catch {
       this.auth.clearSession();
     } finally {
       this.authenticatedUser = null;
+      this.demoMode = false;
       this.workspaceRole = 'client';
       this.pendingAuthView = null;
       this.clientOrders = [];
@@ -643,6 +675,78 @@ export class App implements AfterViewInit, OnDestroy {
       this.showToast('Vous êtes déconnecté.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  }
+
+  startDemo(role: 'client' | 'stylist'): void {
+    const now = new Date();
+    const iso = (daysFromNow: number): string => new Date(now.getTime() + daysFromNow * 86_400_000).toISOString();
+    const clientId = 'demo-client-fatou';
+    const stylistId = 'demo-stylist-awa';
+    const clientUser: AuthUser = {
+      id: clientId, role: 'CLIENT', firstName: 'Fatou', lastName: 'Ndiaye',
+      email: 'fatou.demo@surmesure.sn', phone: '+221 77 000 00 01',
+      profileImage: '/assets/stylist-awa.png', isActive: true,
+    };
+    const stylistUser: AuthUser = {
+      id: stylistId, role: 'STYLIST', firstName: 'Awa', lastName: 'Diop',
+      email: 'awa.demo@surmesure.sn', phone: '+221 77 000 00 02',
+      profileImage: '/assets/stylist-awa.png', isActive: true,
+    };
+    const demoStylist: DashboardStylist = {
+      id: stylistId, userId: stylistId, businessName: 'Atelier Awa',
+      about: 'Créations de cérémonie et savoir-faire traditionnel revisité.',
+      specialties: ['Cérémonie', 'Traditionnel'], rating: 4.9,
+      user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' },
+    };
+    const demoCatalog: DashboardCatalogItem[] = [
+      { id: 'demo-piece-robe', stylistId, title: 'Robe Ndar', description: 'Robe de cérémonie sur mesure', imageUrl: '/assets/look-2.png', price: 89000, currency: 'FCFA', availableColors: ['Prune', 'Ivoire'], active: true, createdAt: iso(-14), updatedAt: iso(-2) },
+      { id: 'demo-piece-boubou', stylistId, title: 'Boubou Héritage', description: 'Boubou traditionnel revisité', imageUrl: '/assets/look-1.png', price: 115000, currency: 'FCFA', availableColors: ['Sable', 'Or'], active: true, createdAt: iso(-10), updatedAt: iso(-1) },
+      { id: 'demo-piece-ensemble', stylistId, title: 'Ensemble Kër', description: 'Ensemble deux pièces', imageUrl: '/assets/look-3.png', price: 74000, currency: 'FCFA', availableColors: ['Rose', 'Noir'], active: true, createdAt: iso(-6), updatedAt: iso(-1) },
+    ];
+    const demoMeasurement: DashboardMeasurement = {
+      id: 'demo-measurement-fatou', stylistId, clientId,
+      clientName: 'Fatou Ndiaye', clientPhone: clientUser.phone,
+      measurements: { poitrine: 92, epaules: 38, cou: 34, tourBras: 29, taille: 74, hanches: 101, longueurRobe: 142, entrejambe: 78, hauteur: 168, longueurManche: 59 },
+      notes: 'Mesures prises à l’atelier · profil démo', createdAt: iso(-18), updatedAt: iso(-2),
+    };
+    const demoOrder: DashboardOrder = {
+      id: 'demo-order-fatou-001', stylistId, clientId, clientName: 'Fatou Ndiaye', clientPhone: clientUser.phone,
+      description: 'Robe Ndar', status: 'inProgress', totalPrice: 89000, currency: 'FCFA',
+      notes: 'Essayage prévu après la finition des manches.', createdAt: iso(-8), updatedAt: iso(-1),
+      stylist: { businessName: 'Atelier Awa' },
+    };
+    const stylistOrders: DashboardOrder[] = [
+      demoOrder,
+      { id: 'demo-order-awa-002', stylistId, clientId: 'demo-client-mariama', clientName: 'Mariama Fall', clientPhone: '+221 77 000 00 03', description: 'Boubou Héritage', status: 'pending', totalPrice: 115000, currency: 'FCFA', notes: 'Tissu fourni par la cliente.', createdAt: iso(-2), updatedAt: iso(-1), stylist: { businessName: 'Atelier Awa' } },
+    ];
+    const demoAppointment: DashboardAppointment = {
+      id: 'demo-appointment-001', clientId, stylistId, service: 'Essayage · Robe Ndar', startsAt: iso(3), status: 'confirmed',
+      notes: 'Premier essayage à l’atelier.',
+      stylist: { businessName: 'Atelier Awa', user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' } },
+      client: { firstName: 'Fatou', lastName: 'Ndiaye', phone: clientUser.phone, profileImage: clientUser.profileImage },
+    };
+
+    this.auth.clearSession();
+    this.demoMode = true;
+    this.authenticatedUser = role === 'client' ? clientUser : stylistUser;
+    this.workspaceRole = role;
+    this.loginOpen = false;
+    this.dashboardError = '';
+    this.dashboardLoading = false;
+    this.clientOrders = [demoOrder];
+    this.clientMeasurements = [demoMeasurement];
+    this.clientAppointments = [demoAppointment];
+    this.clientCatalog = demoCatalog;
+    this.clientStylists = [demoStylist];
+    this.stylistOrders = stylistOrders;
+    this.stylistMeasurements = [demoMeasurement];
+    this.stylistAppointments = [demoAppointment];
+    this.stylistCatalog = demoCatalog;
+    this.stylistProfile = demoStylist;
+    this.activeView = role;
+    this.menuOpen = false;
+    this.showToast(`Mode démo ${role === 'client' ? 'client' : 'styliste'} : les modifications restent locales.`);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   addToCart(item: Creation): void {

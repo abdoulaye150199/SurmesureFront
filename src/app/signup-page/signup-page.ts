@@ -27,6 +27,8 @@ export class SignupPageComponent {
   email = '';
   password = '';
   passwordConfirmation = '';
+  showPassword = false;
+  showPasswordConfirmation = false;
   error = '';
   submitting = false;
 

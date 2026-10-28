@@ -17,6 +17,7 @@ export class LoginComponent {
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly signupRequested = new EventEmitter<SignupRole>();
   @Output() readonly loggedIn = new EventEmitter<AuthUser>();
+  @Output() readonly demoRequested = new EventEmitter<SignupRole>();
   @Input() set initialRole(value: AccountRole) {
     this.accountRole = value;
   }
@@ -24,6 +25,7 @@ export class LoginComponent {
   accountRole: AccountRole = 'client';
   loginEmail = '';
   loginPassword = '';
+  showPassword = false;
   error = '';
   submitting = false;
 
@@ -35,6 +37,10 @@ export class LoginComponent {
 
   requestSignup(): void {
     if (this.accountRole !== 'admin') this.signupRequested.emit(this.accountRole);
+  }
+
+  requestDemo(): void {
+    if (this.accountRole !== 'admin') this.demoRequested.emit(this.accountRole);
   }
 
   close(): void {
