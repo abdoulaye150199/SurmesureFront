@@ -47,6 +47,7 @@
 .login-register button { font-weight:700; }
 .login-account-tabs { display:flex; width:fit-content; margin:0 0 25px; padding:4px; border:1px solid #e5dbd7; border-radius:18px; background:#faf4f1; }
 .login-account-tabs button { padding:8px 15px; border:0; border-radius:14px; background:transparent; color:#8b7d84; font-size:10px; cursor:pointer; }
+.login-account-tabs button { padding-right:12px; padding-left:12px; }
 .login-account-tabs button.active { background:#5e0a61; color:#fff; box-shadow:0 4px 10px rgba(94,10,97,.18); }
 .login-admin-note { margin:24px 0 0; color:#8b7d84; text-align:center; font-size:10px; letter-spacing:.03em; }
 .signup-form { gap:0; }

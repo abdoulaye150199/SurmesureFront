@@ -136,7 +136,7 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   roleLabel(role: AdminUser['role']): string {
-    return ({ CLIENT: 'Client', STYLIST: 'Styliste', ADMIN: 'Administrateur' } as const)[role];
+    return ({ CLIENT: 'Client', STYLIST: 'Styliste', EMPLOYEE: 'Employé', ADMIN: 'Administrateur' } as const)[role];
   }
 
   statusLabel(status: DashboardOrderStatus): string {

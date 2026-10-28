@@ -3,8 +3,8 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getApiUrl } from '../api-url';
 
-export type AppAccountRole = 'client' | 'stylist' | 'admin';
-export type ApiAccountRole = 'CLIENT' | 'STYLIST' | 'ADMIN';
+export type AppAccountRole = 'client' | 'stylist' | 'employee' | 'admin';
+export type ApiAccountRole = 'CLIENT' | 'STYLIST' | 'EMPLOYEE' | 'ADMIN';
 
 export interface AuthUser {
   id: string;
@@ -55,6 +55,7 @@ export class AuthService {
   get appRole(): AppAccountRole | null {
     if (this.user?.role === 'CLIENT') return 'client';
     if (this.user?.role === 'STYLIST') return 'stylist';
+    if (this.user?.role === 'EMPLOYEE') return 'employee';
     if (this.user?.role === 'ADMIN') return 'admin';
     return null;
   }
@@ -64,11 +65,13 @@ export class AuthService {
       ? '/auth/admin/login'
       : role === 'stylist'
         ? '/auth/stylist/login'
-        : '/auth/client/login';
+        : role === 'employee'
+          ? '/auth/employee/login'
+          : '/auth/client/login';
     return this.authenticate(endpoint, { email, password });
   }
 
-  async register(role: Exclude<AppAccountRole, 'admin'>, payload: RegisterPayload): Promise<AuthUser> {
+  async register(role: Exclude<AppAccountRole, 'admin' | 'employee'>, payload: RegisterPayload): Promise<AuthUser> {
     const endpoint = role === 'stylist' ? '/auth/stylist/signup' : '/auth/register';
     return this.authenticate(endpoint, payload);
   }

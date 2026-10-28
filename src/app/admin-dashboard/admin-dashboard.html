@@ -75,7 +75,7 @@
       <section class="admin-panel admin-users" id="admin-users">
         <div class="panel-heading">
           <div><span>Gestion des accès</span><h2>Utilisateurs récents</h2></div>
-          <select [(ngModel)]="roleFilter" aria-label="Filtrer les utilisateurs par rôle"><option value="ALL">Tous les rôles</option><option value="CLIENT">Clients</option><option value="STYLIST">Stylistes</option><option value="ADMIN">Administrateurs</option></select>
+          <select [(ngModel)]="roleFilter" aria-label="Filtrer les utilisateurs par rôle"><option value="ALL">Tous les rôles</option><option value="CLIENT">Clients</option><option value="STYLIST">Stylistes</option><option value="EMPLOYEE">Employés</option><option value="ADMIN">Administrateurs</option></select>
         </div>
         <div class="user-table-head"><span>Utilisateur</span><span>Rôle</span><span>Inscription</span><span>Accès</span></div>
         <article class="admin-user-row" *ngFor="let account of filteredUsers">

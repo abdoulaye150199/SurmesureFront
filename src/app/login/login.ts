@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { AuthService, AuthUser } from '../auth/auth.service';
+import { AppAccountRole, AuthService, AuthUser } from '../auth/auth.service';
 
-export type AccountRole = 'client' | 'stylist' | 'admin';
-export type SignupRole = Exclude<AccountRole, 'admin'>;
+export type AccountRole = AppAccountRole;
+export type SignupRole = Exclude<AccountRole, 'admin' | 'employee'>;
 
 @Component({
   selector: 'app-login',
@@ -36,11 +36,11 @@ export class LoginComponent {
   }
 
   requestSignup(): void {
-    if (this.accountRole !== 'admin') this.signupRequested.emit(this.accountRole);
+    if (this.accountRole === 'client' || this.accountRole === 'stylist') this.signupRequested.emit(this.accountRole);
   }
 
   requestDemo(): void {
-    if (this.accountRole !== 'admin') this.demoRequested.emit(this.accountRole);
+    if (this.accountRole === 'client' || this.accountRole === 'stylist') this.demoRequested.emit(this.accountRole);
   }
 
   close(): void {

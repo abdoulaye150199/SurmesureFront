@@ -7,16 +7,23 @@ import { AppAccountRole, AuthService, AuthUser } from './auth/auth.service';
 import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard';
 import {
   DashboardAppointment,
+  DashboardAppointmentStatus,
   DashboardCatalogItem,
   DashboardMeasurement,
   DashboardOrder,
   DashboardOrderStatus,
   DashboardService,
   DashboardStylist,
+  DashboardPersonnel,
+  EmployeeWorkspaceContext,
+  CatalogItemInput,
+  StylistProfileUpdate,
 } from './dashboard/dashboard.service';
 
 type Collection = 'Tout' | 'Cérémonie' | 'Boubous' | 'Ensembles';
-type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'admin' | 'signup';
+type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'employee' | 'admin' | 'signup';
+const CART_STORAGE_KEY = 'surmesure.selection';
+const FAVORITES_STORAGE_KEY = 'surmesure.favorites';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -50,11 +57,22 @@ interface MeasurementDefinition {
   group: 'upper' | 'lower';
 }
 
+interface StylistClientRecord {
+  key: string;
+  name: string;
+  phone: string;
+  measurements: DashboardMeasurement[];
+  orders: DashboardOrder[];
+  appointments: DashboardAppointment[];
+}
+
+type StylistEditor = 'catalog' | 'profile' | null;
+
 @Component({
   selector: 'app-root',
   imports: [CommonModule, FormsModule, LoginComponent, SignupPageComponent, AdminDashboardComponent],
   templateUrl: './app.html',
-  styleUrl: './app.scss'
+  styleUrls: ['./app.scss', './stylist-dashboard.scss']
 })
 export class App implements AfterViewInit, OnDestroy {
   readonly filters: Collection[] = ['Tout', 'Cérémonie', 'Boubous', 'Ensembles'];
@@ -68,6 +86,8 @@ export class App implements AfterViewInit, OnDestroy {
   workspaceRole: AppAccountRole = 'stylist';
   installAvailable = false;
   selectedCreations: Creation[] = [];
+  favoriteKeys: string[] = [];
+  showFavoritesOnly = false;
   headerScrolled = false;
   headerHidden = false;
   toast = '';
@@ -88,16 +108,44 @@ export class App implements AfterViewInit, OnDestroy {
   stylistAppointments: DashboardAppointment[] = [];
   stylistCatalog: DashboardCatalogItem[] = [];
   stylistProfile: DashboardStylist | null = null;
+  stylistPersonnel: DashboardPersonnel[] = [];
+  employeeContext: EmployeeWorkspaceContext | null = null;
+  employeeAccountEditorOpen = false;
+  employeeAccountSaving = false;
+  employeePasswordVisible = false;
+  employeeAccountDraft = { firstName: '', lastName: '', email: '', phone: '', password: '', specialization: 'Couture' };
+  employeeClientName = '';
+  employeeClientPhone = '';
+  employeeMeasurementNotes = '';
+  employeeMeasurementDraft: Record<string, number | null> = {};
+  employeeMeasurementSaving = false;
+  stylistClientSearch = '';
+  showStylistClientForm = false;
   editingMeasurement: MeasurementDefinition | null = null;
   measurementDraft: number | null = null;
   measurementSaving = false;
   updatingOrderId: string | null = null;
+  updatingAppointmentId: string | null = null;
+  showAllStylistOrders = false;
+  stylistEditor: StylistEditor = null;
+  editingCatalogId: string | null = null;
+  editorSaving = false;
+  stylistMeasurementEditor: DashboardMeasurement | null = null;
+  stylistMeasurementDraft: Record<string, number> = {};
+  stylistMeasurementNotes = '';
+  stylistMeasurementSaving = false;
+  catalogDraft = { title: '', description: '', imageUrl: '', price: null as number | null, colors: '' };
+  profileDraft = { businessName: '', about: '', specialties: '' };
   private revealObserver?: IntersectionObserver;
   private scrollStopTimer?: ReturnType<typeof setTimeout>;
   private installPrompt?: BeforeInstallPromptEvent;
   private pendingAuthView: 'measure' | null = null;
 
   constructor(private readonly auth: AuthService, private readonly dashboard: DashboardService) {
+    this.selectedCreations = this.readStoredArray<Creation>(CART_STORAGE_KEY)
+      .filter((item): item is Creation => !!item && typeof item.name === 'string' && typeof item.stylist === 'string');
+    this.favoriteKeys = this.readStoredArray<string>(FAVORITES_STORAGE_KEY)
+      .filter((key): key is string => typeof key === 'string');
     this.authenticatedUser = this.auth.user;
     const appRole = this.auth.appRole;
     if (appRole) this.workspaceRole = appRole;
@@ -166,6 +214,32 @@ export class App implements AfterViewInit, OnDestroy {
 
   get cartCount(): number {
     return this.selectedCreations.length;
+  }
+
+  get favoritesCount(): number {
+    return this.favoriteKeys.length;
+  }
+
+  get visibleClientInspirations(): Array<Creation | DashboardCatalogItem> {
+    const available = [...this.creations, ...this.clientCatalog];
+    const items = this.showFavoritesOnly ? available.filter(item => this.isFavorite(item)) : available;
+    return this.showFavoritesOnly ? items : items.slice(0, 3);
+  }
+
+  inspirationName(item: Creation | DashboardCatalogItem): string {
+    return 'title' in item ? item.title : item.name;
+  }
+
+  inspirationImage(item: Creation | DashboardCatalogItem): string {
+    return 'imageUrl' in item ? item.imageUrl : item.image;
+  }
+
+  inspirationStylist(item: Creation | DashboardCatalogItem): string {
+    return 'title' in item ? this.catalogStylistName(item) : item.stylist;
+  }
+
+  inspirationCurrency(item: Creation | DashboardCatalogItem): string {
+    return 'currency' in item ? item.currency : 'FCFA';
   }
 
   get defaultWorkspaceRole(): AppAccountRole {
@@ -241,6 +315,84 @@ export class App implements AfterViewInit, OnDestroy {
 
   get stylistActiveOrderCount(): number {
     return this.stylistOrders.filter(order => order.status === 'pending' || order.status === 'inProgress').length;
+  }
+
+  get visibleStylistOrders(): DashboardOrder[] {
+    return this.showAllStylistOrders ? this.stylistOrders : this.stylistOrders.slice(0, 4);
+  }
+
+  get stylistClientContacts(): Array<{ name: string; phone: string }> {
+    const contacts = [
+      ...this.stylistOrders.map(order => ({ name: order.clientName, phone: order.clientPhone })),
+      ...this.stylistAppointments.flatMap(appointment => appointment.client ? [{
+        name: `${appointment.client.firstName} ${appointment.client.lastName}`,
+        phone: appointment.client.phone,
+      }] : []),
+      ...this.stylistMeasurements.map(measurement => ({ name: measurement.clientName, phone: measurement.clientPhone })),
+    ];
+    return [...new Map(contacts.filter(contact => contact.phone).map(contact => [contact.phone, contact])).values()];
+  }
+
+  get stylistClientRecords(): StylistClientRecord[] {
+    const records = new Map<string, StylistClientRecord>();
+    const getRecord = (name: string, phone: string): StylistClientRecord | null => {
+      const key = phone.replace(/[^+\d]/g, '');
+      if (!key) return null;
+      const existing = records.get(key);
+      if (existing) return existing;
+      const record: StylistClientRecord = { key, name, phone, measurements: [], orders: [], appointments: [] };
+      records.set(key, record);
+      return record;
+    };
+    this.stylistMeasurements.forEach(item => getRecord(item.clientName, item.clientPhone)?.measurements.push(item));
+    this.stylistOrders.forEach(item => getRecord(item.clientName, item.clientPhone)?.orders.push(item));
+    this.stylistAppointments.forEach(item => {
+      const client = item.client;
+      if (client?.phone) getRecord(`${client.firstName} ${client.lastName}`, client.phone)?.appointments.push(item);
+    });
+    return [...records.values()]
+      .filter(record => {
+        const query = this.stylistClientSearch.trim().toLocaleLowerCase('fr');
+        return !query || record.name.toLocaleLowerCase('fr').includes(query) || record.phone.includes(query);
+      })
+      .sort((left, right) => {
+        const leftDate = Math.max(...[...left.measurements.map(item => item.updatedAt), ...left.orders.map(item => item.updatedAt), ...left.appointments.map(item => item.startsAt)].map(value => new Date(value).getTime()), 0);
+        const rightDate = Math.max(...[...right.measurements.map(item => item.updatedAt), ...right.orders.map(item => item.updatedAt), ...right.appointments.map(item => item.startsAt)].map(value => new Date(value).getTime()), 0);
+        return rightDate - leftDate;
+      });
+  }
+
+  get stylistOrderActivity(): Array<{ label: string; count: number }> {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, index) => {
+      const month = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1);
+      const count = this.stylistOrders.filter(order => {
+        const created = new Date(order.createdAt);
+        return created.getFullYear() === month.getFullYear() && created.getMonth() === month.getMonth();
+      }).length;
+      return { label: new Intl.DateTimeFormat('fr-FR', { month: 'short' }).format(month), count };
+    });
+  }
+
+  get stylistRevenueActivity(): Array<{ label: string; amount: number }> {
+    const now = new Date();
+    return Array.from({ length: 6 }, (_, index) => {
+      const month = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1);
+      const amount = this.stylistOrders
+        .filter(order => {
+          const created = new Date(order.createdAt);
+          return created.getFullYear() === month.getFullYear()
+            && created.getMonth() === month.getMonth()
+            && order.status !== 'cancelled';
+        })
+        .reduce((total, order) => total + Number(order.totalPrice), 0);
+      return { label: new Intl.DateTimeFormat('fr-FR', { month: 'short' }).format(month), amount };
+    });
+  }
+
+  revenueActivityHeight(amount: number): number {
+    const max = Math.max(1, ...this.stylistRevenueActivity.map(item => item.amount));
+    return Math.max(4, Math.round(amount / max * 100));
   }
 
   get stylistRevenue(): number {
@@ -332,7 +484,7 @@ export class App implements AfterViewInit, OnDestroy {
     window.setTimeout(() => this.toast = '', 2600);
   }
 
-  async loadDashboard(role: 'client' | 'stylist'): Promise<void> {
+  async loadDashboard(role: 'client' | 'stylist' | 'employee'): Promise<void> {
     if (this.demoMode) {
       this.dashboardLoading = false;
       this.dashboardError = '';
@@ -348,6 +500,10 @@ export class App implements AfterViewInit, OnDestroy {
         this.clientAppointments = snapshot.appointments;
         this.clientCatalog = snapshot.catalog;
         this.clientStylists = snapshot.stylists;
+      } else if (this.authenticatedUser && role === 'employee') {
+        const snapshot = await this.dashboard.loadEmployeeDashboard();
+        this.employeeContext = snapshot.employee;
+        this.stylistMeasurements = snapshot.measurements;
       } else if (this.authenticatedUser) {
         const snapshot = await this.dashboard.loadStylistDashboard(this.authenticatedUser.id);
         this.stylistOrders = snapshot.orders;
@@ -355,6 +511,10 @@ export class App implements AfterViewInit, OnDestroy {
         this.stylistAppointments = snapshot.appointments;
         this.stylistCatalog = snapshot.catalog;
         this.stylistProfile = snapshot.profile;
+        this.employeeContext = null;
+        this.stylistPersonnel = snapshot.profile
+          ? await this.dashboard.listStylistPersonnel(snapshot.profile.id)
+          : [];
       }
     } catch {
       this.dashboardError = 'Impossible de charger les données. Vérifiez que l’API est démarrée.';
@@ -364,7 +524,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   refreshDashboard(): void {
-    const role = this.activeView === 'stylist' ? 'stylist' : 'client';
+    const role = this.activeView === 'stylist' ? 'stylist' : this.activeView === 'employee' ? 'employee' : 'client';
     void this.loadDashboard(role);
   }
 
@@ -474,6 +634,274 @@ export class App implements AfterViewInit, OnDestroy {
       ?? this.creations[index % this.creations.length].image;
   }
 
+  orderActivityHeight(count: number): number {
+    const max = Math.max(1, ...this.stylistOrderActivity.map(item => item.count));
+    return Math.max(8, Math.round((count / max) * 100));
+  }
+
+  openStylistEditor(type: Exclude<StylistEditor, null>, item?: DashboardCatalogItem): void {
+    this.stylistEditor = type;
+    if (type === 'catalog') {
+      this.editingCatalogId = item?.id ?? null;
+      this.catalogDraft = {
+        title: item?.title ?? '',
+        description: item?.description ?? '',
+        imageUrl: item?.imageUrl ?? '',
+        price: item ? this.price(item.price) : null,
+        colors: item?.availableColors.join(', ') ?? '',
+      };
+    } else {
+      this.profileDraft = {
+        businessName: this.stylistProfile?.businessName ?? '',
+        about: this.stylistProfile?.about ?? '',
+        specialties: this.stylistProfile?.specialties.join(', ') ?? '',
+      };
+    }
+  }
+
+  closeStylistEditor(): void {
+    if (!this.editorSaving) this.stylistEditor = null;
+  }
+
+  async saveStylistEditor(): Promise<void> {
+    if (!this.stylistEditor) return;
+    this.editorSaving = true;
+    try {
+      if (this.stylistEditor === 'catalog') {
+        const item: CatalogItemInput = {
+          title: this.catalogDraft.title.trim(),
+          description: this.catalogDraft.description.trim(),
+          imageUrl: this.catalogDraft.imageUrl.trim(),
+          price: Number(this.catalogDraft.price),
+          currency: 'XOF',
+          availableColors: this.catalogDraft.colors.split(',').map(color => color.trim()).filter(Boolean),
+        };
+        const saved = this.demoMode
+          ? {
+              id: this.editingCatalogId ?? `demo-catalog-${Date.now()}`,
+              stylistId: this.stylistProfile?.id ?? 'demo-stylist-awa',
+              ...item,
+              active: true,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            }
+          : this.editingCatalogId
+            ? await this.dashboard.updateCatalogItem(this.editingCatalogId, item)
+            : await this.dashboard.createCatalogItem(item);
+        this.stylistCatalog = this.editingCatalogId
+          ? this.stylistCatalog.map(existing => existing.id === saved.id ? saved : existing)
+          : [saved, ...this.stylistCatalog];
+        this.showToast(this.editingCatalogId ? 'Création mise à jour' : 'Création publiée dans votre vitrine');
+      } else {
+        const profile: StylistProfileUpdate = {
+          businessName: this.profileDraft.businessName.trim(),
+          about: this.profileDraft.about.trim(),
+          specialties: this.profileDraft.specialties.split(',').map(value => value.trim()).filter(Boolean),
+        };
+        const saved = this.demoMode
+          ? { ...(this.stylistProfile as DashboardStylist), ...profile }
+          : await this.dashboard.updateStylistProfile(profile);
+        this.stylistProfile = saved;
+        this.showToast('Profil de l’atelier mis à jour');
+      }
+      this.stylistEditor = null;
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Enregistrement impossible. Réessayez.');
+    } finally {
+      this.editorSaving = false;
+    }
+  }
+
+  async deactivateCatalogItem(item: DashboardCatalogItem): Promise<void> {
+    if (!window.confirm(`Retirer « ${item.title} » de votre vitrine ?`)) return;
+    try {
+      if (!this.demoMode) await this.dashboard.deactivateCatalogItem(item.id);
+      this.stylistCatalog = this.stylistCatalog.filter(existing => existing.id !== item.id);
+      this.showToast('Création retirée de votre vitrine');
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Suppression impossible. Réessayez.');
+    }
+  }
+
+  async changeAppointmentStatus(appointment: DashboardAppointment, status: DashboardAppointmentStatus): Promise<void> {
+    this.updatingAppointmentId = appointment.id;
+    try {
+      const updated = this.demoMode
+        ? { ...appointment, status }
+        : await this.dashboard.updateAppointmentStatus(appointment.id, status);
+      this.stylistAppointments = this.stylistAppointments.map(item => item.id === updated.id ? updated : item);
+      this.showToast(`Rendez-vous ${status === 'confirmed' ? 'confirmé' : status === 'cancelled' ? 'annulé' : 'terminé'}`);
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Mise à jour du rendez-vous impossible');
+    } finally {
+      this.updatingAppointmentId = null;
+    }
+  }
+
+  async copyMeasurement(measurement: DashboardMeasurement): Promise<void> {
+    const summary = Object.entries(measurement.measurements).map(([key, value]) => `${key}: ${value} cm`).join('\n');
+    try {
+      await navigator.clipboard.writeText(`${measurement.clientName}\n${summary}`);
+      this.showToast('Mensurations copiées');
+    } catch {
+      this.showToast('Copie indisponible sur ce navigateur');
+    }
+  }
+
+  async copyPhone(phone: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(phone);
+      this.showToast('Numéro copié');
+    } catch {
+      this.showToast(`Numéro : ${phone}`);
+    }
+  }
+
+  openEmployeeAccountEditor(): void {
+    if (this.demoMode) {
+      this.showToast('Créez les comptes employés depuis un atelier connecté.');
+      return;
+    }
+    this.employeeAccountDraft = { firstName: '', lastName: '', email: '', phone: '', password: '', specialization: 'Couture' };
+    this.employeePasswordVisible = false;
+    this.employeeAccountEditorOpen = true;
+  }
+
+  async saveEmployeeAccount(): Promise<void> {
+    const stylistId = this.stylistProfile?.id;
+    if (!stylistId) {
+      this.showToast('Le profil de l’atelier est introuvable. Actualisez la page.');
+      return;
+    }
+    this.employeeAccountSaving = true;
+    try {
+      const employee = await this.dashboard.createEmployeeAccount(stylistId, this.employeeAccountDraft);
+      this.stylistPersonnel = [employee, ...this.stylistPersonnel];
+      this.employeeAccountEditorOpen = false;
+      this.showToast('Compte créé. Remettez les identifiants à votre employé en privé.');
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Création du compte impossible.');
+    } finally {
+      this.employeeAccountSaving = false;
+    }
+  }
+
+  async toggleEmployeeAccess(employee: DashboardPersonnel): Promise<void> {
+    const stylistId = this.stylistProfile?.id;
+    if (!stylistId || !employee.userId) {
+      this.showToast('Cet employé n’a pas encore de compte de connexion.');
+      return;
+    }
+    try {
+      const result = await this.dashboard.setEmployeeAccess(stylistId, employee.id, !employee.active);
+      this.stylistPersonnel = this.stylistPersonnel.map(item => item.id === employee.id
+        ? { ...item, active: result.active, user: item.user ? { ...item.user, active: result.active } : item.user }
+        : item);
+      this.showToast(result.active ? 'Accès employé réactivé' : 'Accès employé désactivé');
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Modification de l’accès impossible.');
+    }
+  }
+
+  async saveEmployeeMeasurement(): Promise<void> {
+    const measurements = this.measurementDraftValues(this.employeeMeasurementDraft);
+    if (this.employeeClientName.trim().length < 2 || !this.employeeClientPhone.trim() || !Object.keys(measurements).length) {
+      this.showToast('Indiquez le nom, le téléphone et au moins une mensuration.');
+      return;
+    }
+    this.employeeMeasurementSaving = true;
+    try {
+      const record = await this.dashboard.createEmployeeMeasurement({
+        clientName: this.employeeClientName.trim(), clientPhone: this.employeeClientPhone.trim(),
+        measurements, notes: this.employeeMeasurementNotes.trim(),
+      });
+      this.stylistMeasurements = [record, ...this.stylistMeasurements];
+      this.employeeClientName = '';
+      this.employeeClientPhone = '';
+      this.employeeMeasurementNotes = '';
+      this.employeeMeasurementDraft = {};
+      this.showToast('Fiche cliente et mensurations enregistrées.');
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Enregistrement impossible. Vérifiez le numéro de téléphone.');
+    } finally {
+      this.employeeMeasurementSaving = false;
+    }
+  }
+
+  async saveStylistClientRecord(): Promise<void> {
+    const stylistId = this.stylistProfile?.id;
+    const measurements = this.measurementDraftValues(this.employeeMeasurementDraft);
+    if (!stylistId || this.employeeClientName.trim().length < 2 || !this.employeeClientPhone.trim() || !Object.keys(measurements).length) {
+      this.showToast('Indiquez le nom, le téléphone et au moins une mensuration.');
+      return;
+    }
+    this.employeeMeasurementSaving = true;
+    try {
+      const now = new Date().toISOString();
+      const record = this.demoMode
+        ? {
+            id: `demo-measurement-${Date.now()}`, stylistId, clientId: null, clientName: this.employeeClientName.trim(),
+            clientPhone: this.employeeClientPhone.trim(), measurements, notes: this.employeeMeasurementNotes.trim(), createdAt: now, updatedAt: now,
+          }
+        : await this.dashboard.createStylistMeasurement(stylistId, {
+            clientName: this.employeeClientName.trim(), clientPhone: this.employeeClientPhone.trim(),
+            measurements, notes: this.employeeMeasurementNotes.trim(),
+          });
+      this.stylistMeasurements = [record, ...this.stylistMeasurements];
+      this.employeeClientName = '';
+      this.employeeClientPhone = '';
+      this.employeeMeasurementNotes = '';
+      this.employeeMeasurementDraft = {};
+      this.showStylistClientForm = false;
+      this.showToast('Cliente et mensurations enregistrées.');
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Enregistrement impossible. Vérifiez le numéro de téléphone.');
+    } finally {
+      this.employeeMeasurementSaving = false;
+    }
+  }
+
+  private measurementDraftValues(draft: Record<string, number | null>): Record<string, number> {
+    return Object.fromEntries(
+      Object.entries(draft)
+        .filter((entry): entry is [string, number] => entry[1] !== null && Number.isFinite(Number(entry[1])) && Number(entry[1]) > 0)
+        .map(([key, value]) => [key, Number(value)]),
+    );
+  }
+
+  editStylistMeasurement(measurement: DashboardMeasurement): void {
+    this.stylistMeasurementEditor = measurement;
+    this.stylistMeasurementDraft = { ...measurement.measurements };
+    this.stylistMeasurementNotes = measurement.notes ?? '';
+  }
+
+  closeStylistMeasurementEditor(): void {
+    if (!this.stylistMeasurementSaving) this.stylistMeasurementEditor = null;
+  }
+
+  async saveStylistMeasurement(): Promise<void> {
+    const current = this.stylistMeasurementEditor;
+    if (!current) return;
+    const validValues = Object.values(this.stylistMeasurementDraft).every(value => Number.isFinite(Number(value)) && Number(value) > 0);
+    if (!validValues) {
+      this.showToast('Toutes les mesures doivent être des nombres positifs');
+      return;
+    }
+    this.stylistMeasurementSaving = true;
+    try {
+      const updated = this.demoMode
+        ? { ...current, measurements: { ...this.stylistMeasurementDraft }, notes: this.stylistMeasurementNotes, updatedAt: new Date().toISOString() }
+        : await this.dashboard.updateStylistMeasurement(current.id, this.stylistMeasurementDraft, this.stylistMeasurementNotes);
+      this.stylistMeasurements = this.stylistMeasurements.map(item => item.id === updated.id ? updated : item);
+      this.stylistMeasurementEditor = null;
+      this.showToast('Mensurations mises à jour');
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Enregistrement des mesures impossible');
+    } finally {
+      this.stylistMeasurementSaving = false;
+    }
+  }
+
   orderStepReached(step: number): boolean {
     const order = this.currentClientOrder;
     if (!order) return false;
@@ -514,6 +942,25 @@ export class App implements AfterViewInit, OnDestroy {
     });
   }
 
+  favoriteKey(item: Creation | DashboardCatalogItem): string {
+    return 'id' in item ? `catalog:${item.id}` : `creation:${item.stylist}:${item.name}`;
+  }
+
+  isFavorite(item: Creation | DashboardCatalogItem): boolean {
+    return this.favoriteKeys.includes(this.favoriteKey(item));
+  }
+
+  toggleFavorite(item: Creation | DashboardCatalogItem): void {
+    const key = this.favoriteKey(item);
+    const alreadyFavorite = this.favoriteKeys.includes(key);
+    this.favoriteKeys = alreadyFavorite
+      ? this.favoriteKeys.filter(favorite => favorite !== key)
+      : [...this.favoriteKeys, key];
+    this.writeStoredArray(FAVORITES_STORAGE_KEY, this.favoriteKeys);
+    const name = 'title' in item ? item.title : item.name;
+    this.showToast(alreadyFavorite ? `${name} retirée de vos favoris` : `${name} ajoutée à vos favoris`);
+  }
+
   scrollTo(id: string): void {
     this.activeView = 'home';
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
@@ -521,7 +968,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   setView(view: AppView): void {
-    if (view === 'client' || view === 'stylist' || view === 'admin') {
+    if (view === 'client' || view === 'stylist' || view === 'employee' || view === 'admin') {
       this.openWorkspace(view);
       return;
     }
@@ -544,7 +991,7 @@ export class App implements AfterViewInit, OnDestroy {
     }
     if (!this.auth.isAuthenticated || this.auth.appRole !== role) {
       this.openLogin(role);
-      const label = role === 'admin' ? 'Super Admin' : role === 'stylist' ? 'styliste' : 'client';
+      const label = role === 'admin' ? 'Super Admin' : role === 'stylist' ? 'styliste' : role === 'employee' ? 'employé' : 'client';
       this.showToast(`Connectez-vous avec votre compte ${label}`);
       return;
     }
@@ -630,7 +1077,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   onLoggedIn(user: AuthUser): void {
     this.demoMode = false;
-    const role: AppAccountRole = user.role === 'ADMIN' ? 'admin' : user.role === 'STYLIST' ? 'stylist' : 'client';
+    const role: AppAccountRole = user.role === 'ADMIN' ? 'admin' : user.role === 'STYLIST' ? 'stylist' : user.role === 'EMPLOYEE' ? 'employee' : 'client';
     const destination = role === 'client' ? this.pendingAuthView : null;
     this.pendingAuthView = null;
     this.authenticatedUser = user;
@@ -676,7 +1123,9 @@ export class App implements AfterViewInit, OnDestroy {
       this.clientAppointments = [];
       this.stylistOrders = [];
       this.stylistMeasurements = [];
+      this.stylistPersonnel = [];
       this.stylistAppointments = [];
+      this.employeeContext = null;
       this.activeView = 'home';
       this.loggingOut = false;
       this.showToast('Vous êtes déconnecté.');
@@ -761,6 +1210,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.toast = `${item.name} est déjà dans votre sélection`;
     } else {
       this.selectedCreations = [...this.selectedCreations, item];
+      this.writeStoredArray(CART_STORAGE_KEY, this.selectedCreations);
       this.toast = `${item.name} ajouté à votre sélection`;
     }
     window.setTimeout(() => this.toast = '', 2600);
@@ -768,6 +1218,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   removeFromCart(item: Creation): void {
     this.selectedCreations = this.selectedCreations.filter(creation => creation.name !== item.name);
+    this.writeStoredArray(CART_STORAGE_KEY, this.selectedCreations);
     this.toast = `${item.name} retiré de votre sélection`;
     window.setTimeout(() => this.toast = '', 2600);
   }
@@ -781,5 +1232,22 @@ export class App implements AfterViewInit, OnDestroy {
     this.toast = 'Bienvenue dans le cercle Sur Mesure';
     this.email = '';
     window.setTimeout(() => this.toast = '', 2600);
+  }
+
+  private readStoredArray<T>(key: string): T[] {
+    try {
+      const value: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
+      return Array.isArray(value) ? value as T[] : [];
+    } catch {
+      return [];
+    }
+  }
+
+  private writeStoredArray<T>(key: string, value: T[]): void {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+      this.showToast('Le stockage local est indisponible sur cet appareil');
+    }
   }
 }

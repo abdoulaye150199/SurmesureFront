@@ -19,11 +19,12 @@
       <div class="login-account-tabs" aria-label="Type de compte">
         <button type="button" [class.active]="accountRole === 'client'" (click)="chooseAccount('client')">Client</button>
         <button type="button" [class.active]="accountRole === 'stylist'" (click)="chooseAccount('stylist')">Styliste</button>
+        <button type="button" [class.active]="accountRole === 'employee'" (click)="chooseAccount('employee')">Employé</button>
       </div>
 
-      <p class="login-kicker">{{ accountRole === 'admin' ? 'Super administration' : accountRole === 'stylist' ? 'Espace styliste' : 'Espace client' }}</p>
+      <p class="login-kicker">{{ accountRole === 'admin' ? 'Super administration' : accountRole === 'stylist' ? 'Espace styliste' : accountRole === 'employee' ? 'Espace atelier' : 'Espace client' }}</p>
       <h2 id="login-title">{{ accountRole === 'admin' ? 'Pilotez' : 'Bienvenue' }}<br><em>{{ accountRole === 'admin' ? 'la plateforme.' : 'chez vous.' }}</em></h2>
-      <p class="login-intro">{{ accountRole === 'admin' ? 'Supervisez les clients, les stylistes, les commandes et toute l’activité.' : accountRole === 'stylist' ? 'Gérez votre atelier, vos créations et vos clientes.' : 'Retrouvez vos créations, vos mesures et vos commandes.' }}</p>
+      <p class="login-intro">{{ accountRole === 'admin' ? 'Supervisez les clients, les stylistes, les commandes et toute l’activité.' : accountRole === 'stylist' ? 'Gérez votre atelier, vos créations et vos clientes.' : accountRole === 'employee' ? 'Enregistrez les clientes et leurs mensurations pour votre atelier.' : 'Retrouvez vos créations, vos mesures et vos commandes.' }}</p>
 
       <form (ngSubmit)="submit()">
         <label for="login-email">Adresse e-mail</label>
@@ -39,17 +40,17 @@
         <button class="login-submit" type="submit" [disabled]="submitting">{{ submitting ? 'Connexion…' : 'Se connecter' }} <span>→</span></button>
       </form>
 
-      <button class="login-demo" type="button" *ngIf="accountRole !== 'admin'" (click)="requestDemo()">
+      <button class="login-demo" type="button" *ngIf="accountRole === 'client' || accountRole === 'stylist'" (click)="requestDemo()">
         Explorer la démo {{ accountRole === 'stylist' ? 'styliste' : 'cliente' }} <span>→</span>
       </button>
 
-      <div class="login-divider" *ngIf="accountRole !== 'admin'"><span>ou continuer avec</span></div>
-      <div class="login-socials" *ngIf="accountRole !== 'admin'">
+      <div class="login-divider" *ngIf="accountRole === 'client' || accountRole === 'stylist'"><span>ou continuer avec</span></div>
+      <div class="login-socials" *ngIf="accountRole === 'client' || accountRole === 'stylist'">
         <button type="button" aria-label="Continuer avec Google">G</button>
         <button type="button" aria-label="Continuer avec Facebook">f</button>
         <button type="button" aria-label="Continuer avec Apple">●</button>
       </div>
-      <p class="login-register" *ngIf="accountRole !== 'admin'">Pas encore de compte ? <button type="button" (click)="requestSignup()">Créer mon compte</button></p>
+      <p class="login-register" *ngIf="accountRole === 'client' || accountRole === 'stylist'">Pas encore de compte ? <button type="button" (click)="requestSignup()">Créer mon compte</button></p>
       <p class="login-admin-note" *ngIf="accountRole === 'admin'">Accès réservé au propriétaire de la plateforme.</p>
     </div>
   </section>
