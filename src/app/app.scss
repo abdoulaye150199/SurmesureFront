@@ -479,6 +479,7 @@ footer button { display:block; border:0; background:none; color:#bcaebe; padding
 .analytics-metrics article:nth-child(2)::after { background:#d0aa3f; }.analytics-metrics article:nth-child(3)::after { background:#9c574f; }.analytics-metrics article:nth-child(4)::after { background:#737c58; }
 .analytics-metrics span,.analytics-metrics small { display:block; color:#9f969e; font-size:8px; }.analytics-metrics strong { display:block; margin:10px 0 4px; color:#fff; font:27px Georgia,serif; }.analytics-metrics small { color:#c5b9c2; }
 .analytics-content-grid { display:grid; grid-template-columns:1.45fr .65fr; gap:12px; }
+.analytics-content-grid.orders-page { grid-template-columns:minmax(0,1fr); }
 .analytics-panel { min-width:0; padding:20px; }
 .analytics-panel-heading { display:flex; align-items:end; justify-content:space-between; gap:14px; margin-bottom:14px; }
 .analytics-panel-heading span,.analytics-featured span { color:#a49ba3; font-size:8px; letter-spacing:.1em; text-transform:uppercase; }

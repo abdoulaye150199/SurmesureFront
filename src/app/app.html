@@ -413,29 +413,29 @@
       <aside class="stylist-dashboard-sidebar" aria-label="Navigation de l’atelier">
         <button class="stylist-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Atelier styliste</small></span></button>
         <nav>
-          <button class="active" type="button" (click)="scrollWorkspaceTo('stylist-overview')"><i>⌂</i><span>Tableau de bord</span></button>
-          <button type="button" (click)="showAllStylistOrders = true; scrollWorkspaceTo('stylist-orders')"><i>▣</i><span>Commandes</span><b>{{ stylistOrders.length }}</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('stylist-clients')"><i>♙</i><span>Mes clientes</span><b>{{ stylistClientRecords.length }}</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('stylist-creations')"><i>◇</i><span>Mes créations</span><b>{{ stylistCatalog.length }}</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('stylist-measurements')"><i>⌁</i><span>Mesures</span><b>{{ stylistMeasurements.length }}</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('stylist-messages')"><i>✉</i><span>Contacts</span><b>{{ stylistClientContacts.length }}</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('stylist-planning')"><i>◷</i><span>Planning</span><b>{{ stylistAppointments.length }}</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('stylist-employees')"><i>♙</i><span>Équipe</span><b>{{ stylistPersonnel.length }}</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('stylist-settings')"><i>⚙</i><span>Paramètres</span></button>
+          <button type="button" [class.active]="stylistPage === 'overview'" (click)="setStylistPage('overview')"><i>⌂</i><span>Tableau de bord</span></button>
+          <button type="button" [class.active]="stylistPage === 'orders'" (click)="setStylistPage('orders')"><i>▣</i><span>Commandes</span><b>{{ stylistOrders.length }}</b></button>
+          <button type="button" [class.active]="stylistPage === 'clients'" (click)="setStylistPage('clients')"><i>♙</i><span>Mes clientes</span><b>{{ stylistClientRecords.length }}</b></button>
+          <button type="button" [class.active]="stylistPage === 'creations'" (click)="setStylistPage('creations')"><i>◇</i><span>Mes créations</span><b>{{ stylistCatalog.length }}</b></button>
+          <button type="button" [class.active]="stylistPage === 'measurements'" (click)="setStylistPage('measurements')"><i>⌁</i><span>Mesures</span><b>{{ stylistMeasurements.length }}</b></button>
+          <button type="button" [class.active]="stylistPage === 'contacts'" (click)="setStylistPage('contacts')"><i>✉</i><span>Contacts</span><b>{{ stylistClientContacts.length }}</b></button>
+          <button type="button" [class.active]="stylistPage === 'planning'" (click)="setStylistPage('planning')"><i>◷</i><span>Planning</span><b>{{ stylistAppointments.length }}</b></button>
+          <button type="button" [class.active]="stylistPage === 'team'" (click)="setStylistPage('team')"><i>♙</i><span>Équipe</span><b>{{ stylistPersonnel.length }}</b></button>
+          <button type="button" [class.active]="stylistPage === 'settings'" (click)="setStylistPage('settings')"><i>⚙</i><span>Paramètres</span></button>
         </nav>
         <div class="stylist-sidebar-profile"><button type="button" (click)="openStylistEditor('profile')"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>{{ stylistProfile?.businessName || 'Atelier styliste' }}</small></span></button><button class="stylist-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
 
       <div class="stylist-analytics" id="stylist-overview">
       <header class="analytics-header">
-        <div><span>{{ stylistProfile?.businessName || 'Votre atelier' }}</span><h1>Tableau de bord</h1></div>
-        <div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" class="analytics-alert" aria-label="Aller aux commandes actives" (click)="showAllStylistOrders = true; scrollWorkspaceTo('stylist-orders')">♧<b>{{ stylistActiveOrderCount }}</b></button><button type="button" class="analytics-profile" aria-label="Modifier le profil de l’atelier" (click)="openStylistEditor('profile')">{{ userInitials }}</button><button class="dashboard-logout dark" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+        <div><span>{{ stylistProfile?.businessName || 'Votre atelier' }}</span><h1>{{ stylistPageTitle }}</h1></div>
+        <div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" class="analytics-alert" aria-label="Aller aux commandes actives" (click)="setStylistPage('orders')">♧<b>{{ stylistActiveOrderCount }}</b></button><button type="button" class="analytics-profile" aria-label="Ouvrir les paramètres de l’atelier" (click)="setStylistPage('settings')">{{ userInitials }}</button><button class="dashboard-logout dark" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
       </header>
 
       <div class="dashboard-feedback dark loading" *ngIf="dashboardLoading"><i></i><span>Synchronisation de l’atelier…</span></div>
       <div class="dashboard-feedback dark error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
 
-      <div class="analytics-top-grid">
+      <div class="analytics-top-grid" *ngIf="stylistPage === 'overview'">
         <section class="analytics-hero-card">
           <div><span class="analytics-kicker">Vue d’ensemble · {{ dashboardMonth }}</span><h2>Pilotez votre<br><em>atelier.</em></h2><p>{{ stylistProfile?.about || 'Suivez vos commandes, vos clientes et vos créations depuis un seul espace.' }}</p><button type="button" (click)="openStylistEditor('catalog')">Nouvelle création <span>＋</span></button></div>
           <img src="/assets/stylist-awa.png" alt="Awa Diop dans son atelier">
@@ -450,22 +450,22 @@
         </section>
       </div>
 
-      <section class="analytics-metrics" aria-label="Indicateurs de l’atelier">
+      <section class="analytics-metrics" aria-label="Indicateurs de l’atelier" *ngIf="stylistPage === 'overview'">
         <article><span>Commandes actives</span><strong>{{ stylistActiveOrderCount }}</strong><small>{{ stylistOrders.length }} commande(s) au total</small></article>
         <article><span>Valeur des commandes</span><strong>{{ stylistRevenue / 1000 | number:'1.0-0' }}k</strong><small>FCFA · hors annulations</small></article>
         <article><span>Créations publiées</span><strong>{{ stylistCatalog.length | number:'2.0-0' }}</strong><small>Catalogue synchronisé</small></article>
         <article><span>Profils de mesures</span><strong>{{ stylistMeasurements.length | number:'2.0-0' }}</strong><small>Disponibles dans l’atelier</small></article>
       </section>
 
-      <div class="analytics-content-grid">
+      <div class="analytics-content-grid" [class.orders-page]="stylistPage === 'orders'" *ngIf="stylistPage === 'overview' || stylistPage === 'orders'">
         <section class="analytics-panel analytics-orders" id="stylist-orders">
-          <div class="analytics-panel-heading"><div><span>Suivi de production</span><h2>{{ showAllStylistOrders ? 'Toutes les commandes' : 'Commandes récentes' }}</h2></div><button type="button" (click)="showAllStylistOrders = !showAllStylistOrders">{{ showAllStylistOrders ? 'Voir les récentes' : 'Voir tout' }} ↗</button></div>
+          <div class="analytics-panel-heading"><div><span>Suivi de production</span><h2>{{ showAllStylistOrders ? 'Toutes les commandes' : 'Commandes récentes' }}</h2></div><button type="button" (click)="setStylistPage(stylistPage === 'orders' ? 'overview' : 'orders')">{{ stylistPage === 'orders' ? 'Retour au tableau' : 'Voir tout' }} ↗</button></div>
           <div class="analytics-order-head"><span>Cliente et création</span><span>Mise à jour</span><span>Statut</span><span></span></div>
           <div class="analytics-order" *ngFor="let order of visibleStylistOrders; let index = index"><div class="analytics-order-person"><img [src]="orderImage(order, index)" [alt]="order.description"><div><strong>{{ order.clientName }}</strong><small>{{ order.description }} · #{{ orderShortId(order) }}</small></div></div><time>{{ formatDate(order.updatedAt) }}</time><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b><button class="analytics-contact" type="button" (click)="copyPhone(order.clientPhone)" [attr.aria-label]="'Copier le numéro de ' + order.clientName">✉</button><button type="button" (click)="advanceOrder(order)" [disabled]="updatingOrderId === order.id || order.status === 'delivered' || order.status === 'cancelled'" [attr.aria-label]="'Faire avancer ' + order.description">{{ updatingOrderId === order.id ? '…' : '→' }}</button></div>
           <div class="dashboard-inline-empty dark" *ngIf="!stylistOrders.length && !dashboardLoading">Aucune commande dans votre atelier.</div>
         </section>
 
-        <div class="analytics-side-stack">
+        <div class="analytics-side-stack" *ngIf="stylistPage === 'overview'">
           <section class="analytics-panel analytics-sales">
             <div class="analytics-panel-heading"><div><span>Valeur des commandes</span><h2>{{ stylistRevenue / 1000 | number:'1.0-0' }}k <small>FCFA</small></h2></div><b>{{ stylistOrders.length }} ventes</b></div>
             <div class="sales-spark" role="img" aria-label="Chiffre des commandes sur les six derniers mois"><i *ngFor="let month of stylistRevenueActivity" [style.height.%]="revenueActivityHeight(month.amount)"></i></div>
@@ -476,7 +476,7 @@
         </div>
       </div>
 
-      <section class="analytics-panel stylist-records stylist-client-directory" id="stylist-clients">
+      <section class="analytics-panel stylist-records stylist-client-directory" id="stylist-clients" *ngIf="stylistPage === 'clients'">
         <div class="analytics-panel-heading"><div><span>Répertoire de l’atelier</span><h2>Mes clientes</h2></div><button type="button" (click)="showStylistClientForm = !showStylistClientForm">{{ showStylistClientForm ? 'Fermer' : 'Ajouter une cliente ＋' }}</button></div>
         <label class="stylist-client-search">Rechercher une cliente<input type="search" name="stylistClientSearch" [(ngModel)]="stylistClientSearch" placeholder="Nom ou téléphone"></label>
         <form class="employee-intake-form stylist-client-create-form" *ngIf="showStylistClientForm" (ngSubmit)="saveStylistClientRecord()">
@@ -498,7 +498,7 @@
         <div class="dashboard-inline-empty dark" *ngIf="!stylistClientRecords.length">{{ stylistClientSearch ? 'Aucune cliente ne correspond à cette recherche.' : 'Les clientes apparaîtront ici dès qu’une fiche, une commande ou un rendez-vous sera enregistré.' }}</div>
       </section>
 
-      <section class="analytics-panel analytics-creations" id="stylist-creations">
+      <section class="analytics-panel analytics-creations" id="stylist-creations" *ngIf="stylistPage === 'creations'">
         <div class="analytics-panel-heading"><div><span>Votre vitrine</span><h2>Mes créations</h2></div><button type="button" (click)="openStylistEditor('catalog')">Ajouter une pièce ＋</button></div>
         <div class="analytics-creation-grid">
           <article *ngFor="let item of stylistCatalog"><img [src]="item.imageUrl" [alt]="item.title"><div><span>{{ item.availableColors.join(' · ') || 'Sur mesure' }}</span><h3>{{ item.title }}</h3><strong>{{ price(item.price) | number:'1.0-0' }} FCFA</strong><div class="analytics-creation-actions"><button type="button" (click)="openStylistEditor('catalog', item)">Modifier</button><button type="button" (click)="deactivateCatalogItem(item)">Retirer</button></div></div></article>
@@ -506,7 +506,7 @@
         </div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-measurements">
+      <section class="analytics-panel stylist-records" id="stylist-measurements" *ngIf="stylistPage === 'measurements'">
         <div class="analytics-panel-heading"><div><span>Profils clients</span><h2>Mensurations</h2></div><b>{{ stylistMeasurements.length }} profil(s)</b></div>
         <details class="stylist-record" *ngFor="let measurement of stylistMeasurements">
           <summary><span><strong>{{ measurement.clientName }}</strong><small>{{ measurement.clientPhone }} · mis à jour le {{ formatDate(measurement.updatedAt) }}</small></span><i>Voir les mesures</i></summary>
@@ -516,7 +516,7 @@
         <div class="dashboard-inline-empty dark" *ngIf="!stylistMeasurements.length">Aucun profil de mensurations pour le moment.</div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-planning">
+      <section class="analytics-panel stylist-records" id="stylist-planning" *ngIf="stylistPage === 'planning'">
         <div class="analytics-panel-heading"><div><span>Agenda de l’atelier</span><h2>Rendez-vous</h2></div><b>{{ stylistAppointments.length }} rendez-vous</b></div>
         <article class="stylist-appointment" *ngFor="let appointment of stylistAppointments">
           <div><strong>{{ appointment.client?.firstName }} {{ appointment.client?.lastName }}</strong><span>{{ appointment.service }} · {{ formatDate(appointment.startsAt) }} à {{ formatDate(appointment.startsAt, 'time') }}</span></div>
@@ -531,13 +531,13 @@
         <div class="dashboard-inline-empty dark" *ngIf="!stylistAppointments.length">Aucun rendez-vous planifié.</div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-messages">
+      <section class="analytics-panel stylist-records" id="stylist-messages" *ngIf="stylistPage === 'contacts'">
         <div class="analytics-panel-heading"><div><span>Contact direct</span><h2>Répertoire clients</h2></div><b>{{ stylistClientContacts.length }} contact(s)</b></div>
         <article class="stylist-contact" *ngFor="let contact of stylistClientContacts"><span><strong>{{ contact.name }}</strong><small>{{ contact.phone }}</small></span><button type="button" (click)="copyPhone(contact.phone)">Copier le numéro</button></article>
         <div class="dashboard-inline-empty dark" *ngIf="!stylistClientContacts.length">Les contacts apparaîtront ici avec vos commandes, rendez-vous et profils de mesures.</div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-employees">
+      <section class="analytics-panel stylist-records" id="stylist-employees" *ngIf="stylistPage === 'team'">
         <div class="analytics-panel-heading"><div><span>Accès à votre atelier</span><h2>Équipe</h2></div><button type="button" (click)="openEmployeeAccountEditor()">Créer un compte ＋</button></div>
         <p class="employee-access-note">Chaque employé peut enregistrer les clientes et leurs mensurations. Il ne voit que les fiches de cet atelier.</p>
         <article class="stylist-contact" *ngFor="let employee of stylistPersonnel">
@@ -548,7 +548,7 @@
         <div class="dashboard-inline-empty dark" *ngIf="!stylistPersonnel.length">Aucun employé enregistré dans votre atelier.</div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-settings">
+      <section class="analytics-panel stylist-records" id="stylist-settings" *ngIf="stylistPage === 'settings'">
         <div class="analytics-panel-heading"><div><span>Identité de votre atelier</span><h2>Profil et paramètres</h2></div><button type="button" (click)="openStylistEditor('profile')">Modifier le profil</button></div>
         <p>{{ stylistProfile?.businessName || 'Nom de l’atelier à renseigner' }}</p><p>{{ stylistProfile?.about || 'Ajoutez une présentation pour accueillir vos clientes.' }}</p><p>{{ stylistProfile?.specialties?.join(' · ') || 'Spécialités non renseignées' }}</p>
       </section>
@@ -561,16 +561,16 @@
       <aside class="stylist-dashboard-sidebar" aria-label="Navigation employé">
         <button class="stylist-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Équipe atelier</small></span></button>
         <nav>
-          <button class="active" type="button" (click)="scrollWorkspaceTo('employee-intake')"><i>＋</i><span>Nouvelle fiche</span></button>
-          <button type="button" (click)="scrollWorkspaceTo('employee-records')"><i>♙</i><span>Mes clientes</span><b>{{ stylistClientRecords.length }}</b></button>
+          <button type="button" [class.active]="employeePage === 'intake'" (click)="setEmployeePage('intake')"><i>＋</i><span>Nouvelle fiche</span></button>
+          <button type="button" [class.active]="employeePage === 'clients'" (click)="setEmployeePage('clients')"><i>♙</i><span>Mes clientes</span><b>{{ stylistClientRecords.length }}</b></button>
         </nav>
         <div class="stylist-sidebar-profile"><span class="employee-sidebar-identity"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>{{ employeeContext?.stylist?.businessName || 'Atelier' }}</small></span></span><button class="stylist-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
       <div class="stylist-analytics employee-analytics">
-        <header class="analytics-header"><div><span>{{ employeeContext?.stylist?.businessName || 'Espace atelier' }}</span><h1>Fiches clientes</h1></div><div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button class="dashboard-logout dark" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div></header>
+        <header class="analytics-header"><div><span>{{ employeeContext?.stylist?.businessName || 'Espace atelier' }}</span><h1>{{ employeePage === 'intake' ? 'Nouvelle fiche' : 'Mes clientes' }}</h1></div><div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button class="dashboard-logout dark" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div></header>
         <div class="dashboard-feedback dark loading" *ngIf="dashboardLoading"><i></i><span>Chargement des fiches de l’atelier…</span></div>
         <div class="dashboard-feedback dark error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
-        <section class="analytics-panel employee-intake-panel" id="employee-intake">
+        <section class="analytics-panel employee-intake-panel" id="employee-intake" *ngIf="employeePage === 'intake'">
           <div class="analytics-panel-heading"><div><span>Nouvelle cliente</span><h2>Enregistrer ses mensurations</h2></div></div>
           <p class="employee-access-note">Si la cliente a déjà un compte, sa fiche sera associée à celui-ci. Sinon, ses coordonnées et ses mesures seront conservées dans l’atelier.</p>
           <form class="employee-intake-form" (ngSubmit)="saveEmployeeMeasurement()">
@@ -581,7 +581,7 @@
             <button class="stylist-editor-submit" type="submit" [disabled]="employeeMeasurementSaving">{{ employeeMeasurementSaving ? 'Enregistrement…' : 'Enregistrer la fiche' }} <span>→</span></button>
           </form>
         </section>
-        <section class="analytics-panel stylist-records" id="employee-records">
+        <section class="analytics-panel stylist-records" id="employee-records" *ngIf="employeePage === 'clients'">
           <div class="analytics-panel-heading"><div><span>Données de l’atelier</span><h2>Mes clientes</h2></div><b>{{ stylistClientRecords.length }} cliente(s)</b></div>
           <label class="stylist-client-search">Rechercher une cliente<input type="search" name="employeeClientSearch" [(ngModel)]="stylistClientSearch" placeholder="Nom ou téléphone"></label>
           <details class="stylist-record stylist-client-record" *ngFor="let client of stylistClientRecords">

@@ -22,6 +22,8 @@ import {
 
 type Collection = 'Tout' | 'Cérémonie' | 'Boubous' | 'Ensembles';
 type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'employee' | 'admin' | 'signup';
+type StylistPage = 'overview' | 'orders' | 'clients' | 'creations' | 'measurements' | 'contacts' | 'planning' | 'team' | 'settings';
+type EmployeePage = 'intake' | 'clients';
 const CART_STORAGE_KEY = 'surmesure.selection';
 const FAVORITES_STORAGE_KEY = 'surmesure.favorites';
 
@@ -83,6 +85,8 @@ export class App implements AfterViewInit, OnDestroy {
   loginRole: AppAccountRole = 'client';
   signupRole: 'client' | 'stylist' = 'client';
   activeView: AppView = 'home';
+  stylistPage: StylistPage = 'overview';
+  employeePage: EmployeePage = 'intake';
   workspaceRole: AppAccountRole = 'stylist';
   installAvailable = false;
   selectedCreations: Creation[] = [];
@@ -321,6 +325,21 @@ export class App implements AfterViewInit, OnDestroy {
     return this.showAllStylistOrders ? this.stylistOrders : this.stylistOrders.slice(0, 4);
   }
 
+  get stylistPageTitle(): string {
+    const titles: Record<StylistPage, string> = {
+      overview: 'Tableau de bord',
+      orders: 'Commandes',
+      clients: 'Mes clientes',
+      creations: 'Mes créations',
+      measurements: 'Mesures',
+      contacts: 'Contacts',
+      planning: 'Planning',
+      team: 'Équipe',
+      settings: 'Paramètres',
+    };
+    return titles[this.stylistPage];
+  }
+
   get stylistClientContacts(): Array<{ name: string; phone: string }> {
     const contacts = [
       ...this.stylistOrders.map(order => ({ name: order.clientName, phone: order.clientPhone })),
@@ -477,6 +496,17 @@ export class App implements AfterViewInit, OnDestroy {
 
   scrollWorkspaceTo(id: string): void {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  setStylistPage(page: StylistPage): void {
+    this.stylistPage = page;
+    this.showAllStylistOrders = page === 'orders';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  setEmployeePage(page: EmployeePage): void {
+    this.employeePage = page;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   showToast(message: string): void {
