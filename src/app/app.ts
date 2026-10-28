@@ -134,6 +134,9 @@ export class App implements AfterViewInit, OnDestroy {
   stylistEditor: StylistEditor = null;
   editingCatalogId: string | null = null;
   editorSaving = false;
+  catalogImageData = '';
+  catalogImageFileName = '';
+  catalogImageError = '';
   stylistMeasurementEditor: DashboardMeasurement | null = null;
   stylistMeasurementDraft: Record<string, number> = {};
   stylistMeasurementNotes = '';
@@ -669,14 +672,75 @@ export class App implements AfterViewInit, OnDestroy {
     return Math.max(8, Math.round((count / max) * 100));
   }
 
+  clearCatalogImage(): void {
+    this.catalogImageData = '';
+    this.catalogImageFileName = '';
+    this.catalogImageError = '';
+  }
+
+  async onCatalogImageSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.catalogImageError = '';
+    if (!file.type.startsWith('image/')) {
+      this.catalogImageError = 'Choisissez un fichier image.';
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      this.catalogImageError = 'L’image doit faire moins de 12 Mo.';
+      return;
+    }
+
+    try {
+      const bitmap = await createImageBitmap(file);
+      try {
+        const canvas = document.createElement('canvas');
+        let width = Math.min(bitmap.width, 1200);
+        let blob: Blob | null = null;
+        for (let resize = 0; resize < 7 && !blob; resize++) {
+          canvas.width = width;
+          canvas.height = Math.max(1, Math.round(bitmap.height * width / bitmap.width));
+          const context = canvas.getContext('2d');
+          if (!context) throw new Error('Traitement d’image indisponible.');
+          context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+          for (const quality of [0.82, 0.72, 0.62, 0.52, 0.42]) {
+            const candidate = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+            if (candidate && candidate.size <= 55 * 1024) {
+              blob = candidate;
+              break;
+            }
+          }
+          if (!blob) width = Math.max(240, Math.floor(width * 0.75));
+        }
+        if (!blob) throw new Error('Cette image ne peut pas être réduite suffisamment. Choisissez une autre image.');
+        this.catalogImageData = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Lecture de l’image impossible.'));
+          reader.onerror = () => reject(new Error('Lecture de l’image impossible.'));
+          reader.readAsDataURL(blob!);
+        });
+        this.catalogImageFileName = file.name;
+      } finally {
+        bitmap.close();
+      }
+    } catch (error) {
+      this.catalogImageError = error instanceof Error ? error.message : 'Import de l’image impossible.';
+    }
+  }
+
   openStylistEditor(type: Exclude<StylistEditor, null>, item?: DashboardCatalogItem): void {
     this.stylistEditor = type;
     if (type === 'catalog') {
       this.editingCatalogId = item?.id ?? null;
+      this.catalogImageData = item?.imageUrl.startsWith('data:image/') ? item.imageUrl : '';
+      this.catalogImageFileName = this.catalogImageData ? 'Image importée' : '';
+      this.catalogImageError = '';
       this.catalogDraft = {
         title: item?.title ?? '',
         description: item?.description ?? '',
-        imageUrl: item?.imageUrl ?? '',
+        imageUrl: this.catalogImageData ? '' : item?.imageUrl ?? '',
         price: item ? this.price(item.price) : null,
         colors: item?.availableColors.join(', ') ?? '',
       };
@@ -701,7 +765,7 @@ export class App implements AfterViewInit, OnDestroy {
         const item: CatalogItemInput = {
           title: this.catalogDraft.title.trim(),
           description: this.catalogDraft.description.trim(),
-          imageUrl: this.catalogDraft.imageUrl.trim(),
+          imageUrl: this.catalogImageData || this.catalogDraft.imageUrl.trim(),
           price: Number(this.catalogDraft.price),
           currency: 'XOF',
           availableColors: this.catalogDraft.colors.split(',').map(color => color.trim()).filter(Boolean),

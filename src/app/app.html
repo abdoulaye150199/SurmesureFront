@@ -621,7 +621,10 @@
       <div class="stylist-editor-fields">
         <label>Nom de la création<input name="catalogTitle" [(ngModel)]="catalogDraft.title" maxlength="100" required></label>
         <label>Description<textarea name="catalogDescription" [(ngModel)]="catalogDraft.description" rows="3" maxlength="1000"></textarea></label>
-        <label>Adresse de l’image<input name="catalogImage" type="url" [(ngModel)]="catalogDraft.imageUrl" placeholder="https://…" required></label>
+        <label>Adresse de l’image<input name="catalogImage" type="url" [(ngModel)]="catalogDraft.imageUrl" (ngModelChange)="clearCatalogImage()" placeholder="https://…" [required]="!catalogImageData"></label>
+        <label class="catalog-image-upload"><span>Importer l’image</span><input name="catalogImageFile" type="file" accept="image/*" (change)="onCatalogImageSelected($event)"><small>{{ catalogImageFileName || 'JPG, PNG ou WebP' }}</small></label>
+        <div class="catalog-image-preview" *ngIf="catalogImageData || catalogDraft.imageUrl"><img [src]="catalogImageData || catalogDraft.imageUrl" alt="Aperçu de la création"></div>
+        <p class="catalog-image-error" *ngIf="catalogImageError" role="alert">{{ catalogImageError }}</p>
         <label>Prix en FCFA<input name="catalogPrice" type="number" min="0" step="1" [(ngModel)]="catalogDraft.price" required></label>
         <label>Coloris séparés par des virgules<input name="catalogColors" [(ngModel)]="catalogDraft.colors" placeholder="Prune, Ivoire, Or"></label>
       </div>
