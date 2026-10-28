@@ -19,7 +19,6 @@
       <div class="login-account-tabs" aria-label="Type de compte">
         <button type="button" [class.active]="accountRole === 'client'" (click)="chooseAccount('client')">Client</button>
         <button type="button" [class.active]="accountRole === 'stylist'" (click)="chooseAccount('stylist')">Styliste</button>
-        <button type="button" [class.active]="accountRole === 'admin'" (click)="chooseAccount('admin')">Super admin</button>
       </div>
 
       <p class="login-kicker">{{ accountRole === 'admin' ? 'Super administration' : accountRole === 'stylist' ? 'Espace styliste' : 'Espace client' }}</p>

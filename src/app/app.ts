@@ -563,6 +563,13 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   async openMeasureWorkspace(): Promise<void> {
+    if (this.demoMode) {
+      this.workspaceRole = 'client';
+      this.activeView = 'measure';
+      this.menuOpen = false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (!this.auth.isAuthenticated || this.auth.appRole !== 'client') {
       this.openLogin('client');
       this.pendingAuthView = 'measure';
