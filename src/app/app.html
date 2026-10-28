@@ -7,7 +7,7 @@
 <header class="site-header" *ngIf="activeView !== 'signup' && activeView !== 'stylist' && activeView !== 'client' && activeView !== 'measure' && activeView !== 'admin'" [class.scrolled]="headerScrolled" [class.hidden]="headerHidden">
   <button class="icon-button menu-button" aria-label="Ouvrir le menu" (click)="menuOpen = !menuOpen">☰</button>
   <a class="brand" href="#" aria-label="Sur Mesure Style">
-    <img src="/assets/logo.png" alt="Sur Mesure Style">
+    <img src="/assets/sur-mesure-logo.png" alt="Sur Mesure Style">
   </a>
   <nav [class.open]="menuOpen">
     <button type="button" (click)="setView('home')">Accueil</button>
@@ -187,7 +187,7 @@
   </section>
   <div class="footer-content">
     <div class="footer-brand">
-      <img src="/assets/logo.png" alt="Sur Mesure Style">
+      <img src="/assets/sur-mesure-logo.png" alt="Sur Mesure Style">
       <p>Le sur-mesure, simplement.<br>Imaginé à Dakar, porté partout.</p>
       <div class="social-links">
         <a href="#" aria-label="Instagram">Ig</a>
