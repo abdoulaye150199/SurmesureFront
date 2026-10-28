@@ -1,5 +1,5 @@
-const CACHE_NAME = 'sur-mesure-style-v3';
-const APP_SHELL = ['/', '/manifest.webmanifest', '/assets/pwa-icon.svg', '/assets/logo.png'];
+const CACHE_NAME = 'sur-mesure-style-v4';
+const APP_SHELL = ['/', '/manifest.webmanifest', '/assets/pwa-icon.svg', '/assets/pwa-icon-192.png', '/assets/pwa-icon-512.png', '/assets/logo.png'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)));

@@ -559,7 +559,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   async installPwa(): Promise<void> {
     if (!this.installPrompt) {
-      this.toast = 'Ouvrez le menu de votre navigateur pour installer l’application';
+      this.toast = 'L’installation directe n’est pas disponible sur ce navigateur.';
       window.setTimeout(() => this.toast = '', 3200);
       return;
     }
