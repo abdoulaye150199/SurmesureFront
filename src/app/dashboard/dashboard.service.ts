@@ -184,6 +184,21 @@ export interface AdminDashboardSnapshot {
 export class DashboardService {
   constructor(private readonly http: HttpClient) {}
 
+  async loadPublicCatalogPage(limit = 12, cursor?: string): Promise<CursorPage<DashboardCatalogItem>> {
+    const query = new URLSearchParams({ limit: String(limit + 1) });
+    if (cursor) query.set('cursor', cursor);
+    const rows = await firstValueFrom(this.http.get<DashboardCatalogItem[]>(getApiUrl(`/catalog?${query}`)));
+    const data = rows.slice(0, limit);
+    return {
+      data,
+      meta: { hasMore: rows.length > limit, nextCursor: rows.length > limit ? data.at(-1)?.id ?? null : null },
+    };
+  }
+
+  loadPublicStylists(): Promise<DashboardStylist[]> {
+    return firstValueFrom(this.http.get<DashboardStylist[]>(getApiUrl('/stylists?limit=100')));
+  }
+
   async loadClientDashboard(): Promise<ClientDashboardSnapshot> {
     const [orders, measurements, appointments, catalog, stylists] = await Promise.all([
       firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(getApiUrl('/orders?limit=100'))),

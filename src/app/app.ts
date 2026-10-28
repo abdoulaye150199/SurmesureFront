@@ -33,6 +33,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 interface Creation {
+  id?: string;
   name: string;
   stylist: string;
   price: number;
@@ -107,6 +108,12 @@ export class App implements AfterViewInit, OnDestroy {
   clientAppointments: DashboardAppointment[] = [];
   clientCatalog: DashboardCatalogItem[] = [];
   clientStylists: DashboardStylist[] = [];
+  publicCatalogItems: DashboardCatalogItem[] = [];
+  publicStylists: DashboardStylist[] = [];
+  publicCatalogLoading = false;
+  publicCatalogHasMore = true;
+  private publicCatalogCursor: string | null = null;
+  private publicCatalogLoaded = false;
   stylistOrders: DashboardOrder[] = [];
   stylistMeasurements: DashboardMeasurement[] = [];
   stylistAppointments: DashboardAppointment[] = [];
@@ -214,9 +221,65 @@ export class App implements AfterViewInit, OnDestroy {
   ];
 
   get visibleCreations(): Creation[] {
+    const available = this.publicCatalogItems.length
+      ? this.publicCatalogItems.map(item => this.toCreation(item))
+      : this.creations;
     return this.selectedFilter === 'Tout'
-      ? this.creations
-      : this.creations.filter(item => item.category === this.selectedFilter);
+      ? available
+      : available.filter(item => item.category === this.selectedFilter);
+  }
+
+  async loadPublicCatalog(reset = false): Promise<void> {
+    if (this.publicCatalogLoading || (!reset && !this.publicCatalogHasMore)) return;
+    if (reset) {
+      this.publicCatalogItems = [];
+      this.publicCatalogCursor = null;
+      this.publicCatalogHasMore = true;
+    }
+    this.publicCatalogLoading = true;
+    try {
+      const [page, stylists] = await Promise.all([
+        this.dashboard.loadPublicCatalogPage(12, this.publicCatalogCursor ?? undefined),
+        this.publicStylists.length ? Promise.resolve(this.publicStylists) : this.dashboard.loadPublicStylists().catch(() => []),
+      ]);
+      this.publicCatalogItems = reset
+        ? page.data
+        : [...this.publicCatalogItems, ...page.data.filter(item => !this.publicCatalogItems.some(existing => existing.id === item.id))];
+      this.publicStylists = stylists;
+      this.publicCatalogCursor = page.meta.nextCursor;
+      this.publicCatalogHasMore = page.meta.hasMore;
+    } catch {
+      this.publicCatalogHasMore = false;
+    } finally {
+      this.publicCatalogLoading = false;
+    }
+  }
+
+  async setCreationFilter(filter: Collection): Promise<void> {
+    this.selectedFilter = filter;
+    while (filter !== 'Tout'
+      && this.publicCatalogItems.length
+      && !this.visibleCreations.length
+      && this.publicCatalogHasMore
+      && !this.publicCatalogLoading) {
+      await this.loadPublicCatalog();
+    }
+  }
+
+  private toCreation(item: DashboardCatalogItem): Creation {
+    const description = `${item.title} ${item.description}`.toLowerCase();
+    const category: Exclude<Collection, 'Tout'> = description.includes('boubou')
+      ? 'Boubous'
+      : description.includes('ensemble') ? 'Ensembles' : 'Cérémonie';
+    return {
+      id: item.id,
+      name: item.title,
+      stylist: this.catalogStylistName(item),
+      price: this.price(item.price),
+      image: item.imageUrl,
+      category,
+      tone: 'plum',
+    };
   }
 
   get cartCount(): number {
@@ -228,7 +291,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   get visibleClientInspirations(): Array<Creation | DashboardCatalogItem> {
-    const available = [...this.creations, ...this.clientCatalog];
+    const available = [...this.visibleCreations, ...this.clientCatalog];
     const items = this.showFavoritesOnly ? available.filter(item => this.isFavorite(item)) : available;
     return this.showFavoritesOnly ? items : items.slice(0, 3);
   }
@@ -433,6 +496,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
+    window.setTimeout(() => void this.loadPublicCatalog(true), 0);
     const elements = document.querySelectorAll<HTMLElement>(
       'main > section:not(.hero), footer, .values article, .product-card, .stylist-card, .journey-steps article'
     );
@@ -479,6 +543,13 @@ export class App implements AfterViewInit, OnDestroy {
     this.scrollStopTimer = setTimeout(() => {
       this.headerHidden = false;
     }, 180);
+
+    const loadMarker = document.querySelector<HTMLElement>('.catalog-load-sentinel');
+    if ((this.activeView === 'home' || this.activeView === 'explore')
+      && loadMarker
+      && loadMarker.getBoundingClientRect().top < window.innerHeight + 500) {
+      void this.loadPublicCatalog();
+    }
   }
 
   @HostListener('window:keydown.escape')
@@ -785,6 +856,9 @@ export class App implements AfterViewInit, OnDestroy {
         this.stylistCatalog = this.editingCatalogId
           ? this.stylistCatalog.map(existing => existing.id === saved.id ? saved : existing)
           : [saved, ...this.stylistCatalog];
+        this.publicCatalogItems = this.editingCatalogId
+          ? this.publicCatalogItems.map(existing => existing.id === saved.id ? saved : existing)
+          : [saved, ...this.publicCatalogItems.filter(existing => existing.id !== saved.id)];
         this.showToast(this.editingCatalogId ? 'Création mise à jour' : 'Création publiée dans votre vitrine');
       } else {
         const profile: StylistProfileUpdate = {
@@ -811,6 +885,7 @@ export class App implements AfterViewInit, OnDestroy {
     try {
       if (!this.demoMode) await this.dashboard.deactivateCatalogItem(item.id);
       this.stylistCatalog = this.stylistCatalog.filter(existing => existing.id !== item.id);
+      this.publicCatalogItems = this.publicCatalogItems.filter(existing => existing.id !== item.id);
       this.showToast('Création retirée de votre vitrine');
     } catch (error) {
       this.showToast(error instanceof Error ? error.message : 'Suppression impossible. Réessayez.');
@@ -1021,7 +1096,9 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   catalogStylistName(item: DashboardCatalogItem): string {
-    return this.clientStylists.find(stylist => stylist.id === item.stylistId)?.businessName ?? 'Atelier partenaire';
+    return this.publicStylists.find(stylist => stylist.id === item.stylistId)?.businessName
+      ?? this.clientStylists.find(stylist => stylist.id === item.stylistId)?.businessName
+      ?? 'Atelier partenaire';
   }
 
   addCatalogToCart(item: DashboardCatalogItem): void {
@@ -1037,7 +1114,8 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   favoriteKey(item: Creation | DashboardCatalogItem): string {
-    return 'id' in item ? `catalog:${item.id}` : `creation:${item.stylist}:${item.name}`;
+    if ('title' in item) return `catalog:${item.id}`;
+    return item.id ? `catalog:${item.id}` : `creation:${item.stylist}:${item.name}`;
   }
 
   isFavorite(item: Creation | DashboardCatalogItem): boolean {

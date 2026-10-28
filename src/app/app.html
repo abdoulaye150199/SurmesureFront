@@ -71,7 +71,7 @@
           <p>Une sélection de silhouettes singulières, pensées par les talents de notre communauté.</p>
         </div>
         <div class="filters" aria-label="Filtres des créations">
-          <button *ngFor="let filter of filters" [class.active]="selectedFilter === filter" (click)="selectedFilter = filter">{{ filter }}</button>
+          <button *ngFor="let filter of filters" [class.active]="selectedFilter === filter" (click)="setCreationFilter(filter)">{{ filter }}</button>
         </div>
         <div class="collection-count">{{ visibleCreations.length | number:'2.0-0' }} pièces sélectionnées</div>
         <button class="collection-link" (click)="selectedFilter = 'Tout'">Explorer tout le vestiaire <span>↗</span></button>
@@ -82,12 +82,16 @@
             <span class="product-number">0{{ index + 1 }}</span>
             <span class="badge" *ngIf="item.badge">{{ item.badge }}</span>
             <button class="favorite" type="button" [class.active]="isFavorite(item)" [attr.aria-pressed]="isFavorite(item)" [attr.aria-label]="isFavorite(item) ? 'Retirer ' + item.name + ' des favoris' : 'Ajouter ' + item.name + ' aux favoris'" (click)="toggleFavorite(item)">{{ isFavorite(item) ? '♥' : '♡' }}</button>
-            <img [src]="item.image" [alt]="item.name">
+            <img [src]="item.image" [alt]="item.name" loading="lazy">
             <button class="quick-add" (click)="addToCart(item)">Ajouter à ma sélection</button>
           </div>
           <p class="maker">{{ item.stylist }}</p>
           <div class="product-line"><h3>{{ item.name }}</h3><span>{{ item.price | number:'1.0-0' }} FCFA</span></div>
         </article>
+        <div class="catalog-load-sentinel" *ngIf="publicCatalogLoading || publicCatalogHasMore">
+          <span *ngIf="publicCatalogLoading" aria-live="polite">Chargement des créations…</span>
+          <button type="button" *ngIf="publicCatalogHasMore && !publicCatalogLoading" (click)="loadPublicCatalog()">Charger plus de créations</button>
+        </div>
       </div>
     </div>
   </section>
@@ -221,15 +225,19 @@
       <p>Parcourez les créations de nos stylistes et gardez vos coups de cœur dans votre sélection.</p>
     </div>
     <div class="workspace-category-row">
-      <button *ngFor="let filter of filters" [class.active]="selectedFilter === filter" (click)="selectedFilter = filter">{{ filter }}</button>
+      <button *ngFor="let filter of filters" [class.active]="selectedFilter === filter" (click)="setCreationFilter(filter)">{{ filter }}</button>
     </div>
     <div class="workspace-product-grid">
       <article class="workspace-product" *ngFor="let item of visibleCreations">
-        <div class="workspace-product-image"><img [src]="item.image" [alt]="item.name"><span *ngIf="item.badge">{{ item.badge }}</span></div>
+        <div class="workspace-product-image"><img [src]="item.image" [alt]="item.name" loading="lazy"><span *ngIf="item.badge">{{ item.badge }}</span></div>
         <p>{{ item.stylist }}</p>
         <div><h3>{{ item.name }}</h3><strong>{{ item.price | number:'1.0-0' }} FCFA</strong></div>
         <button type="button" (click)="addToCart(item)">Ajouter à ma sélection <span>↗</span></button>
       </article>
+      <div class="catalog-load-sentinel" *ngIf="publicCatalogLoading || publicCatalogHasMore">
+        <span *ngIf="publicCatalogLoading" aria-live="polite">Chargement des créations…</span>
+        <button type="button" *ngIf="publicCatalogHasMore && !publicCatalogLoading" (click)="loadPublicCatalog()">Charger plus de créations</button>
+      </div>
     </div>
   </ng-container>
 
