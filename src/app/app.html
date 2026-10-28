@@ -36,18 +36,14 @@
         <button class="hero-button" (click)="scrollTo('collections')">Voir les créations</button>
         <button class="hero-button" (click)="scrollTo('stylistes')">Nos stylistes</button>
       </div>
-      <div class="app-downloads" aria-label="Télécharger l’application Sur Mesure">
+      <div class="app-downloads">
         <span class="download-label">Téléchargez l’application</span>
-        <div class="store-links">
-          <a href="#" aria-label="Télécharger sur Google Play">
-            <span class="play-icon">▶</span>
-            <span><small>Disponible sur</small><strong>Google Play</strong></span>
-          </a>
-          <a href="#" aria-label="Télécharger sur l’App Store">
-            <span class="apple-icon">●</span>
-            <span><small>Télécharger dans</small><strong>l’App Store</strong></span>
-          </a>
-        </div>
+        <button class="pwa-download" type="button" (click)="installPwa()" aria-label="Télécharger l’application Sur Mesure">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v3h14v-3"></path>
+          </svg>
+          <span>Télécharger</span>
+        </button>
       </div>
     </div>
   </section>

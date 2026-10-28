@@ -35,15 +35,10 @@ h2 em { color: #5e0a61; font-weight: 400; }
 .hero-button:hover { transform: translateY(-3px); background: transparent; color: #fff; box-shadow: 0 12px 28px rgba(21,0,20,.22); }
 .app-downloads { margin-top: 26px; animation: hero-rise .8s .86s ease both; }
 .download-label { display: block; margin-bottom: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: rgba(255,255,255,.86); }
-.store-links { display: flex; justify-content: center; gap: 9px; }
-.store-links a { min-width: 144px; height: 48px; padding: 7px 13px; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(255,255,255,.5); border-radius: 7px; background: rgba(19,15,18,.88); color: #fff; text-decoration: none; text-align: left; transition: .25s; }
-.store-links a:hover { transform: translateY(-4px) scale(1.02); background: #000; border-color: #fff; box-shadow: 0 12px 24px rgba(10,0,10,.28); }
-.store-links a > span:last-child { display: flex; flex-direction: column; line-height: 1.05; }
-.store-links small { font-size: 8px; }
-.store-links strong { margin-top: 3px; font-size: 15px; font-weight: 500; }
-.play-icon { color: #d1c7af; font-size: 20px; }
-.apple-icon { width: 20px; height: 23px; position: relative; font-size: 23px; line-height: 23px; color: #fff; }
-.apple-icon::after { content: ''; position: absolute; width: 7px; height: 4px; border-radius: 100% 0; background: #fff; left: 11px; top: -2px; transform: rotate(-35deg); }
+.pwa-download { min-width: 144px; height: 48px; padding: 7px 18px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid rgba(255,255,255,.5); border-radius: 7px; background: rgba(19,15,18,.88); color: #fff; font: inherit; font-size: 13px; cursor: pointer; transition: .25s; }
+.pwa-download:hover { transform: translateY(-4px); background: #000; border-color: #fff; box-shadow: 0 12px 24px rgba(10,0,10,.28); }
+.pwa-download:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.pwa-download svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
 .button { border: 1px solid transparent; padding: 16px 22px; font-size: 11px; text-transform: uppercase; letter-spacing: .12em; }
 .button span { margin-left: 22px; }
 .button.primary { background: #5e0a61; color: #fff; }
@@ -338,7 +333,7 @@ footer button { display:block; border:0; background:none; color:#bcaebe; padding
 }
 @media (max-width: 560px) {
   .header-actions .icon-button:first-of-type { display:none; }
-  h1 { font-size:43px; line-height:.98; }.hero-kicker { font-size:11px; }.hero-actions { flex-direction:column; }.hero-button { width:min(270px,100%); }.app-downloads { margin-top:20px; }.store-links a { min-width:136px; padding:7px 9px; }.store-links strong { font-size:13px; }.manifesto { padding:80px 6vw 60px; }.manifesto h2, .section-heading h2, .journey h2, .newsletter h2 { font-size:40px; }
+  h1 { font-size:43px; line-height:.98; }.hero-kicker { font-size:11px; }.hero-actions { flex-direction:column; }.hero-button { width:min(270px,100%); }.app-downloads { margin-top:20px; }.pwa-download { min-width:160px; }.manifesto { padding:80px 6vw 60px; }.manifesto h2, .section-heading h2, .journey h2, .newsletter h2 { font-size:40px; }
   .values, .product-grid, .stylist-grid { grid-template-columns:1fr; }.values article { border-right:0; border-bottom:1px solid #e7dddb; padding:28px 8px; }.values article:last-child { grid-column:auto; }
   .section-shell { padding:80px 5vw; }.section-heading { align-items:flex-start; flex-direction:column; }.product-image { height:440px; }.quick-add { transform:none; }
   .measure-visual { min-height:380px; }.measure-note { display:none; }.measure-copy h2 { font-size:46px; }
