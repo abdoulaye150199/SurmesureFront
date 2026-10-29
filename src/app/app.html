@@ -248,69 +248,41 @@
         <button class="client-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Espace client</small></span></button>
         <nav>
           <button type="button" (click)="setView('client')"><i>⌂</i><span>Vue d’ensemble</span></button>
-          <button type="button" (click)="setView('client')"><i>▣</i><span>Mes commandes</span><b>1</b></button>
+          <button type="button" (click)="setView('client')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
           <button class="active" type="button"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
-          <button type="button" (click)="setView('client')"><i>◷</i><span>Rendez-vous</span><b>1</b></button>
-          <button type="button" (click)="setView('explore')"><i>♡</i><span>Mes favoris</span><b>{{ cartCount }}</b></button>
-          <button type="button" (click)="showToast('Aucun nouveau message')"><i>✉</i><span>Messages</span></button>
-          <button type="button" (click)="showToast('Vos préférences sont à jour')"><i>⚙</i><span>Paramètres</span></button>
+          <button type="button" (click)="setView('client')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
+          <button type="button" (click)="setView('client'); showFavoritesOnly = true"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
         </nav>
         <div class="client-sidebar-profile"><button type="button" (click)="showToast('Profil client sécurisé')"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button><button class="client-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
 
       <div class="client-portal measurement-portal">
         <header class="client-portal-header">
-          <div><span>Profil personnel · {{ latestClientMeasurement ? 'Mis à jour le ' + formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span><h1>Mes mesures</h1></div>
-          <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Afficher le guide" (click)="scrollWorkspaceTo('measurement-guide')">?</button><button class="client-alert" type="button" aria-label="Notifications" (click)="showToast(missingMeasurements.length + ' mesure(s) reste(nt) à compléter')">♧<b>{{ missingMeasurements.length }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+          <div><span>Mensurations enregistrées · {{ latestClientMeasurement ? 'Mis à jour le ' + formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span><h1>Mes mesures</h1><p>Retrouvez les mesures utiles à chaque type de vêtement.</p></div>
+          <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Ajouter une mesure" (click)="editNextMeasurement()">＋</button><button class="client-alert" type="button" aria-label="Mesures restant à compléter" (click)="showToast(missingMeasurements.length + ' mesure(s) reste(nt) à compléter')">♧<b>{{ missingMeasurements.length }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
         </header>
 
         <div class="dashboard-feedback loading" *ngIf="dashboardLoading"><i></i><span>Synchronisation de vos mesures…</span></div>
         <div class="dashboard-feedback error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
 
-        <div class="measurement-overview-grid">
-          <section class="measurement-visual-card">
-            <div class="measurement-intro"><span>Votre profil silhouette</span><h2>Des mesures précises,<br><em>une tenue parfaite.</em></h2><p>Vos mensurations sont enregistrées une seule fois et partagées de façon sécurisée avec le styliste de votre choix.</p><button type="button" (click)="scrollWorkspaceTo('measurement-list')">Voir toutes mes mesures <b>→</b></button></div>
-            <svg class="measurement-silhouette" viewBox="0 0 240 310" role="img" aria-label="Schéma des zones de mensuration">
-              <circle cx="120" cy="38" r="24"></circle>
-              <path d="M94 70 C80 83 76 105 78 130 L88 188 L82 286 M146 70 C160 83 164 105 162 130 L152 188 L158 286 M94 70 Q120 83 146 70 M88 188 Q120 202 152 188 M104 74 L97 178 L108 286 M136 74 L143 178 L132 286"></path>
-              <path class="measure-line" d="M73 96 H167 M78 132 H162 M85 174 H155 M91 71 H149"></path>
-              <g><circle cx="73" cy="96" r="3"></circle><line x1="73" y1="96" x2="36" y2="96"></line><text x="4" y="92">Poitrine</text></g>
-              <g><circle cx="162" cy="132" r="3"></circle><line x1="162" y1="132" x2="204" y2="132"></line><text x="183" y="124">Taille</text></g>
-              <g><circle cx="85" cy="174" r="3"></circle><line x1="85" y1="174" x2="37" y2="174"></line><text x="7" y="168">Hanches</text></g>
-            </svg>
-            <div class="measurement-privacy"><i>◇</i><span>Données privées<small>Partagées uniquement avec votre accord</small></span></div>
-          </section>
-
-          <section class="client-panel measurement-completion-card">
-            <div class="client-card-heading"><div><span>État du profil</span><h2>{{ measurementCompletion === 100 ? 'Profil complet' : 'Presque terminé' }}</h2></div><b>{{ completedMeasurementCount }}/{{ measurementDefinitions.length }}</b></div>
-            <div class="client-measure-ring" [style.background]="'conic-gradient(#6f126f 0 ' + measurementCompletion + '%, #eee5e9 ' + measurementCompletion + '% 100%)'"><div><strong>{{ measurementCompletion }}%</strong><span>complété</span></div></div>
-            <p>{{ missingMeasurements.length ? 'Ajoutez encore ' + missingMeasurements.length + ' mesure(s) pour finaliser votre profil.' : 'Votre profil est prêt à être partagé avec votre styliste.' }}</p>
-            <div class="measurement-missing" *ngFor="let item of missingMeasurements.slice(0, 2)"><span><i>＋</i> {{ item.label }}</span><button type="button" (click)="editMeasurement(item)">Ajouter</button></div>
-            <div class="measurement-complete-message" *ngIf="!missingMeasurements.length">✓ Toutes vos mensurations sont enregistrées</div>
-          </section>
-        </div>
-
-        <section class="measurement-stat-grid" aria-label="Mesures principales">
-          <article (click)="editMeasurementByKey('poitrine')"><span>Poitrine</span><strong>{{ measurementValue('poitrine') ?? '—' }} <small>cm</small></strong><i>↗</i></article>
-          <article (click)="editMeasurementByKey('taille')"><span>Taille</span><strong>{{ measurementValue('taille') ?? '—' }} <small>cm</small></strong><i>↗</i></article>
-          <article (click)="editMeasurementByKey('hanches')"><span>Hanches</span><strong>{{ measurementValue('hanches') ?? '—' }} <small>cm</small></strong><i>↗</i></article>
-          <article (click)="editMeasurementByKey('hauteur')"><span>Hauteur</span><strong>{{ measurementValue('hauteur') ?? '—' }} <small>cm</small></strong><i>↗</i></article>
+        <section class="measurement-profile-progress" aria-label="Avancement de votre profil de mesures">
+          <div><span>{{ completedMeasurementCount }} mesure(s) enregistrée(s) sur {{ measurementDefinitions.length }}</span><strong>{{ measurementCompletion }}%</strong></div>
+          <div class="measurement-progress-track"><i [style.width.%]="measurementCompletion"></i></div>
+          <p>{{ missingMeasurements.length ? 'Complétez les mesures manquantes pour préparer vos prochaines créations.' : 'Votre profil est prêt pour vos prochaines créations.' }}</p>
         </section>
 
-        <div class="measurement-content-grid">
-          <section class="client-panel measurement-list-panel" id="measurement-list">
-            <div class="client-panel-heading"><div><span>Mensurations enregistrées</span><h2>Mon profil complet</h2></div><button type="button" (click)="editNextMeasurement()">Ajouter une mesure ＋</button></div>
-            <div class="measurement-group"><div class="measurement-group-title"><i>01</i><span>Haut du corps<small>{{ upperCompletedCount }} mesures enregistrées</small></span></div><div class="measurement-rows"><button *ngFor="let item of upperMeasurements" type="button" [class.missing]="measurementValue(item.key) == null" (click)="editMeasurement(item)"><span>{{ item.label }}<small>{{ measurementValue(item.key) == null ? 'Mesure manquante' : 'Mis à jour le ' + formatDate(latestClientMeasurement?.updatedAt) }}</small></span><strong>{{ measurementValue(item.key) == null ? 'Ajouter' : measurementValue(item.key) + ' cm' }}</strong><i>{{ measurementValue(item.key) == null ? '＋' : '✎' }}</i></button></div></div>
-            <div class="measurement-group"><div class="measurement-group-title"><i>02</i><span>Bas du corps<small>{{ lowerCompletedCount }} mesures enregistrées</small></span></div><div class="measurement-rows"><button *ngFor="let item of lowerMeasurements" type="button" [class.missing]="measurementValue(item.key) == null" (click)="editMeasurement(item)"><span>{{ item.label }}<small>{{ measurementValue(item.key) == null ? 'Mesure manquante' : 'Mis à jour le ' + formatDate(latestClientMeasurement?.updatedAt) }}</small></span><strong>{{ measurementValue(item.key) == null ? 'Ajouter' : measurementValue(item.key) + ' cm' }}</strong><i>{{ measurementValue(item.key) == null ? '＋' : '✎' }}</i></button></div></div>
-          </section>
+        <section class="measurement-models" aria-label="Mesures par type de vêtement">
+          <article class="client-panel measurement-model-card" *ngFor="let model of measurementModels">
+            <div class="client-panel-heading"><div><span>Mesures pour</span><h2>{{ model.name }}</h2><p>{{ model.description }}</p></div></div>
+            <div class="measurement-model-fields">
+              <button *ngFor="let item of model.fields" type="button" [class.missing]="measurementValue(item.key) == null" (click)="editMeasurement(item)">
+                <span>{{ item.label }}</span><strong>{{ measurementValue(item.key) == null ? 'Ajouter' : measurementValue(item.key) + ' cm' }}</strong><i>{{ measurementValue(item.key) == null ? '＋' : '✎' }}</i>
+              </button>
+            </div>
+          </article>
+        </section>
 
-          <div class="measurement-side-stack">
-            <section class="client-panel measurement-guide-card" id="measurement-guide"><span>Guide express</span><h2>Bien prendre<br>vos mesures</h2><div><i>1</i><p><strong>Restez naturelle</strong><small>Tenez-vous droite, sans rentrer le ventre.</small></p></div><div><i>2</i><p><strong>Gardez le ruban souple</strong><small>Il doit suivre le corps sans le serrer.</small></p></div><div><i>3</i><p><strong>Faites-vous aider</strong><small>Une seconde personne améliore la précision.</small></p></div><button type="button" (click)="showToast('Guide illustré bientôt disponible')">Ouvrir le guide illustré ↗</button></section>
-            <section class="client-panel measurement-help-card"><div><span>Besoin d’aide ?</span><h2>Confiez vos mesures à un professionnel.</h2><p>Réservez une séance de 20 minutes avec Atelier Awa.</p><button type="button" (click)="showToast('Demande de rendez-vous envoyée')">Prendre rendez-vous <b>→</b></button></div><img src="/assets/stylist-awa.png" alt="Awa Diop"></section>
-          </div>
-        </div>
-
-        <section class="measurement-security-note"><i>✓</i><div><strong>Vos mesures sont protégées</strong><span>Vous contrôlez les stylistes autorisés à consulter votre profil.</span></div><button type="button" (click)="showToast('Gestion des autorisations bientôt disponible')">Gérer les autorisations ↗</button></section>
+        <section class="measurement-note"><span>Vos mensurations sont privées</span><p>Une mesure enregistrée est réutilisée pour tous les modèles qui en ont besoin. Touchez une ligne pour la modifier.</p></section>
       </div>
     </div>
   </ng-container>

@@ -61,6 +61,12 @@ interface MeasurementDefinition {
   group: 'upper' | 'lower';
 }
 
+interface MeasurementModel {
+  name: string;
+  description: string;
+  fields: MeasurementDefinition[];
+}
+
 interface StylistClientRecord {
   key: string;
   name: string;
@@ -226,6 +232,27 @@ export class App implements AfterViewInit, OnDestroy {
     { key: 'entrejambe', label: 'Longueur entrejambe', group: 'lower' },
     { key: 'hauteur', label: 'Hauteur', group: 'lower' },
     { key: 'longueurManche', label: 'Longueur manche', group: 'upper' },
+  ];
+
+  readonly measurementModels: MeasurementModel[] = [
+    {
+      name: 'Robe & ensemble',
+      description: 'Pour une tenue ajustée du buste aux jambes.',
+      fields: ['poitrine', 'epaules', 'taille', 'hanches', 'longueurRobe', 'longueurManche']
+        .map(key => this.measurementDefinitions.find(item => item.key === key)!)
+    },
+    {
+      name: 'Chemise & veste',
+      description: 'Pour ajuster le col, les épaules et les manches.',
+      fields: ['cou', 'poitrine', 'epaules', 'tourBras', 'longueurManche']
+        .map(key => this.measurementDefinitions.find(item => item.key === key)!)
+    },
+    {
+      name: 'Pantalon',
+      description: 'Pour une coupe confortable et à la bonne longueur.',
+      fields: ['taille', 'hanches', 'entrejambe', 'hauteur']
+        .map(key => this.measurementDefinitions.find(item => item.key === key)!)
+    },
   ];
 
   get visibleCreations(): Creation[] {
@@ -1284,6 +1311,13 @@ export class App implements AfterViewInit, OnDestroy {
 
   async openMeasureWorkspace(): Promise<void> {
     if (this.demoMode) {
+      this.workspaceRole = 'client';
+      this.activeView = 'measure';
+      this.menuOpen = false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    if (this.activeView === 'client' && this.authenticatedUser) {
       this.workspaceRole = 'client';
       this.activeView = 'measure';
       this.menuOpen = false;
