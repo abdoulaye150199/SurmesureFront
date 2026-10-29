@@ -68,3 +68,76 @@
 .stylist-editor-submit:disabled { opacity:.6; }
 .catalog-load-sentinel { grid-column:1/-1; min-height:48px; display:grid; place-items:center; color:#8f7f8a; font-size:10px; }.catalog-load-sentinel button { padding:10px 15px; border:1px solid #d9cbd4; border-radius:999px; background:#fff; color:#5e0a61; font-size:10px; }
 @media(max-width:620px) { .stylist-editor-fields,.employee-intake-form { grid-template-columns:1fr; }.stylist-editor-fields label:nth-child(n),.employee-intake-form label:nth-child(n) { grid-column:auto; }.employee-intake-form .employee-intake-notes,.employee-intake-form > button { grid-column:auto; }.stylist-order-chart { height:125px; }.stylist-appointment,.stylist-contact { align-items:flex-start; } }
+
+/* High-contrast light workspace for the stylist dashboard. */
+.stylist-workspace { background:#f7f3f0; color:#30252f; }
+.stylist-workspace .workspace-topbar button,.stylist-workspace .back-home,.stylist-workspace .workspace-status { color:#625660; }
+.stylist-workspace .workspace-profile { border-color:#e4d8df !important; background:#fff !important; color:#4c174b !important; }
+.stylist-dashboard-sidebar { border-color:#e7dfe4; background:#fffdfa; box-shadow:0 14px 38px rgba(61,34,57,.08); }
+.stylist-sidebar-logo { border-bottom-color:#e9e1e5; color:#3f273d; }
+.stylist-sidebar-logo small,.stylist-sidebar-profile small { color:#827580; }
+.stylist-dashboard-sidebar nav button { color:#625963; }
+.stylist-dashboard-sidebar nav button:hover { background:#f5edf3; color:#4d174b; }
+.stylist-dashboard-sidebar nav button.active { background:#5e0a61; color:#fff; }
+.stylist-dashboard-sidebar nav i { background:#f2edf0; }
+.stylist-dashboard-sidebar nav b { background:#f2edf0; color:#705b6e; }
+.stylist-sidebar-profile { border-top-color:#e9e1e5; }
+.stylist-sidebar-profile > button:first-child { color:#3f273d; }
+.stylist-sidebar-profile small { color:#827580; }
+.stylist-sidebar-exit { background:#f4eef2; color:#5e0a61; }
+.stylist-analytics { border-color:#e7dfe4; background:#fffdfa; box-shadow:0 18px 52px rgba(61,34,57,.08); }
+.analytics-header span { color:#806f7d; }
+.analytics-header h1 { color:#352635; }
+.analytics-header-actions button { border-color:#e5dce2; background:#fff; color:#554550; }
+.analytics-header-actions .analytics-profile { border-color:#5e0a61; background:#5e0a61; color:#fff; }
+.analytics-chart-card,.analytics-panel { border-color:#e8e0e5; background:#fff; }
+.analytics-card-title span,.analytics-chart-card small { color:#756775; }
+.analytics-card-title strong { color:#382a37; }
+.analytics-card-title small { background:#f7f1e4; color:#70571c; }
+.chart-grid { stroke:#ece5e9; }
+.chart-months { color:#756775; }
+.analytics-metrics article { border-color:#e8e0e5; background:#fff; }
+.analytics-metrics span,.analytics-metrics small { color:#6f626e; }
+.analytics-metrics strong { color:#382a37; }
+.analytics-metrics small { color:#746875; }
+.analytics-panel-heading span,.analytics-featured span { color:#756775; }
+.analytics-panel-heading h2,.analytics-featured h2 { color:#382a37; }
+.analytics-panel-heading h2 small,.analytics-featured p { color:#716472; }
+.analytics-panel-heading button { border-bottom-color:#cbb9c8; color:#5e0a61; }
+.analytics-order-head { border-top-color:#e9e1e5; color:#756775; }
+.analytics-order { border-top-color:#eee8ec; }
+.analytics-order strong { color:#382a37; }
+.analytics-order small,.analytics-order time { color:#716472; }
+.analytics-order > button { color:#5e0a61; }
+.analytics-sales .analytics-panel-heading > b { color:#486e48; }
+.analytics-creation-grid article { border-color:#e8e0e5; background:#fffdfa; }
+.analytics-creation-grid article span { color:#756775; }
+.analytics-creation-grid article h3 { color:#382a37; }
+.analytics-creation-grid article strong { color:#80601a; }
+.analytics-add { border-color:#cbb9c8; background:#fffdfa; color:#5e0a61; }
+.dashboard-feedback.dark { border-color:#e5dce2; background:#f7f2f5; color:#51414f; }
+.dashboard-feedback.dark.error { border-color:#e7c9c9; background:#fff1f0; color:#922d37; }
+.dashboard-inline-empty.dark { color:#756775; }
+.stylist-client-search { color:#443745; font-size:11px; font-weight:600; }
+.stylist-client-search input { min-height:42px; border-color:#d9cdd5; background:#fff; color:#342535; font-size:13px; }
+.stylist-client-search input::placeholder,.employee-intake-form input::placeholder,.employee-intake-form textarea::placeholder { color:#897b88; opacity:1; }
+.stylist-client-search input:focus,.employee-intake-form input:focus,.employee-intake-form textarea:focus { border-color:#8b4b88; outline:3px solid rgba(94,10,97,.12); }
+.stylist-client-create-form { border-color:#e6dce3; background:#faf7f9; }
+.employee-intake-form label { color:#443745; font-size:11px; font-weight:600; }
+.employee-intake-form input,.employee-intake-form textarea { min-height:42px; border-color:#d9cdd5; background:#fff; color:#342535; font-size:13px; }
+.stylist-record,.stylist-contact,.stylist-appointment { border-top-color:#e9e1e5; color:#382a37; }
+.stylist-record summary small,.stylist-contact small,.stylist-appointment span { color:#716472; }
+.stylist-record summary i { color:#5e0a61; }
+.stylist-client-record-actions button,.stylist-client-history > button,.stylist-record-actions button,.stylist-appointment-actions button,.stylist-appointment > button,.stylist-contact > button,.analytics-contact,.analytics-creation-actions button { border-color:#e0d5de; background:#f8f4f7; color:#51254f; }
+.stylist-client-history { border-top-color:#e9e1e5; }
+.stylist-client-history h3 { color:#3c2c3b; }
+.stylist-client-history p { color:#716472; }
+.measurement-values span { background:#f6f1f4; color:#403440; }
+.measurement-values b { color:#765b1d; }
+.stylist-appointment > b { background:#efe5f0; color:#642b68; }
+.stylist-appointment > b.pending { background:#f6efdc; color:#735b1e; }
+.stylist-appointment > b.confirmed,.stylist-appointment > b.completed { background:#e8f2e8; color:#416544; }
+.stylist-appointment > b.cancelled,.analytics-creation-actions button:last-child { background:#fff0ef; color:#922d37; }
+.employee-access-note { color:#655768; }
+.employee-password-field { border-color:#d9cdd5; background:#fff; color:#342535; }
+.employee-password-field button { background:#f2e8ef; color:#5e0a61; }
