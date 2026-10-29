@@ -162,7 +162,10 @@ export class App implements AfterViewInit, OnDestroy {
       .filter((key): key is string => typeof key === 'string');
     this.authenticatedUser = this.auth.user;
     const appRole = this.auth.appRole;
-    if (appRole) this.workspaceRole = appRole;
+    if (appRole && this.auth.isAuthenticated) {
+      this.workspaceRole = appRole;
+      this.activeView = appRole;
+    }
   }
 
   readonly creations: Creation[] = [
@@ -497,6 +500,9 @@ export class App implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     window.setTimeout(() => void this.loadPublicCatalog(true), 0);
+    if (this.auth.isAuthenticated && this.auth.appRole) {
+      void this.restoreAuthenticatedWorkspace();
+    }
     const elements = document.querySelectorAll<HTMLElement>(
       'main > section:not(.hero), footer, .values article, .product-card, .stylist-card, .journey-steps article'
     );
@@ -517,6 +523,24 @@ export class App implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.revealObserver?.disconnect();
     if (this.scrollStopTimer) clearTimeout(this.scrollStopTimer);
+  }
+
+  private async restoreAuthenticatedWorkspace(): Promise<void> {
+    const role = this.auth.appRole;
+    if (!role || !this.auth.isAuthenticated) return;
+
+    if (!await this.auth.validateSession()) {
+      this.authenticatedUser = null;
+      this.activeView = 'home';
+      this.openLogin(role);
+      this.showToast('Votre session a expiré. Reconnectez-vous.');
+      return;
+    }
+
+    this.authenticatedUser = this.auth.user;
+    this.workspaceRole = role;
+    this.activeView = role;
+    if (role !== 'admin') void this.loadDashboard(role);
   }
 
   @HostListener('window:beforeinstallprompt', ['$event'])

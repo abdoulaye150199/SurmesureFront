@@ -6,6 +6,7 @@ describe('App', () => {
   beforeEach(async () => {
     localStorage.removeItem('surmesure.selection');
     localStorage.removeItem('surmesure.favorites');
+    localStorage.removeItem('surmesure.auth.session');
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [provideHttpClient()],
@@ -48,5 +49,27 @@ describe('App', () => {
 
     const reloadedFixture = TestBed.createComponent(App);
     expect(reloadedFixture.componentInstance.cartCount).toBe(1);
+  });
+
+  it('restores the authenticated stylist workspace after a reload', () => {
+    localStorage.setItem('surmesure.auth.session', JSON.stringify({
+      token: 'access-token',
+      refreshToken: 'refresh-token',
+      data: {
+        id: 'stylist-1',
+        role: 'STYLIST',
+        firstName: 'Awa',
+        lastName: 'Diop',
+        email: 'awa@example.com',
+        phone: '+221770000001',
+        profileImage: '',
+        isActive: true,
+      },
+    }));
+
+    const fixture = TestBed.createComponent(App);
+
+    expect(fixture.componentInstance.activeView).toBe('stylist');
+    expect(fixture.componentInstance.authenticatedUser?.id).toBe('stylist-1');
   });
 });
