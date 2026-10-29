@@ -133,6 +133,7 @@ export class App implements AfterViewInit, OnDestroy {
   stylistCatalog: DashboardCatalogItem[] = [];
   stylistProfile: DashboardStylist | null = null;
   stylistPersonnel: DashboardPersonnel[] = [];
+  deletingEmployeeId: string | null = null;
   employeeContext: EmployeeWorkspaceContext | null = null;
   employeeAccountEditorOpen = false;
   employeeAccountSaving = false;
@@ -1252,6 +1253,25 @@ export class App implements AfterViewInit, OnDestroy {
       this.showToast(result.active ? 'Accès employé réactivé' : 'Accès employé désactivé');
     } catch (error) {
       this.showToast(error instanceof Error ? error.message : 'Modification de l’accès impossible.');
+    }
+  }
+
+  async removeEmployee(employee: DashboardPersonnel): Promise<void> {
+    const stylistId = this.stylistProfile?.id;
+    if (!stylistId) {
+      this.showToast('Le profil de l’atelier est introuvable. Actualisez la page.');
+      return;
+    }
+    if (!window.confirm(`Supprimer ${employee.firstName} ${employee.lastName} de votre équipe ? Son accès sera coupé.`)) return;
+    this.deletingEmployeeId = employee.id;
+    try {
+      await this.dashboard.removeEmployee(stylistId, employee.id);
+      this.stylistPersonnel = this.stylistPersonnel.filter(item => item.id !== employee.id);
+      this.showToast(`${employee.firstName} a été supprimé de l’équipe et son accès coupé.`);
+    } catch (error) {
+      this.showToast(error instanceof Error ? error.message : 'Suppression de l’employé impossible.');
+    } finally {
+      this.deletingEmployeeId = null;
     }
   }
 

@@ -249,6 +249,10 @@ export class DashboardService {
     return firstValueFrom(this.http.patch<{ success: boolean; active: boolean }>(getApiUrl(`/stylist/${stylistId}/personnel/${personnelId}/access`), { active }));
   }
 
+  removeEmployee(stylistId: string, personnelId: string): Promise<{ success: boolean }> {
+    return firstValueFrom(this.http.delete<{ success: boolean }>(getApiUrl(`/stylist/${stylistId}/personnel/${personnelId}`)));
+  }
+
   createEmployeeMeasurement(input: EmployeeMeasurementInput): Promise<DashboardMeasurement> {
     return firstValueFrom(this.http.post<DashboardMeasurement>(getApiUrl('/employee/measurements'), input));
   }

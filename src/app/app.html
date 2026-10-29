@@ -526,6 +526,7 @@
         <article class="stylist-contact" *ngFor="let employee of stylistPersonnel">
           <span><strong>{{ employee.firstName }} {{ employee.lastName }}</strong><small>{{ employee.specialization }} · {{ employee.user?.email || employee.email }}</small></span>
           <button type="button" *ngIf="employee.userId" (click)="toggleEmployeeAccess(employee)">{{ employee.active && employee.user?.active ? 'Désactiver l’accès' : 'Réactiver l’accès' }}</button>
+          <button type="button" class="employee-delete-button" (click)="removeEmployee(employee)" [disabled]="deletingEmployeeId === employee.id">{{ deletingEmployeeId === employee.id ? 'Suppression…' : 'Supprimer' }}</button>
           <small *ngIf="!employee.userId">Aucun compte associé</small>
         </article>
         <div class="dashboard-inline-empty dark" *ngIf="!stylistPersonnel.length">Aucun employé enregistré dans votre atelier.</div>
