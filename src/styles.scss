@@ -5,3 +5,6 @@ body { width: 100%; margin: 0; overflow-x: clip; background: #fffcf8; font-famil
 .login-icon-button { display:grid; place-items:center; }
 .login-icon-button svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 @media (min-width:901px) { .web-nav-actions .login-icon-button { width:38px; padding:0; } }
+.dashboard-logout { width:36px!important; padding:0!important; }
+.dashboard-logout span { display:none!important; }
+.dashboard-logout svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }

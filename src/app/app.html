@@ -272,7 +272,7 @@
       <div class="client-portal measurement-portal">
         <header class="client-portal-header">
           <div><span>Mensurations enregistrées · {{ latestClientMeasurement ? 'Mis à jour le ' + formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span><h1>Mes mesures</h1><p>Retrouvez les mesures utiles à chaque type de vêtement.</p></div>
-          <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Ajouter une mesure" (click)="editNextMeasurement()">＋</button><button class="client-alert" type="button" aria-label="Mesures restant à compléter" (click)="showToast(missingMeasurements.length + ' mesure(s) reste(nt) à compléter')">♧<b>{{ missingMeasurements.length }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+          <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Ajouter une mesure" (click)="editNextMeasurement()">＋</button><button class="client-alert" type="button" aria-label="Mesures restant à compléter" (click)="showToast(missingMeasurements.length + ' mesure(s) reste(nt) à compléter')">♧<b>{{ missingMeasurements.length }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
         </header>
 
         <div class="dashboard-feedback loading" *ngIf="dashboardLoading"><i></i><span>Synchronisation de vos mesures…</span></div>
@@ -332,7 +332,7 @@
             <button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button>
             <button class="client-alert" type="button" aria-label="Notifications" (click)="showToast(nextClientAppointment ? 'Votre prochain rendez-vous est le ' + formatDate(nextClientAppointment.startsAt) : 'Aucune nouvelle notification')">♧<b>{{ nextClientAppointment ? 1 : 0 }}</b></button>
             <button class="client-avatar" type="button" (click)="openClientProfile()" aria-label="Ouvrir mon profil">{{ userInitials }}</button>
-            <button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button>
+            <button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button>
           </div>
         </header>
 
@@ -384,7 +384,7 @@
         <section class="client-panel client-profile-panel" id="client-profile">
           <div class="client-panel-heading"><div><span>Votre espace personnel</span><h2>Mon profil</h2></div></div>
           <div class="client-stylist-contact"><img [src]="authenticatedUser?.profileImage || '/assets/logo-mark.png'" [alt]="authenticatedUser?.profileImage ? 'Photo de profil' : 'Logo Sur Mesure'"><div><span>Compte client</span><h2>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</h2><p>{{ authenticatedUser?.email || 'E-mail non renseigné' }}<br>{{ authenticatedUser?.phone || 'Téléphone non renseigné' }}</p></div></div>
-          <div class="client-header-actions"><button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+          <div class="client-header-actions"><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
         </section>
       </div>
     </div>
@@ -412,7 +412,7 @@
       <div class="stylist-analytics" id="stylist-overview">
       <header class="analytics-header">
         <div><span>{{ stylistProfile?.businessName || 'Votre atelier' }}</span><h1>{{ stylistPageTitle }}</h1></div>
-        <div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" class="analytics-alert" aria-label="Aller aux commandes actives" (click)="setStylistPage('orders')">♧<b>{{ stylistActiveOrderCount }}</b></button><button type="button" class="analytics-profile" aria-label="Ouvrir les paramètres de l’atelier" (click)="setStylistPage('settings')"><img *ngIf="stylistPhotoUrl; else stylistInitials" [src]="stylistPhotoUrl" alt=""><ng-template #stylistInitials>{{ userInitials }}</ng-template></button><button class="dashboard-logout dark" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+        <div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" class="analytics-alert" aria-label="Aller aux commandes actives" (click)="setStylistPage('orders')">♧<b>{{ stylistActiveOrderCount }}</b></button><button type="button" class="analytics-profile" aria-label="Ouvrir les paramètres de l’atelier" (click)="setStylistPage('settings')"><img *ngIf="stylistPhotoUrl; else stylistInitials" [src]="stylistPhotoUrl" alt=""><ng-template #stylistInitials>{{ userInitials }}</ng-template></button><button class="dashboard-logout dark" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
       </header>
 
       <div class="dashboard-feedback dark loading" *ngIf="dashboardLoading"><i></i><span>Synchronisation de l’atelier…</span></div>
@@ -551,7 +551,7 @@
         <div class="stylist-sidebar-profile"><span class="employee-sidebar-identity"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>{{ employeeContext?.stylist?.businessName || 'Atelier' }}</small></span></span><button class="stylist-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
       <div class="stylist-analytics employee-analytics">
-        <header class="analytics-header"><div><span>{{ employeeContext?.stylist?.businessName || 'Espace atelier' }}</span><h1>{{ employeePage === 'intake' ? 'Nouvelle fiche' : 'Mes clientes' }}</h1></div><div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button class="dashboard-logout dark" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div></header>
+        <header class="analytics-header"><div><span>{{ employeeContext?.stylist?.businessName || 'Espace atelier' }}</span><h1>{{ employeePage === 'intake' ? 'Nouvelle fiche' : 'Mes clientes' }}</h1></div><div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button class="dashboard-logout dark" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div></header>
         <div class="dashboard-feedback dark loading" *ngIf="dashboardLoading"><i></i><span>Chargement des fiches de l’atelier…</span></div>
         <div class="dashboard-feedback dark error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
         <section class="analytics-panel employee-intake-panel" id="employee-intake" *ngIf="employeePage === 'intake'">
