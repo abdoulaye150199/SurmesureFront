@@ -431,13 +431,13 @@
           <button type="button" [class.active]="stylistPage === 'team'" (click)="setStylistPage('team')"><i>♙</i><span>Équipe</span><b>{{ stylistPersonnel.length }}</b></button>
           <button type="button" [class.active]="stylistPage === 'settings'" (click)="setStylistPage('settings')"><i>⚙</i><span>Paramètres</span></button>
         </nav>
-        <div class="stylist-sidebar-profile"><button type="button" (click)="openStylistEditor('profile')"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>{{ stylistProfile?.businessName || 'Atelier styliste' }}</small></span></button><button class="stylist-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
+        <div class="stylist-sidebar-profile"><button type="button" (click)="openStylistEditor('profile')"><b><img *ngIf="stylistPhotoUrl; else stylistSidebarInitials" [src]="stylistPhotoUrl" alt=""><ng-template #stylistSidebarInitials>{{ userInitials }}</ng-template></b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>{{ stylistProfile?.businessName || 'Atelier styliste' }}</small></span></button><button class="stylist-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
 
       <div class="stylist-analytics" id="stylist-overview">
       <header class="analytics-header">
         <div><span>{{ stylistProfile?.businessName || 'Votre atelier' }}</span><h1>{{ stylistPageTitle }}</h1></div>
-        <div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" class="analytics-alert" aria-label="Aller aux commandes actives" (click)="setStylistPage('orders')">♧<b>{{ stylistActiveOrderCount }}</b></button><button type="button" class="analytics-profile" aria-label="Ouvrir les paramètres de l’atelier" (click)="setStylistPage('settings')">{{ userInitials }}</button><button class="dashboard-logout dark" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+        <div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" class="analytics-alert" aria-label="Aller aux commandes actives" (click)="setStylistPage('orders')">♧<b>{{ stylistActiveOrderCount }}</b></button><button type="button" class="analytics-profile" aria-label="Ouvrir les paramètres de l’atelier" (click)="setStylistPage('settings')"><img *ngIf="stylistPhotoUrl; else stylistInitials" [src]="stylistPhotoUrl" alt=""><ng-template #stylistInitials>{{ userInitials }}</ng-template></button><button class="dashboard-logout dark" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
       </header>
 
       <div class="dashboard-feedback dark loading" *ngIf="dashboardLoading"><i></i><span>Synchronisation de l’atelier…</span></div>
@@ -446,7 +446,7 @@
       <div class="analytics-top-grid" *ngIf="stylistPage === 'overview'">
         <section class="analytics-hero-card">
           <div><span class="analytics-kicker">Vue d’ensemble · {{ dashboardMonth }}</span><h2>Pilotez votre<br><em>atelier.</em></h2><p>{{ stylistProfile?.about || 'Suivez vos commandes, vos clientes et vos créations depuis un seul espace.' }}</p><button type="button" (click)="openStylistEditor('catalog')">Nouvelle création <span>＋</span></button></div>
-          <img src="/assets/stylist-awa.png" alt="Awa Diop dans son atelier">
+          <img [src]="stylistPhotoUrl || '/assets/stylist-awa.png'" [alt]="'Photo de ' + (authenticatedUser?.firstName || 'votre styliste')">
           <i></i>
         </section>
 
@@ -639,6 +639,9 @@
     </ng-container>
     <ng-template #stylistProfileForm>
       <div class="stylist-editor-fields">
+        <label class="catalog-image-upload stylist-photo-upload"><span>Photo du styliste</span><input name="stylistProfileImage" type="file" accept="image/*" (change)="onStylistPhotoSelected($event)"><small>{{ profileImageFileName || 'JPG, PNG ou WebP · 12 Mo maximum' }}</small></label>
+        <div class="catalog-image-preview stylist-photo-preview" *ngIf="profileDraft.profileImage"><img [src]="profileDraft.profileImage" alt="Aperçu de la photo du styliste"><button type="button" (click)="clearStylistPhoto()">Retirer la photo</button></div>
+        <p class="catalog-image-error" *ngIf="profileImageError" role="alert">{{ profileImageError }}</p>
         <label>Nom de l’atelier<input name="profileBusinessName" [(ngModel)]="profileDraft.businessName" maxlength="120" required></label>
         <label>Présentation<textarea name="profileAbout" [(ngModel)]="profileDraft.about" rows="4" maxlength="1000"></textarea></label>
         <label>Spécialités séparées par des virgules<input name="profileSpecialties" [(ngModel)]="profileDraft.specialties" placeholder="Cérémonie, Traditionnel"></label>

@@ -10,6 +10,7 @@ export interface StylistProfileUpdate {
   businessName: string;
   about: string;
   specialties: string[];
+  profileImage: string;
 }
 
 export interface CatalogItemInput {

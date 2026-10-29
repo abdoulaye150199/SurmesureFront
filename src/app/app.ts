@@ -149,7 +149,9 @@ export class App implements AfterViewInit, OnDestroy {
   stylistMeasurementNotes = '';
   stylistMeasurementSaving = false;
   catalogDraft = { title: '', description: '', imageUrl: '', price: null as number | null, colors: '' };
-  profileDraft = { businessName: '', about: '', specialties: '' };
+  profileDraft = { businessName: '', about: '', specialties: '', profileImage: '' };
+  profileImageFileName = '';
+  profileImageError = '';
   private revealObserver?: IntersectionObserver;
   private scrollStopTimer?: ReturnType<typeof setTimeout>;
   private installPrompt?: BeforeInstallPromptEvent;
@@ -322,6 +324,12 @@ export class App implements AfterViewInit, OnDestroy {
   get userInitials(): string {
     const user = this.authenticatedUser;
     return user ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase() : 'FS';
+  }
+
+  get stylistPhotoUrl(): string {
+    return this.stylistProfile
+      ? this.stylistProfile.user.profileImage
+      : this.authenticatedUser?.profileImage || '';
   }
 
   get userFirstName(): string {
@@ -789,39 +797,71 @@ export class App implements AfterViewInit, OnDestroy {
     }
 
     try {
-      const bitmap = await createImageBitmap(file);
-      try {
-        const canvas = document.createElement('canvas');
-        let width = Math.min(bitmap.width, 1200);
-        let blob: Blob | null = null;
-        for (let resize = 0; resize < 7 && !blob; resize++) {
-          canvas.width = width;
-          canvas.height = Math.max(1, Math.round(bitmap.height * width / bitmap.width));
-          const context = canvas.getContext('2d');
-          if (!context) throw new Error('Traitement d’image indisponible.');
-          context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-          for (const quality of [0.82, 0.72, 0.62, 0.52, 0.42]) {
-            const candidate = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
-            if (candidate && candidate.size <= 55 * 1024) {
-              blob = candidate;
-              break;
-            }
-          }
-          if (!blob) width = Math.max(240, Math.floor(width * 0.75));
-        }
-        if (!blob) throw new Error('Cette image ne peut pas être réduite suffisamment. Choisissez une autre image.');
-        this.catalogImageData = await new Promise<string>((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Lecture de l’image impossible.'));
-          reader.onerror = () => reject(new Error('Lecture de l’image impossible.'));
-          reader.readAsDataURL(blob!);
-        });
-        this.catalogImageFileName = file.name;
-      } finally {
-        bitmap.close();
-      }
+      this.catalogImageData = await this.compressImage(file);
+      this.catalogImageFileName = file.name;
     } catch (error) {
       this.catalogImageError = error instanceof Error ? error.message : 'Import de l’image impossible.';
+    }
+  }
+
+  async onStylistPhotoSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    this.profileImageError = '';
+    if (!file.type.startsWith('image/')) {
+      this.profileImageError = 'Choisissez un fichier image.';
+      return;
+    }
+    if (file.size > 12 * 1024 * 1024) {
+      this.profileImageError = 'La photo doit faire moins de 12 Mo.';
+      return;
+    }
+    try {
+      this.profileDraft.profileImage = await this.compressImage(file);
+      this.profileImageFileName = file.name;
+    } catch (error) {
+      this.profileImageError = error instanceof Error ? error.message : 'Import de la photo impossible.';
+    }
+  }
+
+  clearStylistPhoto(): void {
+    this.profileDraft.profileImage = '';
+    this.profileImageFileName = '';
+    this.profileImageError = '';
+  }
+
+  private async compressImage(file: File): Promise<string> {
+    const bitmap = await createImageBitmap(file);
+    try {
+      const canvas = document.createElement('canvas');
+      let width = Math.min(bitmap.width, 1200);
+      let blob: Blob | null = null;
+      for (let resize = 0; resize < 7 && !blob; resize++) {
+        canvas.width = width;
+        canvas.height = Math.max(1, Math.round(bitmap.height * width / bitmap.width));
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Traitement d’image indisponible.');
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        for (const quality of [0.82, 0.72, 0.62, 0.52, 0.42]) {
+          const candidate = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+          if (candidate && candidate.size <= 55 * 1024) {
+            blob = candidate;
+            break;
+          }
+        }
+        if (!blob) width = Math.max(240, Math.floor(width * 0.75));
+      }
+      if (!blob) throw new Error('Cette image ne peut pas être réduite suffisamment. Choisissez une autre image.');
+      return await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Lecture de l’image impossible.'));
+        reader.onerror = () => reject(new Error('Lecture de l’image impossible.'));
+        reader.readAsDataURL(blob!);
+      });
+    } finally {
+      bitmap.close();
     }
   }
 
@@ -844,7 +884,10 @@ export class App implements AfterViewInit, OnDestroy {
         businessName: this.stylistProfile?.businessName ?? '',
         about: this.stylistProfile?.about ?? '',
         specialties: this.stylistProfile?.specialties.join(', ') ?? '',
+        profileImage: this.stylistPhotoUrl,
       };
+      this.profileImageFileName = this.profileDraft.profileImage ? 'Photo actuelle' : '';
+      this.profileImageError = '';
     }
   }
 
@@ -889,9 +932,10 @@ export class App implements AfterViewInit, OnDestroy {
           businessName: this.profileDraft.businessName.trim(),
           about: this.profileDraft.about.trim(),
           specialties: this.profileDraft.specialties.split(',').map(value => value.trim()).filter(Boolean),
+          profileImage: this.profileDraft.profileImage,
         };
         const saved = this.demoMode
-          ? { ...(this.stylistProfile as DashboardStylist), ...profile }
+          ? { ...(this.stylistProfile as DashboardStylist), ...profile, user: { ...this.stylistProfile!.user, profileImage: profile.profileImage } }
           : await this.dashboard.updateStylistProfile(profile);
         this.stylistProfile = saved;
         this.showToast('Profil de l’atelier mis à jour');

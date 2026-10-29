@@ -157,4 +157,12 @@
 .stylist-analytics .analytics-hero-card h2 { font-size:clamp(38px,4vw,60px); }
 .stylist-analytics .employee-intake-form input,.stylist-analytics .employee-intake-form textarea,.stylist-analytics .stylist-client-search input { font-size:14px; }
 .stylist-analytics .dashboard-feedback { font-size:12px; }
+.analytics-header-actions .analytics-profile { overflow:hidden; padding:0; }
+.analytics-header-actions .analytics-profile img { width:100%; height:100%; border-radius:inherit; object-fit:cover; }
+.stylist-sidebar-profile > button:first-child > b { overflow:hidden; }
+.stylist-sidebar-profile > button:first-child > b img { width:100%; height:100%; border-radius:inherit; object-fit:cover; }
+.stylist-editor-fields .stylist-photo-upload,.stylist-photo-preview,.stylist-photo-preview + .catalog-image-error { grid-column:1/-1; }
+.stylist-photo-preview { max-height:none; min-height:96px; padding:10px; display:flex; align-items:center; justify-content:flex-start; gap:14px; }
+.stylist-photo-preview img { width:96px; height:96px; flex:0 0 auto; border-radius:50%; object-fit:cover; }
+.stylist-photo-preview button { padding:8px 11px; border:1px solid #e0d5de; border-radius:8px; background:#fff; color:#7b2639; cursor:pointer; }
 .employee-password-field button { background:#f2e8ef; color:#5e0a61; }
