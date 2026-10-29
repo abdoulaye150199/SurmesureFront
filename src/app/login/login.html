@@ -40,10 +40,6 @@
         <button class="login-submit" type="submit" [disabled]="submitting">{{ submitting ? 'Connexion…' : 'Se connecter' }} <span>→</span></button>
       </form>
 
-      <button class="login-demo" type="button" *ngIf="accountRole === 'client' || accountRole === 'stylist'" (click)="requestDemo()">
-        Explorer la démo {{ accountRole === 'stylist' ? 'styliste' : 'cliente' }} <span>→</span>
-      </button>
-
       <div class="login-divider" *ngIf="accountRole === 'client' || accountRole === 'stylist'"><span>ou continuer avec</span></div>
       <div class="login-socials" *ngIf="accountRole === 'client' || accountRole === 'stylist'">
         <button type="button" aria-label="Continuer avec Google">G</button>

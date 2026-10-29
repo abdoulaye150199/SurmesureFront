@@ -715,5 +715,5 @@
 </aside>
 <div class="drawer-overlay" [class.open]="cartOpen" (click)="cartOpen = false"></div>
 <app-signup-page *ngIf="activeView === 'signup'" [initialRole]="signupRole" (closed)="setView('home')" (loginRequested)="openLogin($event)" (accountCreated)="onAccountCreated($event)"></app-signup-page>
-<app-login *ngIf="loginOpen" [initialRole]="loginRole" (closed)="closeLogin()" (signupRequested)="onSignupRequested($event)" (loggedIn)="onLoggedIn($event)" (demoRequested)="startDemo($event)"></app-login>
+<app-login *ngIf="loginOpen" [initialRole]="loginRole" (closed)="closeLogin()" (signupRequested)="onSignupRequested($event)" (loggedIn)="onLoggedIn($event)"></app-login>
 <div class="toast" role="status" aria-live="polite" [class.show]="toast">{{ toast }}</div>
