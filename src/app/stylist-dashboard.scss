@@ -140,4 +140,21 @@
 .stylist-appointment > b.cancelled,.analytics-creation-actions button:last-child { background:#fff0ef; color:#922d37; }
 .employee-access-note { color:#655768; }
 .employee-password-field { border-color:#d9cdd5; background:#fff; color:#342535; }
+
+/* Keep dashboard copy readable at normal laptop and desktop zoom levels. */
+.stylist-analytics :is(span,small,time,label,button,p,summary) { font-size:12px !important; line-height:1.45; }
+.stylist-dashboard-sidebar nav button { font-size:12px; }
+.stylist-dashboard-sidebar nav b { min-width:22px; font-size:11px; }
+.stylist-sidebar-logo > span { font-size:18px; }
+.stylist-sidebar-logo small,.stylist-sidebar-profile small { font-size:10px; }
+.stylist-sidebar-profile > button:first-child > span { font-size:12px; }
+.stylist-sidebar-profile > button:first-child > b { font-size:10px; }
+.employee-sidebar-identity { font-size:12px; }
+.employee-sidebar-identity small { font-size:10px; }
+.stylist-analytics .analytics-header h1 { font-size:30px; }
+.stylist-analytics .analytics-header > div:first-child > span { font-size:11px !important; }
+.stylist-analytics .analytics-panel-heading h2 { font-size:26px; }
+.stylist-analytics .analytics-hero-card h2 { font-size:clamp(38px,4vw,60px); }
+.stylist-analytics .employee-intake-form input,.stylist-analytics .employee-intake-form textarea,.stylist-analytics .stylist-client-search input { font-size:14px; }
+.stylist-analytics .dashboard-feedback { font-size:12px; }
 .employee-password-field button { background:#f2e8ef; color:#5e0a61; }
