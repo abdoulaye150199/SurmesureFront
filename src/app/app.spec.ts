@@ -1,6 +1,8 @@
 import { provideHttpClient } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
+import { DashboardService } from './dashboard/dashboard.service';
+import { OfflineWorkspaceStore } from './dashboard/offline-workspace.store';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -102,5 +104,81 @@ describe('App', () => {
 
     app.onLoggedIn(client);
     expect(app.activeView).toBe('measure');
+  });
+
+  it('shows the last synchronized measurements to a stylist when the API is offline', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const dashboard = TestBed.inject(DashboardService);
+    const offlineStore = TestBed.inject(OfflineWorkspaceStore);
+    const measurement = {
+      id: 'measurement-1',
+      stylistId: 'atelier-1',
+      clientId: null,
+      clientName: 'Aminata Fall',
+      clientPhone: '+221770000001',
+      measurements: { poitrine: 92 },
+      notes: '',
+      createdAt: '2026-10-28T12:00:00.000Z',
+      updatedAt: '2026-10-28T12:00:00.000Z',
+    };
+    app.authenticatedUser = {
+      id: 'stylist-user-1', role: 'STYLIST', firstName: 'Awa', lastName: 'Diop',
+      email: 'awa@example.com', phone: '+221770000002', profileImage: '', isActive: true,
+    };
+    spyOn(dashboard, 'loadStylistDashboard').and.rejectWith(new Error('offline'));
+    spyOn(dashboard, 'listStylistPersonnel').and.rejectWith(new Error('offline'));
+    spyOn(offlineStore, 'load').and.resolveTo({
+      userId: 'stylist-user-1', role: 'stylist', savedAt: '2026-10-28T12:00:00.000Z',
+      measurements: [measurement],
+      stylistProfile: {
+        id: 'atelier-1', userId: 'stylist-user-1', businessName: 'Atelier Awa', about: '',
+        specialties: [], rating: 0,
+        user: { firstName: 'Awa', lastName: 'Diop', profileImage: '' },
+      },
+    });
+
+    await app.loadDashboard('stylist');
+
+    expect(app.stylistMeasurements).toEqual([measurement]);
+    expect(app.stylistProfile?.businessName).toBe('Atelier Awa');
+    expect(app.dashboardError).toContain('Hors connexion');
+  });
+
+  it('shows the last synchronized measurements to an employee when the API is offline', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const dashboard = TestBed.inject(DashboardService);
+    const offlineStore = TestBed.inject(OfflineWorkspaceStore);
+    const measurement = {
+      id: 'measurement-2',
+      stylistId: 'atelier-1',
+      clientId: null,
+      clientName: 'Mariama Fall',
+      clientPhone: '+221770000003',
+      measurements: { taille: 74 },
+      notes: '',
+      createdAt: '2026-10-28T12:00:00.000Z',
+      updatedAt: '2026-10-28T12:00:00.000Z',
+    };
+    app.authenticatedUser = {
+      id: 'employee-user-1', role: 'EMPLOYEE', firstName: 'Mame', lastName: 'Sarr',
+      email: 'mame@example.com', phone: '+221770000004', profileImage: '', isActive: true,
+    };
+    spyOn(dashboard, 'loadEmployeeDashboard').and.rejectWith(new Error('offline'));
+    spyOn(offlineStore, 'load').and.resolveTo({
+      userId: 'employee-user-1', role: 'employee', savedAt: '2026-10-28T12:00:00.000Z',
+      measurements: [measurement],
+      employeeContext: {
+        id: 'employee-1', stylistId: 'atelier-1', userId: 'employee-user-1', firstName: 'Mame',
+        lastName: 'Sarr', email: 'mame@example.com', phone: '+221770000004',
+        specialization: 'Couture', active: true, hireDate: '2026-10-01T00:00:00.000Z',
+        stylist: { id: 'atelier-1', businessName: 'Atelier Awa' },
+      },
+    });
+
+    await app.loadDashboard('employee');
+
+    expect(app.stylistMeasurements).toEqual([measurement]);
+    expect(app.employeeContext?.stylist.businessName).toBe('Atelier Awa');
+    expect(app.dashboardError).toContain('Hors connexion');
   });
 });

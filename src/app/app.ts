@@ -5,6 +5,7 @@ import { LoginComponent } from './login/login';
 import { SignupPageComponent } from './signup-page/signup-page';
 import { AppAccountRole, AuthService, AuthUser } from './auth/auth.service';
 import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard';
+import { OfflineWorkspaceSnapshot, OfflineWorkspaceStore } from './dashboard/offline-workspace.store';
 import {
   DashboardAppointment,
   DashboardAppointmentStatus,
@@ -171,7 +172,11 @@ export class App implements AfterViewInit, OnDestroy {
   private installPrompt?: BeforeInstallPromptEvent;
   private pendingAuthView: 'measure' | null = null;
 
-  constructor(private readonly auth: AuthService, private readonly dashboard: DashboardService) {
+  constructor(
+    private readonly auth: AuthService,
+    private readonly dashboard: DashboardService,
+    private readonly offlineWorkspace: OfflineWorkspaceStore,
+  ) {
     this.selectedCreations = this.readStoredArray<Creation>(CART_STORAGE_KEY)
       .filter((item): item is Creation => !!item && typeof item.name === 'string' && typeof item.stylist === 'string');
     this.favoriteKeys = this.readStoredArray<string>(FAVORITES_STORAGE_KEY)
@@ -604,6 +609,8 @@ export class App implements AfterViewInit, OnDestroy {
 
     if (!await this.auth.validateSession()) {
       this.authenticatedUser = null;
+      this.clearPrivateWorkspaceData();
+      await this.offlineWorkspace.clear().catch(() => undefined);
       this.activeView = 'home';
       this.openLogin(role);
       this.showToast('Votre session a expiré. Reconnectez-vous.');
@@ -621,11 +628,27 @@ export class App implements AfterViewInit, OnDestroy {
     const role = this.auth.appRole ?? this.workspaceRole;
     this.pendingAuthView = role === 'client' && this.activeView === 'measure' ? 'measure' : null;
     this.auth.clearSession();
+    this.clearPrivateWorkspaceData();
+    void this.offlineWorkspace.clear().catch(() => undefined);
     this.authenticatedUser = null;
     this.activeView = 'home';
     this.workspaceRole = role;
     this.openLogin(role);
     this.showToast('Votre session a expiré. Reconnectez-vous.');
+  }
+
+  private clearPrivateWorkspaceData(): void {
+    this.clientOrders = [];
+    this.clientMeasurements = [];
+    this.clientAppointments = [];
+    this.stylistOrders = [];
+    this.stylistMeasurements = [];
+    this.stylistAppointments = [];
+    this.stylistCatalog = [];
+    this.stylistProfile = null;
+    this.stylistPersonnel = [];
+    this.employeeContext = null;
+    this.dashboardError = '';
   }
 
   @HostListener('window:beforeinstallprompt', ['$event'])
@@ -784,6 +807,13 @@ export class App implements AfterViewInit, OnDestroy {
         const snapshot = await this.dashboard.loadEmployeeDashboard();
         this.employeeContext = snapshot.employee;
         this.stylistMeasurements = snapshot.measurements;
+        await this.saveOfflineWorkspace({
+          userId: this.authenticatedUser.id,
+          role,
+          savedAt: new Date().toISOString(),
+          measurements: snapshot.measurements,
+          employeeContext: snapshot.employee,
+        });
       } else if (this.authenticatedUser) {
         const snapshot = await this.dashboard.loadStylistDashboard(this.authenticatedUser.id);
         this.stylistOrders = snapshot.orders;
@@ -792,14 +822,55 @@ export class App implements AfterViewInit, OnDestroy {
         this.stylistCatalog = snapshot.catalog;
         this.stylistProfile = snapshot.profile;
         this.employeeContext = null;
+        await this.saveOfflineWorkspace({
+          userId: this.authenticatedUser.id,
+          role,
+          savedAt: new Date().toISOString(),
+          measurements: snapshot.measurements,
+          stylistProfile: snapshot.profile,
+        });
         this.stylistPersonnel = snapshot.profile
           ? await this.dashboard.listStylistPersonnel(snapshot.profile.id)
           : [];
       }
     } catch {
-      this.dashboardError = 'Impossible de charger les données. Vérifiez que l’API est démarrée.';
+      const cached = this.authenticatedUser && role !== 'client'
+        ? await this.loadOfflineWorkspace(this.authenticatedUser.id, role)
+        : null;
+      if (cached) {
+        this.stylistMeasurements = cached.measurements;
+        if (role === 'stylist') {
+          this.stylistProfile = cached.stylistProfile ?? null;
+          this.stylistOrders = [];
+          this.stylistAppointments = [];
+          this.stylistCatalog = [];
+          this.stylistPersonnel = [];
+        } else if (role === 'employee') {
+          this.employeeContext = cached.employeeContext ?? null;
+        }
+        this.dashboardError = `Hors connexion : mesures synchronisées le ${this.formatDate(cached.savedAt)}.`;
+      } else {
+        this.dashboardError = 'Impossible de charger les données. Vérifiez votre connexion Internet.';
+      }
     } finally {
       this.dashboardLoading = false;
+    }
+  }
+
+  private async saveOfflineWorkspace(snapshot: OfflineWorkspaceSnapshot): Promise<void> {
+    try {
+      await this.offlineWorkspace.save(snapshot);
+    } catch {
+      // La synchronisation du tableau de bord reste utilisable si IndexedDB est indisponible.
+    }
+  }
+
+  private async loadOfflineWorkspace(userId: string, role: 'stylist' | 'employee'):
+    Promise<OfflineWorkspaceSnapshot | null> {
+    try {
+      return await this.offlineWorkspace.load(userId, role);
+    } catch {
+      return null;
     }
   }
 
@@ -1448,6 +1519,8 @@ export class App implements AfterViewInit, OnDestroy {
     }
     if (!await this.auth.validateSession()) {
       this.authenticatedUser = null;
+      this.clearPrivateWorkspaceData();
+      await this.offlineWorkspace.clear().catch(() => undefined);
       this.openLogin(role);
       this.showToast('Votre session a expiré. Reconnectez-vous.');
       return;
@@ -1536,6 +1609,10 @@ export class App implements AfterViewInit, OnDestroy {
 
   onLoggedIn(user: AuthUser): void {
     this.demoMode = false;
+    if (this.authenticatedUser && this.authenticatedUser.id !== user.id) {
+      this.clearPrivateWorkspaceData();
+      void this.offlineWorkspace.clear().catch(() => undefined);
+    }
     const role: AppAccountRole = user.role === 'ADMIN' ? 'admin' : user.role === 'STYLIST' ? 'stylist' : user.role === 'EMPLOYEE' ? 'employee' : 'client';
     const destination = role === 'client' ? this.pendingAuthView : null;
     this.pendingAuthView = null;
@@ -1550,6 +1627,10 @@ export class App implements AfterViewInit, OnDestroy {
 
   onAccountCreated(user: AuthUser): void {
     this.demoMode = false;
+    if (this.authenticatedUser && this.authenticatedUser.id !== user.id) {
+      this.clearPrivateWorkspaceData();
+      void this.offlineWorkspace.clear().catch(() => undefined);
+    }
     const role: 'client' | 'stylist' = user.role === 'STYLIST' ? 'stylist' : 'client';
     const destination = role === 'client' ? this.pendingAuthView : null;
     this.pendingAuthView = null;
@@ -1573,18 +1654,12 @@ export class App implements AfterViewInit, OnDestroy {
     } catch {
       this.auth.clearSession();
     } finally {
+      await this.offlineWorkspace.clear().catch(() => undefined);
       this.authenticatedUser = null;
       this.demoMode = false;
       this.workspaceRole = 'client';
       this.pendingAuthView = null;
-      this.clientOrders = [];
-      this.clientMeasurements = [];
-      this.clientAppointments = [];
-      this.stylistOrders = [];
-      this.stylistMeasurements = [];
-      this.stylistPersonnel = [];
-      this.stylistAppointments = [];
-      this.employeeContext = null;
+      this.clearPrivateWorkspaceData();
       this.activeView = 'home';
       this.loggingOut = false;
       this.showToast('Vous êtes déconnecté.');

@@ -84,7 +84,10 @@ export class AuthService {
       this.session = { ...this.session, data: user };
       localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(this.session));
       return true;
-    } catch {
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && (error.status === 0 || error.status >= 500)) {
+        return !!this.session?.token;
+      }
       this.clearSession();
       return false;
     }
