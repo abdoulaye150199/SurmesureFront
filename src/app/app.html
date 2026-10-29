@@ -328,8 +328,6 @@
           <button type="button" (click)="setView('measure')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
           <button type="button" (click)="scrollWorkspaceTo('client-appointment')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
           <button type="button" (click)="showFavoritesOnly = true; scrollWorkspaceTo('client-inspirations')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
-          <button type="button" (click)="showToast('Aucun nouveau message')"><i>✉</i><span>Messages</span></button>
-          <button type="button" (click)="showToast('Vos préférences sont à jour')"><i>⚙</i><span>Paramètres</span></button>
         </nav>
         <div class="client-sidebar-profile">
           <button type="button" (click)="showToast('Profil client sécurisé')"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button>
@@ -339,7 +337,7 @@
 
       <div class="client-portal" id="client-overview">
         <header class="client-portal-header">
-          <div><span>Espace personnel · {{ dashboardMonth }}</span><h1>Bonjour, {{ userFirstName }}</h1></div>
+          <div><span>Votre espace personnel</span><h1>Bonjour, {{ userFirstName }}</h1><p>Retrouvez ici l’essentiel de votre expérience sur mesure.</p></div>
           <div class="client-header-actions">
             <button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button>
             <button class="client-alert" type="button" aria-label="Notifications" (click)="showToast(nextClientAppointment ? 'Votre prochain rendez-vous est le ' + formatDate(nextClientAppointment.startsAt) : 'Aucune nouvelle notification')">♧<b>{{ nextClientAppointment ? 1 : 0 }}</b></button>
@@ -351,31 +349,10 @@
         <div class="dashboard-feedback loading" *ngIf="dashboardLoading"><i></i><span>Actualisation de votre espace…</span></div>
         <div class="dashboard-feedback error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
 
-        <div class="client-welcome-grid">
-          <section class="client-hero-card" *ngIf="currentClientOrder as order; else noClientOrderHero">
-            <div class="client-hero-copy">
-              <span class="client-kicker">Commande #{{ orderShortId(order) }} · {{ orderStatusLabel(order.status) }}</span>
-              <h2>Votre création<br><em>prend forme.</em></h2>
-              <p>{{ order.stylist?.businessName || 'Votre atelier' }} suit chaque détail de {{ order.description }}. Dernière mise à jour le {{ formatDate(order.updatedAt) }}.</p>
-              <div><button type="button" (click)="scrollWorkspaceTo('client-order')">Suivre ma commande <span>→</span></button><button class="client-ghost-button" type="button" (click)="showToast('Votre message a été transmis à ' + (order.stylist?.businessName || 'l’atelier'))">Contacter l’atelier</button></div>
-            </div>
-            <img [src]="orderImage(order)" [alt]="order.description">
-            <div class="client-hero-stage"><span>Étape actuelle</span><strong>{{ order.status === 'pending' ? '01' : order.status === 'inProgress' ? '03' : '04' }}</strong><p>{{ orderStatusLabel(order.status) }}</p></div>
-          </section>
-          <ng-template #noClientOrderHero><section class="client-hero-card client-empty-hero"><div class="client-hero-copy"><span class="client-kicker">Votre prochain projet</span><h2>Imaginez votre<br><em>future création.</em></h2><p>Explorez les pièces de nos stylistes et démarrez une nouvelle commande sur mesure.</p><div><button type="button" (click)="setView('explore')">Découvrir les créations <span>→</span></button></div></div><img src="/assets/look-2.png" alt="Création Sur Mesure"></section></ng-template>
-
-          <section class="client-measure-summary">
-            <div class="client-card-heading"><div><span>Profil silhouette</span><h2>Mes mesures</h2></div><button type="button" (click)="setView('measure')">↗</button></div>
-            <div class="client-measure-ring" [style.background]="'conic-gradient(#6f126f 0 ' + measurementCompletion + '%, #eee5e9 ' + measurementCompletion + '% 100%)'"><div><strong>{{ measurementCompletion }}%</strong><span>complété</span></div></div>
-            <p>{{ measurementCompletion ? 'Votre profil est prêt à ' + measurementCompletion + '% pour vos prochaines commandes.' : 'Commencez votre profil pour obtenir des pièces parfaitement ajustées.' }}</p>
-            <ul><li [class.done]="completedMeasurementCount >= 4">Mesures principales <b>{{ completedMeasurementCount >= 4 ? '✓' : '＋' }}</b></li><li [class.done]="measurementCompletion === 100">Mensurations complémentaires <b>{{ measurementCompletion === 100 ? '✓' : '＋' }}</b></li></ul>
-          </section>
-        </div>
-
-        <section class="client-stat-grid" aria-label="Résumé de votre espace">
-          <article><i>▣</i><div><span>Commandes actives</span><strong>{{ clientActiveOrderCount | number:'2.0-0' }}</strong><small>{{ clientOrders.length }} commande(s) au total</small></div></article>
-          <article><i>♡</i><div><span>Pièces favorites</span><strong>{{ favoritesCount | number:'2.0-0' }}</strong><small>Enregistrées sur cet appareil</small></div></article>
-          <article><i>◷</i><div><span>Prochain rendez-vous</span><strong>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt, 'day') : '—' }}</strong><small>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt, 'month') + ' · ' + formatDate(nextClientAppointment.startsAt, 'time') : 'Aucun rendez-vous' }}</small></div></article>
+        <section class="client-quick-overview" aria-label="Raccourcis de votre espace">
+          <button type="button" (click)="scrollWorkspaceTo('client-order')"><i>▣</i><span><small>Ma commande</small><strong>{{ currentClientOrder?.description || 'Découvrir les créations' }}</strong><em>{{ currentClientOrder ? orderStatusLabel(currentClientOrder.status) : 'Choisir une pièce' }}</em></span><b>→</b></button>
+          <button type="button" (click)="setView('measure')"><i>⌁</i><span><small>Mes mesures</small><strong>{{ measurementCompletion }}% complété</strong><em>{{ measurementCompletion === 100 ? 'Profil prêt' : 'Compléter mon profil' }}</em></span><b>→</b></button>
+          <button type="button" (click)="scrollWorkspaceTo('client-appointment')"><i>◷</i><span><small>Prochain rendez-vous</small><strong>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt) : 'Aucun rendez-vous' }}</strong><em>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt, 'time') : 'Votre atelier reste disponible' }}</em></span><b>→</b></button>
         </section>
 
         <div class="client-content-grid">
@@ -400,8 +377,8 @@
             </section>
             <ng-template #noAppointment><section class="client-panel client-appointment dashboard-compact-empty" id="client-appointment"><div class="client-card-heading"><div><span>Rendez-vous</span><h2>Aucun essayage prévu</h2></div><i>◷</i></div><p>Contactez votre styliste pour organiser votre prochaine séance.</p></section></ng-template>
             <section class="client-panel client-stylist-contact">
-              <img src="/assets/stylist-awa.png" alt="Awa Diop">
-              <div><span>Votre styliste</span><h2>{{ nextClientAppointment?.stylist?.user?.firstName || 'Awa' }} {{ nextClientAppointment?.stylist?.user?.lastName || 'Diop' }}</h2><p>{{ nextClientAppointment?.stylist?.businessName || 'Atelier Awa' }} · Cérémonie</p><button type="button" (click)="openStylist(stylists[0])">Voir son univers ↗</button></div>
+              <img [src]="nextClientAppointment?.stylist?.user?.profileImage || clientStylists[0]?.user?.profileImage || '/assets/stylist-awa.png'" [alt]="'Photo de ' + (nextClientAppointment?.stylist?.user?.firstName || clientStylists[0]?.user?.firstName || 'votre styliste')">
+              <div><span>Votre atelier</span><h2>{{ nextClientAppointment?.stylist?.user?.firstName || clientStylists[0]?.user?.firstName || currentClientOrder?.stylist?.businessName || 'Votre styliste' }} {{ nextClientAppointment?.stylist?.user?.lastName || clientStylists[0]?.user?.lastName || '' }}</h2><p>{{ nextClientAppointment?.stylist?.businessName || currentClientOrder?.stylist?.businessName || clientStylists[0]?.businessName || 'Atelier associé à votre commande' }}</p></div>
             </section>
           </div>
         </div>
