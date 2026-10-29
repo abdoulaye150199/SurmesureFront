@@ -17,7 +17,9 @@
     <button type="button" (click)="cartOpen = true">Sélection</button>
   </nav>
   <div class="header-actions">
-    <button class="text-action" (click)="openLogin()">Se connecter</button>
+    <button class="icon-button login-icon-button" type="button" aria-label="Se connecter" title="Se connecter" (click)="openLogin()">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20c.5-4 2.8-6 6.5-6s6 2 6.5 6"></path></svg>
+    </button>
     <button class="text-action install-action" *ngIf="installAvailable" (click)="installPwa()">Installer l’app</button>
     <button class="icon-button" type="button" aria-label="Explorer les créations" (click)="setView('explore')">⌕</button>
     <button class="icon-button cart-button" aria-label="Panier" (click)="cartOpen = true">
@@ -680,7 +682,7 @@
   <button type="button" (click)="openWorkspace(defaultWorkspaceRole)" aria-label="Mon espace"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.2" r="3.4"></circle><path d="M5.3 20c.5-4 3-6 6.7-6s6.2 2 6.7 6"></path></svg></span><small>Mon espace</small></button>
   <button type="button" (click)="cartOpen = true" aria-label="Sélection"><span class="nav-icon bottom-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 5.8c-2.1-2.2-5.6-1.8-7.3.6L12 7.8l-1-1.4c-1.7-2.4-5.2-2.8-7.3-.6-2 2.1-1.8 5.5.3 7.5l8 7.1 8-7.1c2.1-2 2.3-5.4.3-7.5Z"></path></svg><b *ngIf="cartCount">{{ cartCount }}</b></span><small>Sélection</small></button>
   <div class="web-nav-actions" aria-label="Actions rapides">
-    <button type="button" (click)="openLogin()">Se connecter</button>
+    <button class="login-icon-button" type="button" aria-label="Se connecter" title="Se connecter" (click)="openLogin()"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.4"></circle><path d="M5.5 20c.5-4 2.8-6 6.5-6s6 2 6.5 6"></path></svg></button>
     <button type="button" (click)="installPwa()">Installer l’app</button>
     <button type="button" aria-label="Rechercher" (click)="scrollTo('collections')">⌕</button>
     <button type="button" aria-label="Ouvrir la sélection" (click)="cartOpen = true">♡</button>

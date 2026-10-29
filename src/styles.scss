@@ -2,3 +2,6 @@
 html { scroll-behavior: smooth; overflow-x: clip; }
 body { width: 100%; margin: 0; overflow-x: clip; background: #fffcf8; font-family: Inter, Avenir, 'Segoe UI', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 ::selection { color: #fff; background: #5e0a61; }
+.login-icon-button { display:grid; place-items:center; }
+.login-icon-button svg { width:19px; height:19px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+@media (min-width:901px) { .web-nav-actions .login-icon-button { width:38px; padding:0; } }
