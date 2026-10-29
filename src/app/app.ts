@@ -616,6 +616,18 @@ export class App implements AfterViewInit, OnDestroy {
     if (role !== 'admin') void this.loadDashboard(role);
   }
 
+  @HostListener('window:surmesure:session-expired')
+  onSessionExpired(): void {
+    const role = this.auth.appRole ?? this.workspaceRole;
+    this.pendingAuthView = role === 'client' && this.activeView === 'measure' ? 'measure' : null;
+    this.auth.clearSession();
+    this.authenticatedUser = null;
+    this.activeView = 'home';
+    this.workspaceRole = role;
+    this.openLogin(role);
+    this.showToast('Votre session a expiré. Reconnectez-vous.');
+  }
+
   @HostListener('window:beforeinstallprompt', ['$event'])
   onBeforeInstallPrompt(event: Event): void {
     event.preventDefault();
@@ -1069,7 +1081,7 @@ export class App implements AfterViewInit, OnDestroy {
         const saved = this.demoMode
           ? { ...(this.stylistProfile as DashboardStylist), ...profile, user: { ...this.stylistProfile!.user, profileImage: profile.profileImage } }
           : await this.dashboard.updateStylistProfile(profile);
-        this.stylistProfile = saved;
+        this.syncStylistProfile(saved);
         this.showToast('Profil de l’atelier mis à jour');
       }
       this.stylistEditor = null;
@@ -1328,9 +1340,48 @@ export class App implements AfterViewInit, OnDestroy {
       ?? 'Atelier partenaire';
   }
 
+  private syncStylistProfile(updated: DashboardStylist): void {
+    const previousBusinessName = this.stylistProfile?.businessName;
+    const replaceProfile = (profiles: DashboardStylist[]) => {
+      const found = profiles.some(profile => profile.id === updated.id);
+      return found
+        ? profiles.map(profile => profile.id === updated.id ? updated : profile)
+        : [...profiles, updated];
+    };
+
+    this.publicStylists = replaceProfile(this.publicStylists);
+    this.clientStylists = replaceProfile(this.clientStylists);
+    this.stylistProfile = updated;
+    this.stylistOrders = this.stylistOrders.map(order => order.stylistId === updated.id
+      ? { ...order, stylist: { businessName: updated.businessName } }
+      : order
+    );
+    this.stylistAppointments = this.stylistAppointments.map(appointment => appointment.stylistId === updated.id
+      ? { ...appointment, stylist: appointment.stylist
+          ? { ...appointment.stylist, businessName: updated.businessName }
+          : appointment.stylist }
+      : appointment
+    );
+
+    if (this.selectedStylist?.id === updated.id) {
+      this.selectedStylist = this.toStylistProfile(updated);
+    }
+
+    if (previousBusinessName && previousBusinessName !== updated.businessName) {
+      this.selectedCreations = this.selectedCreations.map(creation =>
+        creation.stylistId === updated.id || creation.stylist === previousBusinessName
+          ? { ...creation, stylist: updated.businessName }
+          : creation
+      );
+      this.writeStoredArray(CART_STORAGE_KEY, this.selectedCreations);
+    }
+  }
+
   addCatalogToCart(item: DashboardCatalogItem): void {
     const fallbackCategory: Exclude<Collection, 'Tout'> = 'Cérémonie';
     this.addToCart({
+      id: item.id,
+      stylistId: item.stylistId,
       name: item.title,
       stylist: this.catalogStylistName(item),
       price: this.price(item.price),

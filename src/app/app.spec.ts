@@ -72,4 +72,35 @@ describe('App', () => {
     expect(fixture.componentInstance.activeView).toBe('stylist');
     expect(fixture.componentInstance.authenticatedUser?.id).toBe('stylist-1');
   });
+
+  it('returns an expired client session to login and restores the requested measurements page', async () => {
+    const client = {
+      id: 'client-1',
+      role: 'CLIENT' as const,
+      firstName: 'Fatou',
+      lastName: 'Ndiaye',
+      email: 'fatou@example.com',
+      phone: '+221770000001',
+      profileImage: '',
+      isActive: true,
+    };
+    localStorage.setItem('surmesure.auth.session', JSON.stringify({
+      token: 'access-token',
+      refreshToken: 'refresh-token',
+      data: client,
+    }));
+
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    await app.openClientMeasurements();
+    app.onSessionExpired();
+
+    expect(app.activeView).toBe('home');
+    expect(app.loginOpen).toBeTrue();
+    expect(app.authenticatedUser).toBeNull();
+    expect(localStorage.getItem('surmesure.auth.session')).toBeNull();
+
+    app.onLoggedIn(client);
+    expect(app.activeView).toBe('measure');
+  });
 });

@@ -18,6 +18,9 @@ export const authInterceptor: HttpInterceptorFn = (request, next) => {
   return next(authenticatedRequest).pipe(catchError((error: unknown) => {
     if (error instanceof HttpErrorResponse && error.status === 401 && !request.url.includes('/auth/')) {
       localStorage.removeItem(AUTH_SESSION_KEY);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('surmesure:session-expired'));
+      }
     }
     return throwError(() => error);
   }));
