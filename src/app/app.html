@@ -118,10 +118,11 @@
       <p>Découvrez leurs univers, leur savoir-faire et choisissez la personne qui donnera vie à votre prochaine pièce.</p>
     </div>
     <div class="stylist-grid">
-      <article class="stylist-card" *ngFor="let stylist of stylists; let index = index" [class.featured]="index === 0">
-        <div class="portrait"><img [src]="stylist.portrait" [alt]="stylist.name + ', styliste à ' + stylist.location"></div>
-        <div class="stylist-info"><span class="stylist-index">0{{ index + 1 }}</span><p>{{ stylist.location }} · {{ stylist.specialty }}</p><h3>{{ stylist.name }}</h3><button type="button" (click)="openStylist(stylist)">Découvrir son univers <span>↗</span></button></div>
+      <article class="stylist-card" *ngFor="let stylist of visibleStylists; let index = index" [class.featured]="index === 0">
+        <div class="portrait"><img [src]="stylist.portrait" [alt]="stylist.name + ', styliste'" loading="lazy"></div>
+        <div class="stylist-info"><span class="stylist-index">{{ index + 1 | number:'2.0-0' }}</span><p>{{ stylist.id ? stylist.studio : stylist.location }} · {{ stylist.specialty }}</p><h3>{{ stylist.name }}</h3><button type="button" (click)="openStylist(stylist)">Découvrir son univers <span>↗</span></button></div>
       </article>
+      <p class="stylist-gallery-empty" *ngIf="publicStylistsLoaded && !visibleStylists.length">Les profils des stylistes seront bientôt disponibles.</p>
     </div>
   </section>
 
@@ -150,11 +151,11 @@
       <img [src]="stylist.portrait" [alt]="stylist.name">
     </div>
     <div class="stylist-profile-content">
-      <p class="eyebrow">{{ stylist.location }} · {{ stylist.specialty }}</p>
+      <p class="eyebrow">{{ stylist.id ? stylist.studio : stylist.location }} · {{ stylist.specialty }}</p>
       <h2>{{ stylist.name }}</h2>
       <p class="stylist-profile-bio">{{ stylist.bio }}</p>
 
-      <div class="stylist-profile-contact">
+      <div class="stylist-profile-contact" *ngIf="stylist.email || stylist.phone">
         <span class="card-label">Échanger avec {{ stylist.name }}</span>
         <div class="stylist-contact-actions">
           <a class="button primary" [href]="'mailto:' + stylist.email + '?subject=Projet%20sur%20mesure'">Écrire à la styliste <span>↗</span></a>

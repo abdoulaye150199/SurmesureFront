@@ -108,6 +108,7 @@ h2 em { color: #5e0a61; font-weight: 400; }
 .stylist-card p { margin: 0; color: #8d7e85; font-size: 9px; text-transform: uppercase; letter-spacing: .15em; }
 .stylist-card h3 { font-size: 25px; margin: 8px 0; }
 .stylist-card button { background: none; border: 0; padding: 0; color: #5e0a61; font-size: 11px; }
+.stylist-gallery-empty { grid-column:1/-1; padding:32px 12px; color:#746a6f; text-align:center; }
 .journey { background: #f6f0e9; padding: 100px 5vw; text-align: center; }
 .journey-steps { display: grid; grid-template-columns: 1fr 50px 1fr 50px 1fr 50px 1fr; align-items: center; max-width: 1150px; margin: 70px auto 0; }
 .journey-steps article > span { display: grid; place-items: center; width: 70px; height: 70px; margin: 0 auto 22px; border: 1px solid #c9bbb6; border-radius: 50%; color: #5e0a61; font-size: 23px; }

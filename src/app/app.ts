@@ -44,6 +44,7 @@ interface Creation {
 }
 
 interface Stylist {
+  id?: string;
   name: string;
   studio: string;
   location: string;
@@ -112,6 +113,8 @@ export class App implements AfterViewInit, OnDestroy {
   publicStylists: DashboardStylist[] = [];
   publicCatalogLoading = false;
   publicCatalogHasMore = true;
+  publicStylistsLoaded = false;
+  publicStylistsLoading = false;
   private publicCatalogCursor: string | null = null;
   private publicCatalogLoaded = false;
   stylistOrders: DashboardOrder[] = [];
@@ -234,6 +237,21 @@ export class App implements AfterViewInit, OnDestroy {
       : available.filter(item => item.category === this.selectedFilter);
   }
 
+  get visibleStylists(): Stylist[] {
+    if (!this.publicStylistsLoaded) return this.stylists;
+    return this.publicStylists.map((profile, index) => ({
+      id: profile.id,
+      name: [profile.user.firstName, profile.user.lastName].filter(Boolean).join(' ') || profile.businessName,
+      studio: profile.businessName,
+      location: '',
+      specialty: profile.specialties.join(' · ') || 'Styliste partenaire',
+      portrait: profile.user.profileImage || this.stylists[index % this.stylists.length].portrait,
+      bio: profile.about || `Découvrez les créations et le savoir-faire de ${profile.businessName}.`,
+      email: '',
+      phone: '',
+    }));
+  }
+
   async loadPublicCatalog(reset = false): Promise<void> {
     if (this.publicCatalogLoading || (!reset && !this.publicCatalogHasMore)) return;
     if (reset) {
@@ -243,20 +261,29 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.publicCatalogLoading = true;
     try {
-      const [page, stylists] = await Promise.all([
-        this.dashboard.loadPublicCatalogPage(12, this.publicCatalogCursor ?? undefined),
-        this.publicStylists.length ? Promise.resolve(this.publicStylists) : this.dashboard.loadPublicStylists().catch(() => []),
-      ]);
+      const page = await this.dashboard.loadPublicCatalogPage(12, this.publicCatalogCursor ?? undefined);
       this.publicCatalogItems = reset
         ? page.data
         : [...this.publicCatalogItems, ...page.data.filter(item => !this.publicCatalogItems.some(existing => existing.id === item.id))];
-      this.publicStylists = stylists;
       this.publicCatalogCursor = page.meta.nextCursor;
       this.publicCatalogHasMore = page.meta.hasMore;
     } catch {
       this.publicCatalogHasMore = false;
     } finally {
       this.publicCatalogLoading = false;
+    }
+  }
+
+  async loadPublicStylists(): Promise<void> {
+    if (this.publicStylistsLoading || this.publicStylistsLoaded) return;
+    this.publicStylistsLoading = true;
+    try {
+      this.publicStylists = await this.dashboard.loadPublicStylists();
+      this.publicStylistsLoaded = true;
+    } catch {
+      // Keep the local showcase available when the public API is temporarily unavailable.
+    } finally {
+      this.publicStylistsLoading = false;
     }
   }
 
@@ -337,9 +364,13 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   get selectedStylistCreations(): Creation[] {
-    return this.selectedStylist
-      ? this.creations.filter(item => item.stylist === this.selectedStylist?.studio)
-      : [];
+    if (!this.selectedStylist) return [];
+    if (this.selectedStylist.id) {
+      return this.publicCatalogItems
+        .filter(item => item.stylistId === this.selectedStylist?.id)
+        .map(item => this.toCreation(item));
+    }
+    return this.creations.filter(item => item.stylist === this.selectedStylist?.studio);
   }
 
   get currentClientOrder(): DashboardOrder | null {
@@ -508,6 +539,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     window.setTimeout(() => void this.loadPublicCatalog(true), 0);
+    window.setTimeout(() => void this.loadPublicStylists(), 0);
     if (this.auth.isAuthenticated && this.auth.appRole) {
       void this.restoreAuthenticatedWorkspace();
     }
