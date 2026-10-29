@@ -139,6 +139,8 @@ export class App implements AfterViewInit, OnDestroy {
   employeeClientPhone = '';
   employeeMeasurementNotes = '';
   employeeMeasurementDraft: Record<string, number | null> = {};
+  employeeCustomMeasurements: Array<{ id: number; label: string; value: number | null }> = [];
+  private nextEmployeeCustomMeasurementId = 1;
   employeeMeasurementSaving = false;
   stylistClientSearch = '';
   showStylistClientForm = false;
@@ -255,6 +257,7 @@ export class App implements AfterViewInit, OnDestroy {
         .map(key => this.measurementDefinitions.find(item => item.key === key)!)
     },
   ];
+  openMeasurementModel: string | null = this.measurementModels[0]?.name ?? null;
 
   get visibleCreations(): Creation[] {
     const available = this.publicCatalogLoaded
@@ -418,6 +421,14 @@ export class App implements AfterViewInit, OnDestroy {
     return this.clientAppointments.find(item => item.status !== 'cancelled' && new Date(item.startsAt).getTime() >= now)
       ?? this.clientAppointments.find(item => item.status !== 'cancelled')
       ?? null;
+  }
+
+  toggleMeasurementModel(name: string): void {
+    this.openMeasurementModel = this.openMeasurementModel === name ? null : name;
+  }
+
+  measurementModelCompletedCount(model: MeasurementModel): number {
+    return model.fields.filter(item => this.measurementValue(item.key) != null).length;
   }
 
   get measurementCompletion(): number {
@@ -1101,8 +1112,34 @@ export class App implements AfterViewInit, OnDestroy {
     }
   }
 
+  addEmployeeCustomMeasurement(): void {
+    this.employeeCustomMeasurements = [...this.employeeCustomMeasurements, {
+      id: this.nextEmployeeCustomMeasurementId++, label: '', value: null,
+    }];
+  }
+
+  removeEmployeeCustomMeasurement(id: number): void {
+    this.employeeCustomMeasurements = this.employeeCustomMeasurements.filter(field => field.id !== id);
+  }
+
   async saveEmployeeMeasurement(): Promise<void> {
     const measurements = this.measurementDraftValues(this.employeeMeasurementDraft);
+    const customNames = new Set<string>();
+    for (const field of this.employeeCustomMeasurements) {
+      const label = field.label.trim();
+      const value = Number(field.value);
+      if (!label || field.value == null || !Number.isFinite(value) || value <= 0 || value > 300) {
+        this.showToast('Complétez chaque champ personnalisé avec un nom et une mesure entre 0 et 300 cm.');
+        return;
+      }
+      const normalizedName = label.toLocaleLowerCase();
+      if (customNames.has(normalizedName) || Object.keys(measurements).some(key => key.toLocaleLowerCase() === normalizedName)) {
+        this.showToast('Chaque mesure doit avoir un nom unique.');
+        return;
+      }
+      customNames.add(normalizedName);
+      measurements[label] = value;
+    }
     if (this.employeeClientName.trim().length < 2 || !this.employeeClientPhone.trim() || !Object.keys(measurements).length) {
       this.showToast('Indiquez le nom, le téléphone et au moins une mensuration.');
       return;
@@ -1118,6 +1155,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.employeeClientPhone = '';
       this.employeeMeasurementNotes = '';
       this.employeeMeasurementDraft = {};
+      this.employeeCustomMeasurements = [];
       this.showToast('Fiche cliente et mensurations enregistrées.');
     } catch (error) {
       this.showToast(error instanceof Error ? error.message : 'Enregistrement impossible. Vérifiez le numéro de téléphone.');

@@ -650,12 +650,18 @@ main { padding-bottom:90px; }
 .measurement-progress-track { height:8px; margin-top:12px; overflow:hidden; border-radius:8px; background:#f0e8ed; }
 .measurement-progress-track i { height:100%; display:block; border-radius:inherit; background:linear-gradient(90deg,#6f126f,#c58c35); transition:width .3s; }
 .measurement-profile-progress p { margin:9px 0 0; color:#786b75; font-size:12px; }
-.measurement-models { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
-.measurement-model-card { padding:20px; }
-.measurement-model-card .client-panel-heading { margin-bottom:14px; }
-.measurement-model-card .client-panel-heading h2 { font-size:23px; }
-.measurement-model-card .client-panel-heading p { margin:7px 0 0; color:#786b75; font-size:12px; line-height:1.5; }
-.measurement-model-fields { display:grid; gap:4px; }
+.measurement-models { display:grid; grid-template-columns:1fr; gap:10px; }
+.measurement-model-card { padding:0; overflow:hidden; }
+.measurement-model-toggle { width:100%; min-height:88px; padding:17px 19px; display:grid; grid-template-columns:minmax(0,1fr) auto 20px; gap:14px; align-items:center; border:0; background:transparent; text-align:left; }
+.measurement-model-copy { min-width:0; display:block; }
+.measurement-model-copy > span { display:block; color:#8c7b86; font-size:10px; letter-spacing:.1em; text-transform:uppercase; }
+.measurement-model-copy > strong { display:block; margin-top:4px; color:#3e1c3a; font:23px Georgia,serif; }
+.measurement-model-copy > small { display:block; margin-top:6px; color:#786b75; font-size:12px; line-height:1.45; }
+.measurement-model-summary { color:#5e0a61; font:16px Georgia,serif; text-align:center; white-space:nowrap; }
+.measurement-model-summary small { display:block; margin-top:3px; color:#8c7b86; font:9px Arial,sans-serif; }
+.measurement-model-chevron { width:25px; height:25px; display:grid; place-items:center; border-radius:50%; background:#f2eaef; color:#6b2868; font-size:18px; font-style:normal; transition:transform .2s; }
+.measurement-model-toggle[aria-expanded="true"] .measurement-model-chevron { transform:rotate(180deg); }
+.measurement-model-fields { display:grid; gap:4px; padding:0 19px 14px; }
 .measurement-model-fields button { min-height:48px; padding:8px 2px; display:grid; grid-template-columns:minmax(0,1fr) auto 28px; gap:10px; align-items:center; border:0; border-bottom:1px solid #eee5ea; background:transparent; text-align:left; }
 .measurement-model-fields button:last-child { border-bottom:0; }
 .measurement-model-fields button > span { color:#5d4658; font-size:13px; }
@@ -666,8 +672,7 @@ main { padding-bottom:90px; }
 .measurement-note { margin-top:16px; padding:16px 18px; border:1px solid #dce7dd; border-radius:14px; background:#f4f8f4; }
 .measurement-note span { color:#415746; font-size:13px; font-weight:700; }
 .measurement-note p { margin:5px 0 0; color:#728075; font-size:12px; line-height:1.5; }
-@media (max-width:1100px) { .measurement-models { grid-template-columns:1fr; } }
-@media (max-width:700px) { .measurement-profile-progress { padding:16px; }.measurement-profile-progress > div:first-child { font-size:12px; }.measurement-model-card { padding:16px; } }
+@media (max-width:700px) { .measurement-profile-progress { padding:16px; }.measurement-profile-progress > div:first-child { font-size:12px; }.measurement-model-toggle { min-height:82px; padding:14px 15px; grid-template-columns:minmax(0,1fr) auto 19px; gap:9px; }.measurement-model-copy > strong { font-size:20px; }.measurement-model-copy > small { max-width:240px; font-size:11px; }.measurement-model-fields { padding:0 15px 11px; }.measurement-model-fields button { min-height:45px; grid-template-columns:minmax(0,1fr) auto 25px; gap:7px; }.measurement-model-fields button > span { font-size:12px; }.measurement-model-fields button strong { font-size:15px; } }
 
 /* Interactive dashboard states */
 button:disabled { cursor:not-allowed; opacity:.58; }.dashboard-logout { min-height:35px !important; display:flex !important; align-items:center; justify-content:center; gap:7px; border-radius:10px !important; font-size:8px !important; white-space:nowrap; }.dashboard-logout i { font-style:normal; font-size:11px; }.client-header-actions .dashboard-logout { width:auto; padding:0 12px; border-color:#e2d2dc; background:#f4e9f1; color:#5e0a61; }.analytics-header-actions .dashboard-logout { width:auto; padding:0 11px; border-color:#5a5159; background:#302b31; color:#f3eaf0; }.dashboard-feedback { min-height:39px; margin:0 0 12px; padding:9px 13px; display:flex; align-items:center; gap:9px; border:1px solid #e3d5de; border-radius:11px; background:#f7eef4; color:#65445e; font-size:8px; }.dashboard-feedback.loading i { width:13px; height:13px; border:2px solid #d8c3d2; border-top-color:#6f126f; border-radius:50%; animation:dashboard-spin .75s linear infinite; }.dashboard-feedback.error { justify-content:space-between; border-color:#edcccc; background:#fff1f1; color:#9b3f45; }.dashboard-feedback button { padding:5px 8px; border:0; border-radius:7px; background:#5e0a61; color:#fff; font-size:7px; }.dashboard-feedback.dark { border-color:#4b464c; background:#302d32; color:#d8cdd5; }.dashboard-feedback.dark.error { border-color:#71494c; background:#3e2b2d; color:#efb7ba; }.dashboard-empty-state { min-height:245px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }.dashboard-empty-state > i { width:46px; height:46px; display:grid; place-items:center; border-radius:14px; background:#f0e5ed; color:#5e0a61; font-style:normal; font-size:20px; }.dashboard-empty-state h2 { margin:14px 0 6px; color:#3f1c3c; font:23px Georgia,serif; }.dashboard-empty-state p { margin:0 0 16px; color:#8b7a85; font-size:8px; }.dashboard-empty-state button { padding:9px 12px; border:0; border-radius:8px; background:#5e0a61; color:#fff; font-size:8px; }.dashboard-inline-empty { padding:28px 12px; color:#8b7785; font-size:9px; text-align:center; }.dashboard-inline-empty.dark { color:#a99da6; }.dashboard-compact-empty { justify-content:center; }.client-empty-hero .client-hero-copy { max-width:58%; }

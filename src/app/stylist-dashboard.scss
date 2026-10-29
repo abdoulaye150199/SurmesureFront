@@ -21,6 +21,12 @@
 .employee-intake-form label { display:grid; gap:6px; color:#73566d; font-size:9px; }
 .employee-intake-form input,.employee-intake-form textarea,.employee-password-field { width:100%; min-width:0; padding:10px; border:1px solid #dacbd4; border-radius:8px; background:#fff; color:#4b1f47; font:12px Arial,sans-serif; }
 .employee-intake-form textarea { resize:vertical; }
+.employee-custom-measurements { grid-column:1/-1; padding:12px; border:1px dashed #d8c7d3; border-radius:10px; background:rgba(255,255,255,.45); }
+.employee-custom-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; color:#73566d; font-size:10px; font-weight:700; }
+.employee-custom-heading button { min-height:34px; padding:0 10px; border:1px solid #d8c7d3; border-radius:8px; background:#fff; color:#5e0a61; font-size:10px; font-weight:600; }
+.employee-custom-row { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px; gap:9px; align-items:end; margin-top:8px; }
+.employee-custom-row label { min-width:0; }
+.employee-custom-remove { width:34px; height:38px; border:1px solid #e3d3dc; border-radius:8px; background:#fff; color:#8c4656; font-size:20px; }
 .employee-intake-notes { grid-column:1/-1; }
 .employee-intake-form > button { grid-column:1/-1; }
 .employee-sidebar-identity { display:flex; align-items:center; gap:9px; color:#fff; font-size:10px; }
@@ -67,7 +73,7 @@
 .stylist-editor-submit { width:100%; min-height:43px; margin-top:14px; padding:0 15px; display:flex; justify-content:space-between; align-items:center; border:0; border-radius:10px; background:#5e0a61; color:#fff; font-size:10px; font-weight:700; }
 .stylist-editor-submit:disabled { opacity:.6; }
 .catalog-load-sentinel { grid-column:1/-1; min-height:48px; display:grid; place-items:center; color:#8f7f8a; font-size:10px; }.catalog-load-sentinel button { padding:10px 15px; border:1px solid #d9cbd4; border-radius:999px; background:#fff; color:#5e0a61; font-size:10px; }
-@media(max-width:620px) { .stylist-editor-fields,.employee-intake-form { grid-template-columns:1fr; }.stylist-editor-fields label:nth-child(n),.employee-intake-form label:nth-child(n) { grid-column:auto; }.employee-intake-form .employee-intake-notes,.employee-intake-form > button { grid-column:auto; }.stylist-order-chart { height:125px; }.stylist-appointment,.stylist-contact { align-items:flex-start; } }
+@media(max-width:620px) { .stylist-editor-fields,.employee-intake-form { grid-template-columns:1fr; }.stylist-editor-fields label:nth-child(n),.employee-intake-form label:nth-child(n) { grid-column:auto; }.employee-custom-measurements,.employee-intake-form .employee-intake-notes,.employee-intake-form > button { grid-column:1/-1; }.employee-custom-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr) 34px; }.stylist-order-chart { height:125px; }.stylist-appointment,.stylist-contact { align-items:flex-start; } }
 
 /* High-contrast light workspace for the stylist dashboard. */
 .stylist-workspace { background:#f7f3f0; color:#30252f; }

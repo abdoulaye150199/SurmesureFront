@@ -273,9 +273,13 @@
         </section>
 
         <section class="measurement-models" aria-label="Mesures par type de vêtement">
-          <article class="client-panel measurement-model-card" *ngFor="let model of measurementModels">
-            <div class="client-panel-heading"><div><span>Mesures pour</span><h2>{{ model.name }}</h2><p>{{ model.description }}</p></div></div>
-            <div class="measurement-model-fields">
+          <article class="client-panel measurement-model-card" *ngFor="let model of measurementModels; let modelIndex = index">
+            <button class="measurement-model-toggle" type="button" [attr.aria-expanded]="openMeasurementModel === model.name" [attr.aria-controls]="'measurement-model-fields-' + modelIndex" (click)="toggleMeasurementModel(model.name)">
+              <span class="measurement-model-copy"><span>Mesures pour</span><strong>{{ model.name }}</strong><small>{{ model.description }}</small></span>
+              <span class="measurement-model-summary">{{ measurementModelCompletedCount(model) }}/{{ model.fields.length }}<small>mesures</small></span>
+              <i class="measurement-model-chevron" aria-hidden="true">⌄</i>
+            </button>
+            <div class="measurement-model-fields" *ngIf="openMeasurementModel === model.name" [id]="'measurement-model-fields-' + modelIndex">
               <button *ngFor="let item of model.fields" type="button" [class.missing]="measurementValue(item.key) == null" (click)="editMeasurement(item)">
                 <span>{{ item.label }}</span><strong>{{ measurementValue(item.key) == null ? 'Ajouter' : measurementValue(item.key) + ' cm' }}</strong><i>{{ measurementValue(item.key) == null ? '＋' : '✎' }}</i>
               </button>
@@ -539,6 +543,14 @@
             <label>Nom complet<input name="employeeClientName" [(ngModel)]="employeeClientName" minlength="2" maxlength="160" autocomplete="name" required></label>
             <label>Téléphone<input name="employeeClientPhone" type="tel" [(ngModel)]="employeeClientPhone" placeholder="+221 77 000 00 00" autocomplete="tel" required></label>
             <label *ngFor="let definition of measurementDefinitions">{{ definition.label }} (cm)<input type="number" [name]="'employee-measure-' + definition.key" [(ngModel)]="employeeMeasurementDraft[definition.key]" min="0.1" max="300" step="0.1"></label>
+            <div class="employee-custom-measurements">
+              <div class="employee-custom-heading"><span>Mesures complémentaires</span><button type="button" (click)="addEmployeeCustomMeasurement()">＋ Ajouter un champ</button></div>
+              <div class="employee-custom-row" *ngFor="let field of employeeCustomMeasurements">
+                <label>Nom du champ<input type="text" [name]="'employee-custom-label-' + field.id" [(ngModel)]="field.label" maxlength="80" placeholder="Ex. Tour de poignet" required></label>
+                <label>Mesure (cm)<input type="number" [name]="'employee-custom-value-' + field.id" [(ngModel)]="field.value" min="0.1" max="300" step="0.1" placeholder="0" required></label>
+                <button class="employee-custom-remove" type="button" (click)="removeEmployeeCustomMeasurement(field.id)" [attr.aria-label]="'Supprimer le champ ' + (field.label || 'personnalisé')">×</button>
+              </div>
+            </div>
             <label class="employee-intake-notes">Notes<textarea name="employeeMeasurementNotes" [(ngModel)]="employeeMeasurementNotes" rows="3" maxlength="1000" placeholder="Préférences ou informations utiles"></textarea></label>
             <button class="stylist-editor-submit" type="submit" [disabled]="employeeMeasurementSaving">{{ employeeMeasurementSaving ? 'Enregistrement…' : 'Enregistrer la fiche' }} <span>→</span></button>
           </form>
