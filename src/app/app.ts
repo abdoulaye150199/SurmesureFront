@@ -89,6 +89,7 @@ export class App implements AfterViewInit, OnDestroy {
   selectedFilter: Collection = 'Tout';
   menuOpen = false;
   mobileDashboardMenuOpen = false;
+  clientBottomTab: 'home' | 'explore' | 'measure' | 'profile' | 'selection' = 'home';
   cartOpen = false;
   loginOpen = false;
   loginRole: AppAccountRole = 'client';
@@ -670,6 +671,45 @@ export class App implements AfterViewInit, OnDestroy {
 
   closeStylist(): void {
     this.selectedStylist = null;
+  }
+
+  openClientHome(): void {
+    this.clientBottomTab = 'home';
+    this.showFavoritesOnly = false;
+    this.activeView = 'client';
+    this.workspaceRole = 'client';
+    this.mobileDashboardMenuOpen = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  openClientExplore(): void {
+    this.clientBottomTab = 'explore';
+    this.showFavoritesOnly = false;
+    this.activeView = 'explore';
+    this.mobileDashboardMenuOpen = false;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  openClientMeasurements(): void {
+    this.clientBottomTab = 'measure';
+    void this.openMeasureWorkspace();
+  }
+
+  openClientProfile(): void {
+    this.clientBottomTab = 'profile';
+    this.activeView = 'client';
+    this.workspaceRole = 'client';
+    this.mobileDashboardMenuOpen = false;
+    window.setTimeout(() => this.scrollWorkspaceTo('client-profile'), 0);
+  }
+
+  openClientSelection(): void {
+    this.clientBottomTab = 'selection';
+    this.showFavoritesOnly = true;
+    this.activeView = 'client';
+    this.workspaceRole = 'client';
+    this.mobileDashboardMenuOpen = false;
+    window.setTimeout(() => this.scrollWorkspaceTo('client-inspirations'), 0);
   }
 
   scrollWorkspaceTo(id: string): void {

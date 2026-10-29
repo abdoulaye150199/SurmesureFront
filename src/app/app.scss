@@ -576,6 +576,10 @@ main { padding-bottom:90px; }
   main { padding-bottom:0; }
 }
 
+/* Client bottom tabs reuse the existing capsule navigation. */
+@media(max-width:900px){.client-dashboard-bottom-nav{z-index:90}.client-workspace{padding-bottom:105px}.client-dashboard-sidebar .client-sidebar-logo{display:flex;min-height:40px;padding:0;border:0}.client-dashboard-sidebar .client-sidebar-logo img{width:29px;height:29px}.client-dashboard-sidebar .client-menu-toggle,.client-dashboard-sidebar nav,.client-dashboard-sidebar .client-sidebar-profile{display:none!important}}
+@media(max-width:700px){.explore-stylist-list .stylist-grid{grid-template-columns:1fr}}
+
 /* Premium client dashboard */
 .client-workspace { padding:18px max(1.5vw,calc((100vw - 1540px)/2)) 32px; background:radial-gradient(circle at 78% 3%,#e9dce7 0,transparent 28%),#f2ece9; color:#2b1729; }
 .client-dashboard-layout { max-width:1540px; margin:0 auto; display:grid; grid-template-columns:212px minmax(0,1fr); gap:14px; align-items:start; }

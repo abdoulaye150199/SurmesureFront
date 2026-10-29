@@ -240,6 +240,16 @@
         <button type="button" *ngIf="publicCatalogHasMore && !publicCatalogLoading" (click)="loadPublicCatalog()">Charger plus de créations</button>
       </div>
     </div>
+    <section class="stylists section-shell explore-stylist-list" id="explore-stylist-list">
+      <div class="section-heading"><div><p class="eyebrow">Talents de la communauté</p><h2>Rencontrez nos<br><em>stylistes</em></h2></div><p>Découvrez leurs univers et leurs créations.</p></div>
+      <div class="stylist-grid">
+        <article class="stylist-card" *ngFor="let stylist of visibleStylists; let index = index" [class.featured]="index === 0">
+          <div class="portrait"><img [src]="stylist.portrait" [alt]="'Photo de ' + stylist.name" loading="lazy"></div>
+          <div class="stylist-info"><span class="stylist-index">{{ index + 1 | number:'2.0-0' }}</span><p>{{ stylist.studio || stylist.location }} · {{ stylist.specialty }}</p><h3>{{ stylist.name }}</h3><button type="button" (click)="openStylist(stylist)">Découvrir son univers <span>↗</span></button></div>
+        </article>
+        <p class="stylist-gallery-empty" *ngIf="publicStylistsLoaded && !visibleStylists.length">Les profils des stylistes seront bientôt disponibles.</p>
+      </div>
+    </section>
   </ng-container>
 
   <ng-container *ngIf="activeView === 'measure'">
@@ -254,7 +264,7 @@
           <button type="button" (click)="setView('client')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
           <button type="button" (click)="setView('client'); showFavoritesOnly = true"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
         </nav>
-        <div class="client-sidebar-profile"><button type="button" (click)="showToast('Profil client sécurisé')"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button><button class="client-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
+        <div class="client-sidebar-profile"><button type="button" (click)="openClientProfile()"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button><button class="client-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
 
       <div class="client-portal measurement-portal">
@@ -319,7 +329,7 @@
           <div class="client-header-actions">
             <button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button>
             <button class="client-alert" type="button" aria-label="Notifications" (click)="showToast(nextClientAppointment ? 'Votre prochain rendez-vous est le ' + formatDate(nextClientAppointment.startsAt) : 'Aucune nouvelle notification')">♧<b>{{ nextClientAppointment ? 1 : 0 }}</b></button>
-            <button class="client-avatar" type="button" (click)="showToast('Profil client sécurisé')">{{ userInitials }}</button>
+            <button class="client-avatar" type="button" (click)="openClientProfile()" aria-label="Ouvrir mon profil">{{ userInitials }}</button>
             <button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button>
           </div>
         </header>
@@ -367,6 +377,14 @@
             <article *ngFor="let item of visibleClientInspirations"><div><img [src]="inspirationImage(item)" [alt]="inspirationName(item)"><button type="button" [class.active]="isFavorite(item)" [attr.aria-pressed]="isFavorite(item)" [attr.aria-label]="isFavorite(item) ? 'Retirer ' + inspirationName(item) + ' des favoris' : 'Ajouter ' + inspirationName(item) + ' aux favoris'" (click)="toggleFavorite(item)">{{ isFavorite(item) ? '♥' : '♡' }}</button></div><span>{{ inspirationStylist(item) }}</span><h3>{{ inspirationName(item) }}</h3><p>{{ price(item.price) | number:'1.0-0' }} {{ inspirationCurrency(item) }}</p></article>
           </div>
           <ng-template #noCatalog><div class="dashboard-inline-empty">{{ showFavoritesOnly ? 'Aucun favori enregistré parmi ces créations.' : 'Aucune création publiée pour le moment.' }}</div></ng-template>
+        </section>
+
+        <section class="client-panel" id="client-profile">
+          <div class="client-panel-heading"><div><span>Votre espace personnel</span><h2>Mon profil</h2></div></div>
+          <p><strong>Nom complet :</strong> {{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</p>
+          <p><strong>E-mail :</strong> {{ authenticatedUser?.email || 'Non renseignée' }}</p>
+          <p><strong>Téléphone :</strong> {{ authenticatedUser?.phone || 'Non renseigné' }}</p>
+          <button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut">{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }} <span>↗</span></button>
         </section>
       </div>
     </div>
@@ -648,6 +666,14 @@
 </div>
 
 <app-admin-dashboard *ngIf="activeView === 'admin'" [user]="authenticatedUser" (homeRequested)="setView('home')" (logoutRequested)="logout()"></app-admin-dashboard>
+
+<nav class="bottom-nav client-dashboard-bottom-nav" *ngIf="authenticatedUser?.role === 'CLIENT' && (activeView === 'client' || activeView === 'measure' || activeView === 'explore')" aria-label="Navigation de l’espace client">
+  <button type="button" [class.active]="clientBottomTab === 'home' && activeView === 'client'" (click)="openClientHome()" aria-label="Accueil"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.6l8.5 6.9M5.7 9.2v10.2h12.6V9.2M9.6 19.4v-5.7h4.8v5.7"/></svg></span><small>Accueil</small></button>
+  <button type="button" [class.active]="clientBottomTab === 'explore' && activeView === 'explore'" (click)="openClientExplore()" aria-label="Explorer les créations et stylistes"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.7" cy="10.7" r="5.9"/><path d="m15.2 15.2 4.4 4.4"/></svg></span><small>Explorer</small></button>
+  <button class="bottom-nav-main" type="button" [class.active]="activeView === 'measure'" (click)="openClientMeasurements()" aria-label="Mesures"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="M7 6v4M10.5 6v2.5M14 6v4M17.5 6v2.5"/></svg></span><small>Mesures</small></button>
+  <button type="button" [class.active]="clientBottomTab === 'profile'" (click)="openClientProfile()" aria-label="Mon espace et mon profil"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.2" r="3.4"/><path d="M5.3 20c.5-4 3-6 6.7-6s6.2 2 6.7 6"/></svg></span><small>Mon espace</small></button>
+  <button type="button" [class.active]="clientBottomTab === 'selection'" (click)="openClientSelection()" aria-label="Ma sélection"><span class="nav-icon bottom-cart-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.3 5.8c-2.1-2.2-5.6-1.8-7.3.6L12 7.8l-1-1.4c-1.7-2.4-5.2-2.8-7.3-.6-2 2.1-1.8 5.5.3 7.5l8 7.1 8-7.1c2.1-2 2.3-5.4.3-7.5Z"/></svg><b *ngIf="favoritesCount">{{ favoritesCount }}</b></span><small>Sélection</small></button>
+</nav>
 
 <nav class="bottom-nav" *ngIf="activeView !== 'signup' && activeView !== 'stylist' && activeView !== 'employee' && activeView !== 'client' && activeView !== 'measure' && activeView !== 'admin'" aria-label="Navigation de l’application">
   <button [class.active]="activeView === 'home'" type="button" (click)="setView('home')" aria-label="Accueil"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.6l8.5 6.9"></path><path d="M5.7 9.2v10.2h12.6V9.2M9.6 19.4v-5.7h4.8v5.7"></path></svg></span><small>Accueil</small></button>
