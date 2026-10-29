@@ -578,6 +578,7 @@ main { padding-bottom:90px; }
 
 /* Client bottom tabs reuse the existing capsule navigation. */
 @media(max-width:900px){.client-dashboard-bottom-nav{z-index:90}.client-workspace{padding-bottom:105px}.client-dashboard-sidebar .client-sidebar-logo{display:flex;min-height:40px;padding:0;border:0}.client-dashboard-sidebar .client-sidebar-logo img{width:29px;height:29px}.client-dashboard-sidebar .client-menu-toggle,.client-dashboard-sidebar nav,.client-dashboard-sidebar .client-sidebar-profile{display:none!important}}
+.creator-link,.workspace-creator-link,.client-creator-link,.cart-creator-link{padding:0;border:0;background:none;color:#7a6376;text-align:left;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.maker.creator-link{text-transform:uppercase}.workspace-creator-link{display:block;margin:16px 0 7px;font-size:9px;letter-spacing:.12em;text-transform:uppercase}.client-creator-link{display:block;margin-top:12px;font-size:10px;letter-spacing:.1em;text-transform:uppercase}.cart-creator-link{font-size:10px}
 @media(max-width:700px){.explore-stylist-list .stylist-grid{grid-template-columns:1fr}}
 
 /* Premium client dashboard */

@@ -34,6 +34,7 @@ interface BeforeInstallPromptEvent extends Event {
 
 interface Creation {
   id?: string;
+  stylistId?: string;
   name: string;
   stylist: string;
   price: number;
@@ -271,17 +272,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   get visibleStylists(): Stylist[] {
     if (!this.publicStylistsLoaded) return this.stylists;
-    return this.publicStylists.map((profile, index) => ({
-      id: profile.id,
-      name: [profile.user.firstName, profile.user.lastName].filter(Boolean).join(' ') || profile.businessName,
-      studio: profile.businessName,
-      location: '',
-      specialty: profile.specialties.join(' · ') || 'Styliste partenaire',
-      portrait: profile.user.profileImage || this.stylists[index % this.stylists.length].portrait,
-      bio: profile.about || `Découvrez les créations et le savoir-faire de ${profile.businessName}.`,
-      email: '',
-      phone: '',
-    }));
+    return this.publicStylists.map((profile, index) => this.toStylistProfile(profile, index));
   }
 
   async loadPublicCatalog(reset = false): Promise<void> {
@@ -338,6 +329,7 @@ export class App implements AfterViewInit, OnDestroy {
       : description.includes('ensemble') ? 'Ensembles' : 'Cérémonie';
     return {
       id: item.id,
+      stylistId: item.stylistId,
       name: item.title,
       stylist: this.catalogStylistName(item),
       price: this.price(item.price),
@@ -662,6 +654,34 @@ export class App implements AfterViewInit, OnDestroy {
     if (this.loginOpen) this.closeLogin();
     if (this.cartOpen) this.cartOpen = false;
     if (this.selectedStylist) this.closeStylist();
+  }
+
+  private toStylistProfile(profile: DashboardStylist, index = 0): Stylist {
+    return {
+      id: profile.id,
+      name: [profile.user.firstName, profile.user.lastName].filter(Boolean).join(' ') || profile.businessName,
+      studio: profile.businessName,
+      location: '',
+      specialty: profile.specialties.join(' · ') || 'Styliste partenaire',
+      portrait: profile.user.profileImage || this.stylists[index % this.stylists.length].portrait,
+      bio: profile.about || `Découvrez les créations et le savoir-faire de ${profile.businessName}.`,
+      email: '',
+      phone: '',
+    };
+  }
+
+  openCreationCreator(item: Creation | DashboardCatalogItem): void {
+    const stylistId = item.stylistId;
+    const profile = stylistId
+      ? this.publicStylists.find(stylist => stylist.id === stylistId)
+        ?? this.clientStylists.find(stylist => stylist.id === stylistId)
+      : undefined;
+    const studio = 'title' in item ? this.catalogStylistName(item) : item.stylist;
+    const stylist = profile
+      ? this.toStylistProfile(profile)
+      : this.visibleStylists.find(candidate => candidate.studio === studio || candidate.name === studio);
+    if (stylist) this.openStylist(stylist);
+    else this.showToast(`Le profil de ${studio} sera bientôt disponible.`);
   }
 
   openStylist(stylist: Stylist): void {

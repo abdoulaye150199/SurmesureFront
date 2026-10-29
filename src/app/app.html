@@ -85,7 +85,7 @@
             <img [src]="item.image" [alt]="item.name" loading="lazy">
             <button class="quick-add" (click)="addToCart(item)">Ajouter à ma sélection</button>
           </div>
-          <p class="maker">{{ item.stylist }}</p>
+          <button class="maker creator-link" type="button" (click)="openCreationCreator(item)" [attr.aria-label]="'Voir le profil de ' + item.stylist">{{ item.stylist }}</button>
           <div class="product-line"><h3>{{ item.name }}</h3><span>{{ item.price | number:'1.0-0' }} FCFA</span></div>
         </article>
         <div class="catalog-load-sentinel" *ngIf="publicCatalogLoading || publicCatalogHasMore">
@@ -231,7 +231,7 @@
     <div class="workspace-product-grid">
       <article class="workspace-product" *ngFor="let item of visibleCreations">
         <div class="workspace-product-image"><img [src]="item.image" [alt]="item.name" loading="lazy"><span *ngIf="item.badge">{{ item.badge }}</span></div>
-        <p>{{ item.stylist }}</p>
+        <button class="workspace-creator-link" type="button" (click)="openCreationCreator(item)">{{ item.stylist }} · Créateur</button>
         <div><h3>{{ item.name }}</h3><strong>{{ item.price | number:'1.0-0' }} FCFA</strong></div>
         <button type="button" (click)="addToCart(item)">Ajouter à ma sélection <span>↗</span></button>
       </article>
@@ -374,17 +374,15 @@
         <section class="client-panel client-inspirations" id="client-inspirations">
           <div class="client-panel-heading"><div><span>{{ showFavoritesOnly ? 'Vos pièces enregistrées' : 'Sélectionnée pour vous' }}</span><h2>{{ showFavoritesOnly ? 'Mes favoris' : 'Inspirations du moment' }}</h2></div><div class="client-inspiration-actions"><button type="button" (click)="showFavoritesOnly = !showFavoritesOnly">{{ showFavoritesOnly ? 'Toutes les inspirations' : 'Mes favoris (' + favoritesCount + ')' }}</button><button type="button" (click)="setView('explore')">Explorer les pièces ↗</button></div></div>
           <div class="client-inspiration-grid" *ngIf="visibleClientInspirations.length; else noCatalog">
-            <article *ngFor="let item of visibleClientInspirations"><div><img [src]="inspirationImage(item)" [alt]="inspirationName(item)"><button type="button" [class.active]="isFavorite(item)" [attr.aria-pressed]="isFavorite(item)" [attr.aria-label]="isFavorite(item) ? 'Retirer ' + inspirationName(item) + ' des favoris' : 'Ajouter ' + inspirationName(item) + ' aux favoris'" (click)="toggleFavorite(item)">{{ isFavorite(item) ? '♥' : '♡' }}</button></div><span>{{ inspirationStylist(item) }}</span><h3>{{ inspirationName(item) }}</h3><p>{{ price(item.price) | number:'1.0-0' }} {{ inspirationCurrency(item) }}</p></article>
+            <article *ngFor="let item of visibleClientInspirations"><div><img [src]="inspirationImage(item)" [alt]="inspirationName(item)"><button type="button" [class.active]="isFavorite(item)" [attr.aria-pressed]="isFavorite(item)" [attr.aria-label]="isFavorite(item) ? 'Retirer ' + inspirationName(item) + ' des favoris' : 'Ajouter ' + inspirationName(item) + ' aux favoris'" (click)="toggleFavorite(item)">{{ isFavorite(item) ? '♥' : '♡' }}</button></div><button class="client-creator-link" type="button" (click)="openCreationCreator(item)">{{ inspirationStylist(item) }} · Créateur</button><h3>{{ inspirationName(item) }}</h3><p>{{ price(item.price) | number:'1.0-0' }} {{ inspirationCurrency(item) }}</p></article>
           </div>
           <ng-template #noCatalog><div class="dashboard-inline-empty">{{ showFavoritesOnly ? 'Aucun favori enregistré parmi ces créations.' : 'Aucune création publiée pour le moment.' }}</div></ng-template>
         </section>
 
-        <section class="client-panel" id="client-profile">
+        <section class="client-panel client-profile-panel" id="client-profile">
           <div class="client-panel-heading"><div><span>Votre espace personnel</span><h2>Mon profil</h2></div></div>
-          <p><strong>Nom complet :</strong> {{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</p>
-          <p><strong>E-mail :</strong> {{ authenticatedUser?.email || 'Non renseignée' }}</p>
-          <p><strong>Téléphone :</strong> {{ authenticatedUser?.phone || 'Non renseigné' }}</p>
-          <button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut">{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }} <span>↗</span></button>
+          <div class="client-stylist-contact"><img [src]="authenticatedUser?.profileImage || '/assets/logo-mark.png'" [alt]="authenticatedUser?.profileImage ? 'Photo de profil' : 'Logo Sur Mesure'"><div><span>Compte client</span><h2>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</h2><p>{{ authenticatedUser?.email || 'E-mail non renseigné' }}<br>{{ authenticatedUser?.phone || 'Téléphone non renseigné' }}</p></div></div>
+          <div class="client-header-actions"><button class="dashboard-logout light" type="button" (click)="logout()" [disabled]="loggingOut"><i>↗</i><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
         </section>
       </div>
     </div>
@@ -698,7 +696,7 @@
     <article class="cart-item" *ngFor="let item of selectedCreations">
       <img [src]="item.image" [alt]="item.name">
       <div class="cart-item-details">
-        <span>{{ item.stylist }}</span>
+        <button class="cart-creator-link" type="button" (click)="openCreationCreator(item)">{{ item.stylist }} · Créateur</button>
         <h3>{{ item.name }}</h3>
         <strong>{{ item.price | number:'1.0-0' }} FCFA</strong>
       </div>
