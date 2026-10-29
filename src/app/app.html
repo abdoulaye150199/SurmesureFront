@@ -153,6 +153,7 @@
       <img [src]="stylist.portrait" [alt]="stylist.name">
     </div>
     <div class="stylist-profile-content">
+      <button class="stylist-profile-back" type="button" (click)="closeStylist()" aria-label="Retour à la liste des stylistes">← Retour</button>
       <p class="eyebrow">{{ stylist.id ? stylist.studio : stylist.location }} · {{ stylist.specialty }}</p>
       <h2>{{ stylist.name }}</h2>
       <p class="stylist-profile-bio">{{ stylist.bio }}</p>
