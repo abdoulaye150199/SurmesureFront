@@ -229,7 +229,7 @@ export class App implements AfterViewInit, OnDestroy {
   ];
 
   get visibleCreations(): Creation[] {
-    const available = this.publicCatalogItems.length
+    const available = this.publicCatalogLoaded
       ? this.publicCatalogItems.map(item => this.toCreation(item))
       : this.creations;
     return this.selectedFilter === 'Tout'
@@ -267,6 +267,7 @@ export class App implements AfterViewInit, OnDestroy {
         : [...this.publicCatalogItems, ...page.data.filter(item => !this.publicCatalogItems.some(existing => existing.id === item.id))];
       this.publicCatalogCursor = page.meta.nextCursor;
       this.publicCatalogHasMore = page.meta.hasMore;
+      this.publicCatalogLoaded = true;
     } catch {
       this.publicCatalogHasMore = false;
     } finally {
