@@ -1,13 +1,14 @@
 <div class="admin-shell">
-  <aside class="admin-sidebar">
+  <aside class="admin-sidebar" [class.mobile-open]="mobileMenuOpen">
     <button class="admin-brand" type="button" (click)="homeRequested.emit()" aria-label="Retourner au site">
       <img src="/assets/logo-mark.png" alt="">
       <span>Sur Mesure<small>Super administration</small></span>
     </button>
+    <button class="admin-menu-toggle" type="button" [attr.aria-expanded]="mobileMenuOpen" aria-controls="admin-main-nav" [attr.aria-label]="mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileMenuOpen = !mobileMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
 
     <div class="admin-scope"><i></i><span>Vue plateforme</span><small>Temps réel</small></div>
 
-    <nav aria-label="Navigation de la super administration">
+    <nav id="admin-main-nav" aria-label="Navigation de la super administration" (click)="mobileMenuOpen = false">
       <button type="button" [class.active]="activeSection === 'overview'" (click)="selectSection('overview')">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg><span>Vue d’ensemble</span>
       </button>

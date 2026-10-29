@@ -88,6 +88,7 @@ export class App implements AfterViewInit, OnDestroy {
   readonly filters: Collection[] = ['Tout', 'Cérémonie', 'Boubous', 'Ensembles'];
   selectedFilter: Collection = 'Tout';
   menuOpen = false;
+  mobileDashboardMenuOpen = false;
   cartOpen = false;
   loginOpen = false;
   loginRole: AppAccountRole = 'client';
@@ -1268,6 +1269,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   setView(view: AppView): void {
+    this.mobileDashboardMenuOpen = false;
     if (view === 'client' || view === 'stylist' || view === 'employee' || view === 'admin') {
       this.openWorkspace(view);
       return;
@@ -1310,6 +1312,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   async openMeasureWorkspace(): Promise<void> {
+    this.mobileDashboardMenuOpen = false;
     if (this.demoMode) {
       this.workspaceRole = 'client';
       this.activeView = 'measure';

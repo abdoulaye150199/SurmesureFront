@@ -244,9 +244,10 @@
 
   <ng-container *ngIf="activeView === 'measure'">
     <div class="client-dashboard-layout measurement-dashboard-layout">
-      <aside class="client-dashboard-sidebar" aria-label="Navigation de l’espace client">
+      <aside class="client-dashboard-sidebar" [class.mobile-open]="mobileDashboardMenuOpen" aria-label="Navigation de l’espace client">
         <button class="client-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Espace client</small></span></button>
-        <nav>
+        <button class="dashboard-menu-toggle client-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="client-measure-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
+        <nav id="client-measure-nav" (click)="mobileDashboardMenuOpen = false">
           <button type="button" (click)="setView('client')"><i>⌂</i><span>Vue d’ensemble</span></button>
           <button type="button" (click)="setView('client')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
           <button class="active" type="button"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
@@ -289,12 +290,13 @@
 
   <ng-container *ngIf="activeView === 'client'">
     <div class="client-dashboard-layout">
-      <aside class="client-dashboard-sidebar" aria-label="Navigation de l’espace client">
+      <aside class="client-dashboard-sidebar" [class.mobile-open]="mobileDashboardMenuOpen" aria-label="Navigation de l’espace client">
         <button class="client-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil">
           <img src="/assets/logo-mark.png" alt="">
           <span>Sur Mesure<small>Espace client</small></span>
         </button>
-        <nav>
+        <button class="dashboard-menu-toggle client-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="client-main-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
+        <nav id="client-main-nav" (click)="mobileDashboardMenuOpen = false">
           <button class="active" type="button" (click)="scrollWorkspaceTo('client-overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
           <button type="button" (click)="scrollWorkspaceTo('client-order')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
           <button type="button" (click)="setView('measure')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
@@ -368,9 +370,10 @@
 
   <ng-container *ngIf="activeView === 'stylist'">
     <div class="stylist-dashboard-layout">
-      <aside class="stylist-dashboard-sidebar" aria-label="Navigation de l’atelier">
+      <aside class="stylist-dashboard-sidebar" [class.mobile-open]="mobileDashboardMenuOpen" aria-label="Navigation de l’atelier">
         <button class="stylist-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Atelier styliste</small></span></button>
-        <nav>
+        <button class="dashboard-menu-toggle stylist-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="stylist-main-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
+        <nav id="stylist-main-nav" (click)="mobileDashboardMenuOpen = false">
           <button type="button" [class.active]="stylistPage === 'overview'" (click)="setStylistPage('overview')"><i>⌂</i><span>Tableau de bord</span></button>
           <button type="button" [class.active]="stylistPage === 'orders'" (click)="setStylistPage('orders')"><i>▣</i><span>Commandes</span><b>{{ stylistOrders.length }}</b></button>
           <button type="button" [class.active]="stylistPage === 'clients'" (click)="setStylistPage('clients')"><i>♙</i><span>Mes clientes</span><b>{{ stylistClientRecords.length }}</b></button>
@@ -516,9 +519,10 @@
 
   <ng-container *ngIf="activeView === 'employee'">
     <div class="stylist-dashboard-layout employee-dashboard-layout">
-      <aside class="stylist-dashboard-sidebar" aria-label="Navigation employé">
+      <aside class="stylist-dashboard-sidebar" [class.mobile-open]="mobileDashboardMenuOpen" aria-label="Navigation employé">
         <button class="stylist-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Équipe atelier</small></span></button>
-        <nav>
+        <button class="dashboard-menu-toggle stylist-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="employee-main-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
+        <nav id="employee-main-nav" (click)="mobileDashboardMenuOpen = false">
           <button type="button" [class.active]="employeePage === 'intake'" (click)="setEmployeePage('intake')"><i>＋</i><span>Nouvelle fiche</span></button>
           <button type="button" [class.active]="employeePage === 'clients'" (click)="setEmployeePage('clients')"><i>♙</i><span>Mes clientes</span><b>{{ stylistClientRecords.length }}</b></button>
         </nav>

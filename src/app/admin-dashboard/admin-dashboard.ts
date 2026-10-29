@@ -31,6 +31,7 @@ export class AdminDashboardComponent implements OnInit {
   userQuery = '';
   roleFilter: 'ALL' | AdminUser['role'] = 'ALL';
   activeSection: AdminSection = 'overview';
+  mobileMenuOpen = false;
   updatingUserId: string | null = null;
   updatingOrderId: string | null = null;
 
