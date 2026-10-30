@@ -1,4 +1,7 @@
 * { box-sizing: border-box; }
+app-root .product-line { flex-wrap: wrap; row-gap: 8px; }
+app-root .product-line h3 { overflow-wrap: anywhere; }
+app-root .product-description { margin: 12px 0 0; color: #756a70; font-size: 14px; line-height: 1.65; white-space: pre-line; overflow-wrap: anywhere; }
 html { scroll-behavior: smooth; overflow-x: clip; }
 body { width: 100%; margin: 0; overflow-x: clip; background: #fffcf8; font-family: Inter, Avenir, 'Segoe UI', Arial, sans-serif; -webkit-font-smoothing: antialiased; }
 ::selection { color: #fff; background: #5e0a61; }

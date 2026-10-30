@@ -39,6 +39,8 @@ interface Creation {
   stylistId?: string;
   name: string;
   stylist: string;
+  description?: string;
+  currency?: string;
   price: number;
   image: string;
   category: Exclude<Collection, 'Tout'>;
@@ -339,6 +341,8 @@ export class App implements AfterViewInit, OnDestroy {
       stylistId: item.stylistId,
       name: item.title,
       stylist: this.catalogStylistName(item),
+      description: item.description,
+      currency: item.currency,
       price: this.price(item.price),
       image: item.imageUrl,
       category,
@@ -373,7 +377,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   inspirationCurrency(item: Creation | DashboardCatalogItem): string {
-    return 'currency' in item ? item.currency : 'FCFA';
+    return item.currency || 'FCFA';
   }
 
   get defaultWorkspaceRole(): AppAccountRole {

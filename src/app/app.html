@@ -87,8 +87,9 @@
             <img [src]="item.image" [alt]="item.name" loading="lazy">
             <button class="quick-add" (click)="addToCart(item)">Ajouter à ma sélection</button>
           </div>
-          <button class="maker creator-link" type="button" (click)="openCreationCreator(item)" [attr.aria-label]="'Voir le profil de ' + item.stylist">{{ item.stylist }}</button>
-          <div class="product-line"><h3>{{ item.name }}</h3><span>{{ item.price | number:'1.0-0' }} FCFA</span></div>
+          <button class="maker creator-link" type="button" (click)="openCreationCreator(item)" [attr.aria-label]="'Voir le profil de ' + item.stylist">Créateur : {{ item.stylist }}</button>
+          <div class="product-line"><h3>{{ item.name }}</h3><span>{{ item.price | number:'1.0-0' }} {{ item.currency === 'XOF' ? 'FCFA' : (item.currency || 'FCFA') }}</span></div>
+          <p class="product-description">{{ item.description?.trim() || 'Description non renseignée.' }}</p>
         </article>
         <div class="catalog-load-sentinel" *ngIf="publicCatalogLoading || publicCatalogHasMore">
           <span *ngIf="publicCatalogLoading" aria-live="polite">Chargement des créations…</span>
