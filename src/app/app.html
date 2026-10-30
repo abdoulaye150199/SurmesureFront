@@ -510,7 +510,7 @@
       <section class="analytics-panel analytics-creations" id="stylist-creations" *ngIf="stylistPage === 'creations'">
         <div class="analytics-panel-heading"><div><span>Votre vitrine</span><h2>Mes créations</h2></div><button type="button" (click)="openStylistEditor('catalog')">Ajouter une pièce ＋</button></div>
         <div class="analytics-creation-grid">
-          <article *ngFor="let item of stylistCatalog"><img [src]="item.imageUrl" [alt]="item.title"><div><span>{{ item.availableColors.join(' · ') || 'Sur mesure' }}</span><h3>{{ item.title }}</h3><strong>{{ price(item.price) | number:'1.0-0' }} FCFA</strong><div class="analytics-creation-actions"><button type="button" (click)="openStylistEditor('catalog', item)">Modifier</button><button type="button" (click)="deactivateCatalogItem(item)">Retirer</button></div></div></article>
+          <article *ngFor="let item of stylistCatalog"><img [src]="item.imageUrl" [alt]="item.title"><div><span>{{ item.availableColors.join(' · ') || 'Sur mesure' }}</span><h3>{{ item.title }}</h3><strong>{{ price(item.price) | number:'1.0-0' }} FCFA</strong><p aria-label="Nombre de J’aime">♥ {{ item.likesCount || 0 }} J’aime</p><div class="analytics-creation-actions"><button type="button" (click)="openStylistEditor('catalog', item)">Modifier</button><button type="button" (click)="deactivateCatalogItem(item)">Retirer</button></div></div></article>
           <button class="analytics-add" type="button" (click)="openStylistEditor('catalog')"><span>＋</span><strong>Ajouter une création</strong></button>
         </div>
       </section>

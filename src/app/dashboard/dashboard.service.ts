@@ -67,6 +67,7 @@ export interface DashboardAppointment {
 }
 
 export interface DashboardCatalogItem {
+  likesCount?: number;
   id: string;
   stylistId: string;
   title: string;
@@ -243,6 +244,10 @@ export class DashboardService {
 
   createEmployeeAccount(stylistId: string, input: EmployeeAccountInput): Promise<DashboardPersonnel> {
     return firstValueFrom(this.http.post<DashboardPersonnel>(getApiUrl(`/stylist/${stylistId}/personnel/accounts`), input));
+  }
+
+  setCatalogLike(id: string, visitorId: string, liked: boolean): Promise<{ liked: boolean; likesCount: number }> {
+    return firstValueFrom(this.http.post<{ liked: boolean; likesCount: number }>(getApiUrl(`/catalog/${id}/like`), { visitorId, liked }));
   }
 
   setEmployeeAccess(stylistId: string, personnelId: string, active: boolean): Promise<{ success: boolean; active: boolean }> {

@@ -93,7 +93,6 @@ describe('App', () => {
   });
 
   it('saves a favorite and exposes its state accessibly', () => {
-    spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const button = fixture.nativeElement.querySelector('.favorite') as HTMLButtonElement;
@@ -119,13 +118,12 @@ describe('App', () => {
     expect(reloadedFixture.componentInstance.cartCount).toBe(1);
   });
 
-  it('requires login before a visitor can favorite or select a creation, including demo mode', () => {
+  it('allows visitor likes but requires login for selection, including demo mode', async () => {
     const app = TestBed.createComponent(App).componentInstance;
     const item = app.creations[0];
-    app.toggleFavorite(item);
-    expect(app.loginOpen).toBeTrue();
-    expect(app.favoritesCount).toBe(0);
-    expect(localStorage.getItem('surmesure.favorites')).toBeNull();
+    await app.toggleFavorite(item);
+    expect(app.loginOpen).toBeFalse();
+    expect(app.favoritesCount).toBe(1);
 
     app.loginOpen = false;
     app.demoMode = true;
@@ -133,6 +131,21 @@ describe('App', () => {
     expect(app.loginOpen).toBeTrue();
     expect(app.cartCount).toBe(0);
     expect(localStorage.getItem('surmesure.selection')).toBeNull();
+  });
+
+  it('sends anonymous likes to the API once and updates the creator count', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const item = { ...app.creations[0], id: 'catalog-1' };
+    const save = spyOn(TestBed.inject(DashboardService), 'setCatalogLike')
+      .and.resolveTo({ liked: true, likesCount: 7 });
+    await app.toggleFavorite(item);
+    expect(save).toHaveBeenCalledWith('catalog-1', jasmine.any(String), true);
+    const visitorId = save.calls.mostRecent().args[1];
+    save.and.resolveTo({ liked: false, likesCount: 6 });
+    await app.toggleFavorite(item);
+    expect(save).toHaveBeenCalledWith('catalog-1', visitorId, false);
+    expect(app.favoritesCount).toBe(0);
+    expect(app.loginOpen).toBeFalse();
   });
 
   it('restores the authenticated stylist workspace after a reload', () => {

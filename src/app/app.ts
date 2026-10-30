@@ -1543,10 +1543,34 @@ export class App implements AfterViewInit, OnDestroy {
     return this.favoriteKeys.includes(this.favoriteKey(item));
   }
 
-  toggleFavorite(item: Creation | DashboardCatalogItem): void {
-    if (!this.requireAccountForSelection()) return;
+  private readonly pendingLikes = new Set<string>();
+
+  async toggleFavorite(item: Creation | DashboardCatalogItem): Promise<void> {
     const key = this.favoriteKey(item);
+    if (this.pendingLikes.has(key)) return;
     const alreadyFavorite = this.favoriteKeys.includes(key);
+    if (item.id && !this.demoMode) {
+      this.pendingLikes.add(key);
+      try {
+        const visitorKey = 'surmesure.visitor-id';
+        let visitorId = localStorage.getItem(visitorKey);
+        if (!visitorId) {
+          visitorId = crypto.randomUUID();
+          localStorage.setItem(visitorKey, visitorId);
+        }
+        const result = await this.dashboard.setCatalogLike(item.id, visitorId, !alreadyFavorite);
+        for (const items of [this.publicCatalogItems, this.clientCatalog, this.stylistCatalog]) {
+          for (const creation of items) {
+            if (creation.id === item.id) creation.likesCount = result.likesCount;
+          }
+        }
+      } catch {
+        this.showToast('Impossible d’enregistrer votre J’aime. Réessayez.');
+        return;
+      } finally {
+        this.pendingLikes.delete(key);
+      }
+    }
     this.favoriteKeys = alreadyFavorite
       ? this.favoriteKeys.filter(favorite => favorite !== key)
       : [...this.favoriteKeys, key];
@@ -1834,7 +1858,7 @@ export class App implements AfterViewInit, OnDestroy {
   private requireAccountForSelection(): boolean {
     if (this.auth.isAuthenticated) return true;
     this.openLogin('client');
-    this.showToast('Connectez-vous ou créez un compte pour aimer une création ou l’ajouter à votre sélection.');
+    this.showToast('Connectez-vous ou créez un compte pour ajouter une création à votre sélection.');
     return false;
   }
 
