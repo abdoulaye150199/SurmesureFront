@@ -5,6 +5,7 @@ import { LoginComponent } from './login/login';
 import { SignupPageComponent } from './signup-page/signup-page';
 import { AppAccountRole, AuthService, AuthUser } from './auth/auth.service';
 import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard';
+import { StylistSettingsComponent } from './stylist-settings/stylist-settings';
 import { OfflineWorkspaceSnapshot, OfflineWorkspaceStore } from './dashboard/offline-workspace.store';
 import {
   DashboardAppointment,
@@ -82,7 +83,7 @@ type StylistEditor = 'catalog' | 'profile' | null;
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, LoginComponent, SignupPageComponent, AdminDashboardComponent],
+  imports: [CommonModule, FormsModule, LoginComponent, SignupPageComponent, AdminDashboardComponent, StylistSettingsComponent],
   templateUrl: './app.html',
   styleUrls: ['./app.scss', './stylist-dashboard.scss']
 })

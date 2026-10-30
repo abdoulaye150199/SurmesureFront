@@ -1,0 +1,29 @@
+<section class="stylist-settings-page" id="stylist-settings">
+  <header class="settings-page-heading">
+    <div><span>VOTRE ESPACE</span><h2>Paramètres de l’atelier</h2><p>Présentez votre savoir-faire et gardez votre profil à jour.</p></div>
+    <button type="button" (click)="editRequested.emit()"><span>Modifier le profil</span><b aria-hidden="true">↗</b></button>
+  </header>
+  <article class="settings-profile-card">
+    <div class="settings-profile-orbit" aria-hidden="true"></div>
+    <div class="settings-profile-avatar">
+      <img *ngIf="photoUrl; else settingsProfileInitials" [src]="photoUrl" [alt]="'Photo de ' + (ownerName || 'la styliste')">
+      <ng-template #settingsProfileInitials><span>{{ initials }}</span></ng-template>
+    </div>
+    <div class="settings-profile-copy"><span class="settings-profile-eyebrow">PROFIL DE L’ATELIER</span><h3>{{ businessName || 'Nom de l’atelier à renseigner' }}</h3><p>{{ ownerName }}<span> · </span>Styliste</p></div>
+    <button class="settings-profile-edit" type="button" (click)="editRequested.emit()">Éditer mon profil <span aria-hidden="true">→</span></button>
+  </article>
+  <div class="settings-info-grid">
+    <article class="settings-info-card">
+      <div class="settings-info-title"><span class="settings-info-icon" aria-hidden="true">✦</span><div><small>QUI ÊTES-VOUS ?</small><h3>Présentation</h3></div></div>
+      <p>{{ about || 'Présentez votre atelier, votre expérience et ce qui rend vos créations uniques.' }}</p>
+      <button type="button" (click)="editRequested.emit()">{{ about ? 'Modifier le texte' : 'Ajouter une présentation' }} <span aria-hidden="true">→</span></button>
+    </article>
+    <article class="settings-info-card settings-specialties-card">
+      <div class="settings-info-title"><span class="settings-info-icon gold" aria-hidden="true">◇</span><div><small>VOTRE SAVOIR-FAIRE</small><h3>Spécialités</h3></div></div>
+      <div class="settings-specialty-list" *ngIf="specialties.length; else emptySpecialties"><span *ngFor="let specialty of specialties">{{ specialty }}</span></div>
+      <ng-template #emptySpecialties><p class="settings-empty-specialties">Ajoutez vos domaines de création pour aider les clientes à découvrir votre univers.</p></ng-template>
+      <button type="button" (click)="editRequested.emit()">Gérer mes spécialités <span aria-hidden="true">→</span></button>
+    </article>
+  </div>
+  <aside class="settings-tip"><span aria-hidden="true">✧</span><p><strong>Un profil à votre image.</strong> Votre photo, votre présentation et vos spécialités permettent aux clientes de mieux connaître votre atelier.</p><button type="button" (click)="editRequested.emit()">Personnaliser <span aria-hidden="true">→</span></button></aside>
+</section>

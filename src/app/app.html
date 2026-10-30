@@ -533,10 +533,14 @@
         <div class="dashboard-inline-empty dark" *ngIf="!stylistPersonnel.length">Aucun employé enregistré dans votre atelier.</div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-settings" *ngIf="stylistPage === 'settings'">
-        <div class="analytics-panel-heading"><div><span>Identité de votre atelier</span><h2>Profil et paramètres</h2></div><button type="button" (click)="openStylistEditor('profile')">Modifier le profil</button></div>
-        <p>{{ stylistProfile?.businessName || 'Nom de l’atelier à renseigner' }}</p><p>{{ stylistProfile?.about || 'Ajoutez une présentation pour accueillir vos clientes.' }}</p><p>{{ stylistProfile?.specialties?.join(' · ') || 'Spécialités non renseignées' }}</p>
-      </section>
+      <app-stylist-settings *ngIf="stylistPage === 'settings'"
+        [businessName]="stylistProfile?.businessName || ''"
+        [about]="stylistProfile?.about || ''"
+        [specialties]="stylistProfile?.specialties || []"
+        [photoUrl]="stylistPhotoUrl"
+        [initials]="userInitials"
+        [ownerName]="(authenticatedUser?.firstName || '') + ' ' + (authenticatedUser?.lastName || '')"
+        (editRequested)="openStylistEditor('profile')"></app-stylist-settings>
     </div>
     </div>
   </ng-container>
