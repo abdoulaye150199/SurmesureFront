@@ -4,6 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { DashboardService } from './dashboard/dashboard.service';
 import { OfflineWorkspaceStore } from './dashboard/offline-workspace.store';
+import { AuthService } from './auth/auth.service';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -20,6 +21,34 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('opens separate client tabs and keeps navigation available from measurements', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.demoMode = true;
+    app.activeView = 'client';
+    fixture.detectChanges();
+    const clickTab = (label: string) => {
+      const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.client-dashboard-sidebar nav button'));
+      (buttons.find(button => button.querySelector('span')?.textContent === label) as HTMLButtonElement).click();
+      fixture.detectChanges();
+    };
+
+    clickTab('Mes commandes');
+    expect(fixture.nativeElement.querySelector('.client-portal-header h1').textContent).toBe('Mes commandes');
+    expect(fixture.nativeElement.querySelector('.client-quick-overview')).toBeNull();
+    clickTab('Mes mesures');
+    expect(app.activeView).toBe('measure');
+    clickTab('Rendez-vous');
+    expect(fixture.nativeElement.querySelector('.client-portal-header h1').textContent).toBe('Rendez-vous');
+    expect(fixture.nativeElement.querySelector('.dashboard-inline-empty').textContent).toContain('Aucun rendez-vous');
+    clickTab('Mes favoris');
+    expect(app.showFavoritesOnly).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.client-dashboard-sidebar nav .active span').textContent).toBe('Mes favoris');
+    clickTab('Vue d’ensemble');
+    expect(app.showFavoritesOnly).toBeFalse();
+    expect(fixture.nativeElement.querySelector('.client-quick-overview')).not.toBeNull();
   });
 
   it('normalizes employee contact details and displays API rejection in the dialog', async () => {
@@ -64,6 +93,7 @@ describe('App', () => {
   });
 
   it('saves a favorite and exposes its state accessibly', () => {
+    spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     const button = fixture.nativeElement.querySelector('.favorite') as HTMLButtonElement;
@@ -80,12 +110,29 @@ describe('App', () => {
   });
 
   it('restores the selection after a reload', () => {
+    spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
     const firstFixture = TestBed.createComponent(App);
     firstFixture.componentInstance.addToCart(firstFixture.componentInstance.creations[0]);
     firstFixture.destroy();
 
     const reloadedFixture = TestBed.createComponent(App);
     expect(reloadedFixture.componentInstance.cartCount).toBe(1);
+  });
+
+  it('requires login before a visitor can favorite or select a creation, including demo mode', () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const item = app.creations[0];
+    app.toggleFavorite(item);
+    expect(app.loginOpen).toBeTrue();
+    expect(app.favoritesCount).toBe(0);
+    expect(localStorage.getItem('surmesure.favorites')).toBeNull();
+
+    app.loginOpen = false;
+    app.demoMode = true;
+    app.addToCart(item);
+    expect(app.loginOpen).toBeTrue();
+    expect(app.cartCount).toBe(0);
+    expect(localStorage.getItem('surmesure.selection')).toBeNull();
   });
 
   it('restores the authenticated stylist workspace after a reload', () => {

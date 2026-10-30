@@ -266,11 +266,11 @@
         <button class="client-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Espace client</small></span></button>
         <button class="dashboard-menu-toggle client-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="client-measure-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
         <nav id="client-measure-nav" (click)="mobileDashboardMenuOpen = false">
-          <button type="button" (click)="setView('client')"><i>⌂</i><span>Vue d’ensemble</span></button>
-          <button type="button" (click)="setView('client')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
+          <button type="button" (click)="setClientPage('overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
+          <button type="button" [class.active]="clientPage === 'orders'" (click)="setClientPage('orders')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
           <button class="active" type="button"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
-          <button type="button" (click)="setView('client')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
-          <button type="button" (click)="setView('client'); showFavoritesOnly = true"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
+          <button type="button" [class.active]="clientPage === 'appointments'" (click)="setClientPage('appointments')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
+          <button type="button" [class.active]="clientPage === 'favorites'" (click)="setClientPage('favorites')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
         </nav>
         <div class="client-sidebar-profile"><button type="button" (click)="openClientProfile()"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button><button class="client-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
@@ -319,11 +319,11 @@
         </button>
         <button class="dashboard-menu-toggle client-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="client-main-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
         <nav id="client-main-nav" (click)="mobileDashboardMenuOpen = false">
-          <button class="active" type="button" (click)="scrollWorkspaceTo('client-overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
-          <button type="button" (click)="scrollWorkspaceTo('client-order')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
-          <button type="button" (click)="setView('measure')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('client-appointment')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
-          <button type="button" (click)="showFavoritesOnly = true; scrollWorkspaceTo('client-inspirations')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
+          <button [class.active]="clientPage === 'overview'" type="button" (click)="setClientPage('overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
+          <button type="button" [class.active]="clientPage === 'orders'" (click)="setClientPage('orders')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
+          <button type="button" [class.active]="clientPage === 'measurements'" (click)="setClientPage('measurements')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
+          <button type="button" [class.active]="clientPage === 'appointments'" (click)="setClientPage('appointments')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
+          <button type="button" [class.active]="clientPage === 'favorites'" (click)="setClientPage('favorites')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
         </nav>
         <div class="client-sidebar-profile">
           <button type="button" (click)="showToast('Profil client sécurisé')"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button>
@@ -333,7 +333,7 @@
 
       <div class="client-portal" id="client-overview">
         <header class="client-portal-header">
-          <div><span>Votre espace personnel</span><h1>Bonjour, {{ userFirstName }}</h1><p>Retrouvez ici l’essentiel de votre expérience sur mesure.</p></div>
+          <div><span>Votre espace personnel</span><h1>{{ clientPageTitle }}</h1><p>Retrouvez ici l’essentiel de votre expérience sur mesure.</p></div>
           <div class="client-header-actions">
             <button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button>
             <button class="client-alert" type="button" aria-label="Notifications" (click)="showToast(nextClientAppointment ? 'Votre prochain rendez-vous est le ' + formatDate(nextClientAppointment.startsAt) : 'Aucune nouvelle notification')">♧<b>{{ nextClientAppointment ? 1 : 0 }}</b></button>
@@ -345,13 +345,13 @@
         <div class="dashboard-feedback loading" *ngIf="dashboardLoading"><i></i><span>Actualisation de votre espace…</span></div>
         <div class="dashboard-feedback error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
 
-        <section class="client-quick-overview" aria-label="Raccourcis de votre espace">
-          <button type="button" (click)="scrollWorkspaceTo('client-order')"><i>▣</i><span><small>Ma commande</small><strong>{{ currentClientOrder?.description || 'Découvrir les créations' }}</strong><em>{{ currentClientOrder ? orderStatusLabel(currentClientOrder.status) : 'Choisir une pièce' }}</em></span><b>→</b></button>
-          <button type="button" (click)="setView('measure')"><i>⌁</i><span><small>Mes mesures</small><strong>{{ measurementCompletion }}% complété</strong><em>{{ measurementCompletion === 100 ? 'Profil prêt' : 'Compléter mon profil' }}</em></span><b>→</b></button>
-          <button type="button" (click)="scrollWorkspaceTo('client-appointment')"><i>◷</i><span><small>Prochain rendez-vous</small><strong>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt) : 'Aucun rendez-vous' }}</strong><em>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt, 'time') : 'Votre atelier reste disponible' }}</em></span><b>→</b></button>
+        <section *ngIf="clientPage === 'overview'" class="client-quick-overview" aria-label="Raccourcis de votre espace">
+          <button type="button" (click)="setClientPage('orders')"><i>▣</i><span><small>Ma commande</small><strong>{{ currentClientOrder?.description || 'Découvrir les créations' }}</strong><em>{{ currentClientOrder ? orderStatusLabel(currentClientOrder.status) : 'Choisir une pièce' }}</em></span><b>→</b></button>
+          <button type="button" (click)="setClientPage('measurements')"><i>⌁</i><span><small>Mes mesures</small><strong>{{ measurementCompletion }}% complété</strong><em>{{ measurementCompletion === 100 ? 'Profil prêt' : 'Compléter mon profil' }}</em></span><b>→</b></button>
+          <button type="button" (click)="setClientPage('appointments')"><i>◷</i><span><small>Prochain rendez-vous</small><strong>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt) : 'Aucun rendez-vous' }}</strong><em>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt, 'time') : 'Votre atelier reste disponible' }}</em></span><b>→</b></button>
         </section>
 
-        <div class="client-content-grid">
+        <div class="client-content-grid" *ngIf="clientPage === 'overview'">
           <section class="client-panel client-order-panel" id="client-order" *ngIf="currentClientOrder as order; else noClientOrderPanel">
             <div class="client-panel-heading"><div><span>Suivi de création</span><h2>{{ order.description }}</h2></div><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b></div>
             <div class="client-order-product"><img [src]="orderImage(order)" [alt]="order.description"><div><span>{{ order.stylist?.businessName || 'Atelier partenaire' }} · #{{ orderShortId(order) }}</span><h3>Une pièce créée pour vous</h3><p>Dernière mise à jour le {{ formatDate(order.updatedAt) }}</p></div><button type="button" (click)="showToast(order.notes || 'Commande synchronisée avec votre atelier')">Voir les détails ↗</button></div>
@@ -379,15 +379,35 @@
           </div>
         </div>
 
-        <section class="client-panel client-inspirations" id="client-inspirations">
-          <div class="client-panel-heading"><div><span>{{ showFavoritesOnly ? 'Vos pièces enregistrées' : 'Sélectionnée pour vous' }}</span><h2>{{ showFavoritesOnly ? 'Mes favoris' : 'Inspirations du moment' }}</h2></div><div class="client-inspiration-actions"><button type="button" (click)="showFavoritesOnly = !showFavoritesOnly">{{ showFavoritesOnly ? 'Toutes les inspirations' : 'Mes favoris (' + favoritesCount + ')' }}</button><button type="button" (click)="setView('explore')">Explorer les pièces ↗</button></div></div>
+        <section class="client-panel" *ngIf="clientPage === 'orders'">
+          <div class="client-panel-heading"><h2>Mes commandes</h2><span>{{ clientOrders.length }} commande(s)</span></div>
+          <article class="client-order-product" *ngFor="let order of clientOrders">
+            <img [src]="orderImage(order)" [alt]="order.description">
+            <div><span>#{{ orderShortId(order) }} · {{ order.stylist?.businessName || 'Atelier partenaire' }}</span><h3>{{ order.description }}</h3><p>{{ formatDate(order.createdAt) }} · {{ price(order.totalPrice) | number:'1.0-0' }} FCFA</p><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b></div>
+            <button type="button" (click)="showToast(order.notes || 'Commande synchronisée avec votre atelier')">Voir les détails ↗</button>
+          </article>
+          <div class="dashboard-inline-empty" *ngIf="!clientOrders.length">Aucune commande pour le moment.</div>
+        </section>
+
+        <section class="client-panel" *ngIf="clientPage === 'appointments'">
+          <div class="client-panel-heading"><h2>Rendez-vous</h2><span>{{ clientAppointments.length }} rendez-vous</span></div>
+          <article class="client-appointment" *ngFor="let appointment of clientAppointments">
+            <div class="client-card-heading"><h3>{{ appointment.service }}</h3><i>◷</i></div>
+            <p>{{ formatDate(appointment.startsAt) }} à {{ formatDate(appointment.startsAt, 'time') }} · {{ appointment.stylist?.businessName || 'Atelier partenaire' }}</p>
+            <p>{{ appointment.status === 'confirmed' ? 'Confirmé' : appointment.status === 'cancelled' ? 'Annulé' : appointment.status === 'completed' ? 'Terminé' : 'En attente de confirmation' }}</p>
+          </article>
+          <div class="dashboard-inline-empty" *ngIf="!clientAppointments.length">Aucun rendez-vous pour le moment.</div>
+        </section>
+
+        <section class="client-panel client-inspirations" id="client-inspirations" *ngIf="clientPage === 'overview' || clientPage === 'favorites'">
+          <div class="client-panel-heading"><div><span>{{ showFavoritesOnly ? 'Vos pièces enregistrées' : 'Sélectionnée pour vous' }}</span><h2>{{ showFavoritesOnly ? 'Mes favoris' : 'Inspirations du moment' }}</h2></div><div class="client-inspiration-actions"><button type="button" (click)="setClientPage(clientPage === 'favorites' ? 'overview' : 'favorites')">{{ showFavoritesOnly ? 'Toutes les inspirations' : 'Mes favoris (' + favoritesCount + ')' }}</button><button type="button" (click)="setView('explore')">Explorer les pièces ↗</button></div></div>
           <div class="client-inspiration-grid" *ngIf="visibleClientInspirations.length; else noCatalog">
             <article *ngFor="let item of visibleClientInspirations"><div><img [src]="inspirationImage(item)" [alt]="inspirationName(item)"><button type="button" [class.active]="isFavorite(item)" [attr.aria-pressed]="isFavorite(item)" [attr.aria-label]="isFavorite(item) ? 'Retirer ' + inspirationName(item) + ' des favoris' : 'Ajouter ' + inspirationName(item) + ' aux favoris'" (click)="toggleFavorite(item)">{{ isFavorite(item) ? '♥' : '♡' }}</button></div><button class="client-creator-link" type="button" (click)="openCreationCreator(item)">{{ inspirationStylist(item) }} · Créateur</button><h3>{{ inspirationName(item) }}</h3><p>{{ price(item.price) | number:'1.0-0' }} {{ inspirationCurrency(item) }}</p></article>
           </div>
           <ng-template #noCatalog><div class="dashboard-inline-empty">{{ showFavoritesOnly ? 'Aucun favori enregistré parmi ces créations.' : 'Aucune création publiée pour le moment.' }}</div></ng-template>
         </section>
 
-        <section class="client-panel client-profile-panel" id="client-profile">
+        <section class="client-panel client-profile-panel" id="client-profile" *ngIf="clientPage === 'overview'">
           <div class="client-panel-heading"><div><span>Votre espace personnel</span><h2>Mon profil</h2></div></div>
           <div class="client-stylist-contact"><img [src]="authenticatedUser?.profileImage || '/assets/logo-mark.png'" [alt]="authenticatedUser?.profileImage ? 'Photo de profil' : 'Logo Sur Mesure'"><div><span>Compte client</span><h2>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</h2><p>{{ authenticatedUser?.email || 'E-mail non renseigné' }}<br>{{ authenticatedUser?.phone || 'Téléphone non renseigné' }}</p></div></div>
           <div class="client-header-actions"><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>

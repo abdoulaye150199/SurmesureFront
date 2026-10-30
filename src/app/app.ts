@@ -27,6 +27,7 @@ type Collection = 'Tout' | 'Cérémonie' | 'Boubous' | 'Ensembles';
 type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'employee' | 'admin' | 'signup';
 type StylistPage = 'overview' | 'orders' | 'clients' | 'creations' | 'measurements' | 'contacts' | 'planning' | 'team' | 'settings';
 type EmployeePage = 'intake' | 'clients';
+type ClientPage = 'overview' | 'orders' | 'measurements' | 'appointments' | 'favorites';
 const CART_STORAGE_KEY = 'surmesure.selection';
 const FAVORITES_STORAGE_KEY = 'surmesure.favorites';
 
@@ -119,6 +120,18 @@ export class App implements AfterViewInit, OnDestroy {
   loggingOut = false;
   demoMode = false;
   clientOrders: DashboardOrder[] = [];
+  clientPage: ClientPage = 'overview';
+
+  get clientPageTitle(): string {
+    return { overview: `Bonjour, ${this.userFirstName}`, orders: 'Mes commandes', measurements: 'Mes mesures', appointments: 'Rendez-vous', favorites: 'Mes favoris' }[this.clientPage];
+  }
+
+  setClientPage(page: ClientPage): void {
+    this.clientPage = page;
+    this.showFavoritesOnly = page === 'favorites';
+    this.mobileDashboardMenuOpen = false;
+    this.setView(page === 'measurements' ? 'measure' : 'client');
+  }
   clientMeasurements: DashboardMeasurement[] = [];
   clientAppointments: DashboardAppointment[] = [];
   clientCatalog: DashboardCatalogItem[] = [];
@@ -759,6 +772,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   openClientProfile(): void {
+    this.clientPage = 'overview';
     this.clientBottomTab = 'profile';
     this.activeView = 'client';
     this.workspaceRole = 'client';
@@ -767,6 +781,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   openClientSelection(): void {
+    this.clientPage = 'favorites';
     this.clientBottomTab = 'selection';
     this.showFavoritesOnly = true;
     this.activeView = 'client';
@@ -1529,6 +1544,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   toggleFavorite(item: Creation | DashboardCatalogItem): void {
+    if (!this.requireAccountForSelection()) return;
     const key = this.favoriteKey(item);
     const alreadyFavorite = this.favoriteKeys.includes(key);
     this.favoriteKeys = alreadyFavorite
@@ -1797,6 +1813,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   addToCart(item: Creation): void {
+    if (!this.requireAccountForSelection()) return;
     if (this.selectedCreations.some(creation => creation.name === item.name)) {
       this.toast = `${item.name} est déjà dans votre sélection`;
     } else {
@@ -1812,6 +1829,13 @@ export class App implements AfterViewInit, OnDestroy {
     this.writeStoredArray(CART_STORAGE_KEY, this.selectedCreations);
     this.toast = `${item.name} retiré de votre sélection`;
     window.setTimeout(() => this.toast = '', 2600);
+  }
+
+  private requireAccountForSelection(): boolean {
+    if (this.auth.isAuthenticated) return true;
+    this.openLogin('client');
+    this.showToast('Connectez-vous ou créez un compte pour aimer une création ou l’ajouter à votre sélection.');
+    return false;
   }
 
   subscribe(): void {
