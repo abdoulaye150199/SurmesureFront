@@ -1,7 +1,5 @@
 <div class="announcement" *ngIf="activeView !== 'signup' && activeView !== 'stylist' && activeView !== 'employee' && activeView !== 'client' && activeView !== 'measure' && activeView !== 'admin'">
-  <span>Livraison offerte à Dakar dès 75 000 FCFA</span>
   <span class="announcement-center">Votre tenue, votre histoire, vos mesures.</span>
-  <span>Retouches offertes sous 14 jours</span>
 </div>
 
 <header class="site-header" *ngIf="activeView !== 'signup' && activeView !== 'stylist' && activeView !== 'employee' && activeView !== 'client' && activeView !== 'measure' && activeView !== 'admin'" [class.scrolled]="headerScrolled" [class.hidden]="headerHidden">
@@ -199,13 +197,13 @@
       <img src="/assets/sur-mesure-logo.png" alt="Sur Mesure Style">
       <p>Le sur-mesure, simplement.<br>Imaginé à Dakar, porté partout.</p>
       <div class="social-links">
-        <a href="#" aria-label="Snapchat" title="Snapchat">
+        <a href="https://snapchat.com/t/shhJPFyG" target="_blank" rel="noopener noreferrer" aria-label="Snapchat — SurMesure (nouvel onglet)" title="Snapchat — surmesure269791">
           <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M12 3c-3 0-4.5 2-4.5 5v2c-.7.4-1.5-.8-2.2-.2-.9.8.8 1.7 1.7 2-.4 2-1.9 3.5-4 4.2.3.9 1.5 1.1 2.5 1.3l.5 1.5c1.5-.3 2.5-.1 3.5.7a4.2 4.2 0 0 0 5 0c1-.8 2-1 3.5-.7l.5-1.5c1-.2 2.2-.4 2.5-1.3-2.1-.7-3.6-2.2-4-4.2.9-.3 2.6-1.2 1.7-2-.7-.6-1.5.6-2.2.2V8C16.5 5 15 3 12 3Z"/></svg>
         </a>
-        <a href="#" aria-label="Instagram" title="Instagram">
+        <a href="https://www.instagram.com/surmesure514/" target="_blank" rel="noopener noreferrer" aria-label="Instagram — SurMesure (nouvel onglet)" title="Instagram">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
         </a>
-        <a href="#" aria-label="TikTok" title="TikTok">
+        <a href="https://www.tiktok.com/@surmesure00" target="_blank" rel="noopener noreferrer" aria-label="TikTok — SurMesure (nouvel onglet)" title="TikTok">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M16.6 2h-3.2v13.5a3 3 0 1 1-2.6-3V9.2a6.3 6.3 0 1 0 5.8 6.3V8.7a8.2 8.2 0 0 0 4.8 1.5V7a4.8 4.8 0 0 1-4.8-5Z"/></svg>
         </a>
       </div>
@@ -652,6 +650,7 @@
   <form class="dashboard-dialog stylist-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="employee-account-title" (ngSubmit)="saveEmployeeAccount()" (click)="$event.stopPropagation()">
     <button class="dashboard-dialog-close" type="button" (click)="employeeAccountEditorOpen = false" aria-label="Fermer">×</button>
     <span>Équipe de l’atelier</span><h2 id="employee-account-title">Créer un accès employé</h2>
+    <p role="alert" *ngIf="employeeAccountError">{{ employeeAccountError }}</p>
     <p>Définissez son adresse e-mail et un mot de passe initial, puis remettez-lui ses identifiants en privé.</p>
     <div class="stylist-editor-fields">
       <label>Prénom<input name="employeeFirstName" [(ngModel)]="employeeAccountDraft.firstName" minlength="2" required></label>
@@ -659,7 +658,7 @@
       <label>E-mail<input name="employeeEmail" type="email" [(ngModel)]="employeeAccountDraft.email" autocomplete="email" required></label>
       <label>Téléphone<input name="employeePhone" type="tel" [(ngModel)]="employeeAccountDraft.phone" placeholder="+221 77 000 00 00" required></label>
       <label>Fonction<input name="employeeSpecialization" [(ngModel)]="employeeAccountDraft.specialization" minlength="2" required></label>
-      <label class="employee-password-label">Mot de passe initial<div class="employee-password-field"><input name="employeePassword" [type]="employeePasswordVisible ? 'text' : 'password'" [(ngModel)]="employeeAccountDraft.password" minlength="10" autocomplete="new-password" required><button type="button" (click)="employeePasswordVisible = !employeePasswordVisible">{{ employeePasswordVisible ? 'Masquer' : 'Afficher' }}</button></div></label>
+      <label class="employee-password-label">Mot de passe initial (10 caractères minimum)<div class="employee-password-field"><input name="employeePassword" [type]="employeePasswordVisible ? 'text' : 'password'" [(ngModel)]="employeeAccountDraft.password" minlength="10" autocomplete="new-password" required><button type="button" (click)="employeePasswordVisible = !employeePasswordVisible">{{ employeePasswordVisible ? 'Masquer' : 'Afficher' }}</button></div></label>
     </div>
     <button class="stylist-editor-submit" type="submit" [disabled]="employeeAccountSaving">{{ employeeAccountSaving ? 'Création…' : 'Créer le compte' }} <span>→</span></button>
   </form>

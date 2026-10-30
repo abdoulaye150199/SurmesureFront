@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AfterViewInit, Component, HostListener, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LoginComponent } from './login/login';
@@ -140,6 +141,7 @@ export class App implements AfterViewInit, OnDestroy {
   employeeContext: EmployeeWorkspaceContext | null = null;
   employeeAccountEditorOpen = false;
   employeeAccountSaving = false;
+  employeeAccountError = '';
   employeePasswordVisible = false;
   employeeAccountDraft = { firstName: '', lastName: '', email: '', phone: '', password: '', specialization: 'Couture' };
   employeeClientName = '';
@@ -1216,6 +1218,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   openEmployeeAccountEditor(): void {
+    this.employeeAccountError = '';
     if (this.demoMode) {
       this.showToast('Créez les comptes employés depuis un atelier connecté.');
       return;
@@ -1226,19 +1229,48 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   async saveEmployeeAccount(): Promise<void> {
+    if (this.employeeAccountSaving) return;
+    this.employeeAccountError = '';
+    const draft = this.employeeAccountDraft;
+    const input = {
+      ...draft,
+      firstName: draft.firstName.trim(), lastName: draft.lastName.trim(),
+      email: draft.email.trim().toLowerCase(), phone: draft.phone.trim().replace(/[\s().-]/g, ''),
+      specialization: draft.specialization.trim(),
+    };
+    if ([input.firstName, input.lastName, input.specialization].some(value => value.length < 2)) {
+      this.employeeAccountError = 'Le prénom, le nom et la fonction doivent contenir au moins 2 caractères.';
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) {
+      this.employeeAccountError = 'Indiquez une adresse e-mail valide.';
+      return;
+    }
+    if (!/^\+[1-9]\d{7,14}$/.test(input.phone)) {
+      this.employeeAccountError = 'Indiquez le téléphone avec son indicatif pays, par exemple +221 77 000 00 00.';
+      return;
+    }
+    if (input.password.length < 10) {
+      this.employeeAccountError = 'Le mot de passe doit contenir au moins 10 caractères.';
+      return;
+    }
     const stylistId = this.stylistProfile?.id;
     if (!stylistId) {
-      this.showToast('Le profil de l’atelier est introuvable. Actualisez la page.');
+      this.employeeAccountError = 'Le profil de l’atelier est introuvable. Actualisez la page.';
       return;
     }
     this.employeeAccountSaving = true;
     try {
-      const employee = await this.dashboard.createEmployeeAccount(stylistId, this.employeeAccountDraft);
+      const employee = await this.dashboard.createEmployeeAccount(stylistId, input);
       this.stylistPersonnel = [employee, ...this.stylistPersonnel];
       this.employeeAccountEditorOpen = false;
       this.showToast('Compte créé. Remettez les identifiants à votre employé en privé.');
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Création du compte impossible.');
+      const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
+      this.employeeAccountError = Array.isArray(detail) ? detail.join(' ') :
+        typeof detail === 'string' ? detail :
+        error instanceof HttpErrorResponse && error.status === 0 ? 'Le serveur est inaccessible. Vérifiez votre connexion et réessayez.' :
+        error instanceof Error ? error.message : 'Création du compte impossible.';
     } finally {
       this.employeeAccountSaving = false;
     }

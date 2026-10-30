@@ -1,4 +1,5 @@
 import { provideHttpClient } from '@angular/common/http';
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { DashboardService } from './dashboard/dashboard.service';
@@ -19,6 +20,40 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  it('normalizes employee contact details and displays API rejection in the dialog', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.stylistProfile = { id: 'atelier-1' } as typeof app.stylistProfile;
+    app.employeeAccountEditorOpen = true;
+    app.employeeAccountDraft = {
+      firstName: ' Mame ', lastName: ' Sarr ', email: ' MAME@example.com ',
+      phone: '+221 77 000 00 01', password: 'MotDePasse2026', specialization: ' Couture ',
+    };
+    const create = spyOn(TestBed.inject(DashboardService), 'createEmployeeAccount')
+      .and.rejectWith(new HttpErrorResponse({ status: 409, error: { message: 'Cet e-mail ou ce numéro est déjà utilisé par un compte.' } }));
+
+    await app.saveEmployeeAccount();
+
+    expect(create).toHaveBeenCalledWith('atelier-1', jasmine.objectContaining({
+      firstName: 'Mame', lastName: 'Sarr', email: 'mame@example.com', phone: '+221770000001',
+    }));
+    expect(app.employeeAccountError).toContain('déjà utilisé');
+    expect(app.employeeAccountEditorOpen).toBeTrue();
+    expect(app.employeeAccountSaving).toBeFalse();
+  });
+
+  it('does not send an employee account with a short password', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.employeeAccountDraft = {
+      firstName: 'Mame', lastName: 'Sarr', email: 'mame@example.com',
+      phone: '+221770000001', password: 'court', specialization: 'Couture',
+    };
+    const create = spyOn(TestBed.inject(DashboardService), 'createEmployeeAccount');
+    await app.saveEmployeeAccount();
+    expect(create).not.toHaveBeenCalled();
+    expect(app.employeeAccountError).toContain('10 caractères');
   });
 
   it('should render the brand headline', () => {
