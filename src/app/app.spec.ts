@@ -8,6 +8,7 @@ import { AuthService } from './auth/auth.service';
 
 describe('App', () => {
   beforeEach(async () => {
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
     localStorage.removeItem('surmesure.selection');
     localStorage.removeItem('surmesure.favorites');
     localStorage.removeItem('surmesure.auth.session');
@@ -15,6 +16,55 @@ describe('App', () => {
       imports: [App],
       providers: [provideHttpClient()],
     }).compileComponents();
+  });
+
+  afterEach(() => {
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    document.title = 'Sur Mesure Style';
+  });
+
+  it('gives client pages distinct URLs and responds to browser history', () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.demoMode = true;
+    app.setClientPage('orders');
+    expect(window.location.hash).toBe('#/client/commandes');
+    expect(app.clientPage).toBe('orders');
+    app.setClientPage('measurements');
+    expect(window.location.hash).toBe('#/client/mesures');
+    expect(app.activeView).toBe('measure');
+    window.history.replaceState(null, '', '#/client/commandes');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+    expect(app.activeView).toBe('client');
+    expect(app.clientPage).toBe('orders');
+    app.setClientPage('profile');
+    expect(window.location.hash).toBe('#/client/profil');
+    expect(app.clientPageTitle).toBe('Mon profil');
+    app.setView('home');
+    expect(window.location.hash).toBe('');
+  });
+
+  it('restores the requested client page after reload with a valid account', () => {
+    const auth = TestBed.inject(AuthService);
+    spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
+    spyOnProperty(auth, 'appRole', 'get').and.returnValue('client');
+    spyOnProperty(auth, 'user', 'get').and.returnValue({ id: 'client', role: 'CLIENT', firstName: 'Fatou' } as NonNullable<App['authenticatedUser']>);
+    window.history.replaceState(null, '', '#/client/favoris');
+    const fixture = TestBed.createComponent(App);
+    expect(fixture.componentInstance.clientPage).toBe('favorites');
+    expect(fixture.componentInstance.showFavoritesOnly).toBeTrue();
+    expect(fixture.componentInstance.activeView).toBe('client');
+  });
+
+  it('requires login on direct client links and keeps the requested page after login', () => {
+    window.history.replaceState(null, '', '#/client/rendez-vous');
+    const app = TestBed.createComponent(App).componentInstance;
+    expect(app.activeView).toBe('home');
+    expect(app.loginOpen).toBeTrue();
+    spyOn(app, 'loadDashboard').and.resolveTo();
+    app.onLoggedIn({ id: 'client', role: 'CLIENT', firstName: 'Fatou' } as NonNullable<App['authenticatedUser']>);
+    expect(app.clientPage).toBe('appointments');
+    expect(app.activeView).toBe('client');
+    expect(window.location.hash).toBe('#/client/rendez-vous');
   });
 
   it('should create the app', () => {

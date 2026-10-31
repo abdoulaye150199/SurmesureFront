@@ -27,7 +27,10 @@ type Collection = 'Tout' | 'Cérémonie' | 'Boubous' | 'Ensembles';
 type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'employee' | 'admin' | 'signup';
 type StylistPage = 'overview' | 'orders' | 'clients' | 'creations' | 'measurements' | 'contacts' | 'planning' | 'team' | 'settings';
 type EmployeePage = 'intake' | 'clients';
-type ClientPage = 'overview' | 'orders' | 'measurements' | 'appointments' | 'favorites';
+type ClientPage = 'overview' | 'orders' | 'measurements' | 'appointments' | 'favorites' | 'profile';
+const CLIENT_PAGE_PATHS: Record<ClientPage, string> = {
+  overview: 'accueil', orders: 'commandes', measurements: 'mesures', appointments: 'rendez-vous', favorites: 'favoris', profile: 'profil',
+};
 const CART_STORAGE_KEY = 'surmesure.selection';
 const FAVORITES_STORAGE_KEY = 'surmesure.favorites';
 
@@ -197,14 +200,72 @@ export class App implements AfterViewInit, OnDestroy {
   clientPage: ClientPage = 'overview';
 
   get clientPageTitle(): string {
-    return { overview: `Bonjour, ${this.userFirstName}`, orders: 'Mes commandes', measurements: 'Mes mesures', appointments: 'Rendez-vous', favorites: 'Mes favoris' }[this.clientPage];
+    return { overview: `Bonjour, ${this.userFirstName}`, orders: 'Mes commandes', measurements: 'Mes mesures', appointments: 'Rendez-vous', favorites: 'Mes favoris', profile: 'Mon profil' }[this.clientPage];
+  }
+
+  get clientPageDescription(): string {
+    return {
+      overview: 'Retrouvez ici l’essentiel de votre expérience sur mesure.',
+      orders: 'Suivez vos créations, leur avancement et les dates de livraison.',
+      measurements: 'Retrouvez et complétez vos mensurations.',
+      appointments: 'Consultez les rendez-vous et essayages avec votre atelier.',
+      favorites: 'Retrouvez toutes les créations que vous aimez.',
+      profile: 'Les informations personnelles de votre compte client.',
+    }[this.clientPage];
   }
 
   setClientPage(page: ClientPage): void {
+    this.writeClientPageUrl(page);
+    if (this.demoMode || (this.auth.isAuthenticated && this.auth.appRole === 'client' && (this.activeView === 'client' || this.activeView === 'measure'))) {
+      this.applyClientPage(page);
+      return;
+    }
+    void this.openWorkspace('client');
+  }
+
+  private clientPageFromUrl(): ClientPage | null {
+    const path = window.location.hash.replace(/^#\/client\//, '');
+    if (!window.location.hash.startsWith('#/client/')) return null;
+    return (Object.keys(CLIENT_PAGE_PATHS) as ClientPage[]).find(page => CLIENT_PAGE_PATHS[page] === path) ?? null;
+  }
+
+  private writeClientPageUrl(page: ClientPage): void {
+    const hash = `#/client/${CLIENT_PAGE_PATHS[page]}`;
+    if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+  }
+
+  private applyClientPage(page: ClientPage): void {
     this.clientPage = page;
     this.showFavoritesOnly = page === 'favorites';
+    this.workspaceRole = 'client';
+    this.activeView = page === 'measurements' ? 'measure' : 'client';
+    this.clientBottomTab = page === 'measurements' ? 'measure' : page === 'profile' ? 'profile' : page === 'favorites' ? 'selection' : 'home';
     this.mobileDashboardMenuOpen = false;
-    this.setView(page === 'measurements' ? 'measure' : 'client');
+    this.menuOpen = false;
+    document.title = `${this.clientPageTitle} · Sur Mesure Style`;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  @HostListener('window:popstate')
+  @HostListener('window:hashchange')
+  onClientPageHistory(): void {
+    const page = this.clientPageFromUrl();
+    if (page) {
+      if (this.demoMode || (this.auth.isAuthenticated && this.auth.appRole === 'client')) {
+        this.applyClientPage(page);
+      } else {
+        this.activeView = 'home';
+        this.openLogin('client');
+      }
+    } else if (this.activeView === 'client' || this.activeView === 'measure') {
+      this.activeView = 'home';
+      document.title = 'Sur Mesure Style';
+    }
+  }
+
+  private leaveClientPage(): void {
+    if (this.clientPageFromUrl()) window.history.pushState(null, '', window.location.pathname + window.location.search);
+    document.title = 'Sur Mesure Style';
   }
   clientMeasurements: DashboardMeasurement[] = [];
   clientAppointments: DashboardAppointment[] = [];
@@ -380,6 +441,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.workspaceRole = appRole;
       this.activeView = appRole;
     }
+    if (this.clientPageFromUrl()) this.onClientPageHistory();
   }
 
   readonly creations: Creation[] = [
@@ -816,6 +878,11 @@ export class App implements AfterViewInit, OnDestroy {
     this.authenticatedUser = this.auth.user;
     this.workspaceRole = role;
     this.activeView = role;
+    if (role === 'client') {
+      const page = this.clientPageFromUrl() ?? 'overview';
+      this.writeClientPageUrl(page);
+      this.applyClientPage(page);
+    } else this.leaveClientPage();
     if (role !== 'admin') void this.loadDashboard(role);
   }
 
@@ -925,46 +992,19 @@ export class App implements AfterViewInit, OnDestroy {
     this.selectedStylist = null;
   }
 
-  openClientHome(): void {
-    this.clientBottomTab = 'home';
-    this.showFavoritesOnly = false;
-    this.activeView = 'client';
-    this.workspaceRole = 'client';
-    this.mobileDashboardMenuOpen = false;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  openClientHome(): void { this.setClientPage('overview'); }
 
   openClientExplore(): void {
     this.clientBottomTab = 'explore';
     this.showFavoritesOnly = false;
-    this.activeView = 'explore';
-    this.mobileDashboardMenuOpen = false;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.setView('explore');
   }
 
-  openClientMeasurements(): void {
-    this.clientBottomTab = 'measure';
-    void this.openMeasureWorkspace();
-  }
+  openClientMeasurements(): void { this.setClientPage('measurements'); }
 
-  openClientProfile(): void {
-    this.clientPage = 'overview';
-    this.clientBottomTab = 'profile';
-    this.activeView = 'client';
-    this.workspaceRole = 'client';
-    this.mobileDashboardMenuOpen = false;
-    window.setTimeout(() => this.scrollWorkspaceTo('client-profile'), 0);
-  }
+  openClientProfile(): void { this.setClientPage('profile'); }
 
-  openClientSelection(): void {
-    this.clientPage = 'favorites';
-    this.clientBottomTab = 'selection';
-    this.showFavoritesOnly = true;
-    this.activeView = 'client';
-    this.workspaceRole = 'client';
-    this.mobileDashboardMenuOpen = false;
-    window.setTimeout(() => this.scrollWorkspaceTo('client-inspirations'), 0);
-  }
+  openClientSelection(): void { this.setClientPage('favorites'); }
 
   scrollWorkspaceTo(id: string): void {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1756,6 +1796,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   scrollTo(id: string): void {
+    this.leaveClientPage();
     this.activeView = 'home';
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     this.menuOpen = false;
@@ -1771,6 +1812,7 @@ export class App implements AfterViewInit, OnDestroy {
       void this.openMeasureWorkspace();
       return;
     }
+    this.leaveClientPage();
     this.activeView = view;
     this.menuOpen = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1780,6 +1822,11 @@ export class App implements AfterViewInit, OnDestroy {
     if (this.demoMode && (role === 'client' || role === 'stylist')) {
       this.workspaceRole = role;
       this.activeView = role;
+      if (role === 'client') {
+        const page = this.clientPageFromUrl() ?? 'overview';
+        this.writeClientPageUrl(page);
+        this.applyClientPage(page);
+      } else this.leaveClientPage();
       this.menuOpen = false;
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -1801,46 +1848,18 @@ export class App implements AfterViewInit, OnDestroy {
     this.authenticatedUser = this.auth.user;
     this.workspaceRole = role;
     this.activeView = role;
+    if (role === 'client') {
+      const page = this.clientPageFromUrl() ?? 'overview';
+      this.writeClientPageUrl(page);
+      this.applyClientPage(page);
+    } else this.leaveClientPage();
     this.menuOpen = false;
     if (role !== 'admin') void this.loadDashboard(role);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   async openMeasureWorkspace(): Promise<void> {
-    this.mobileDashboardMenuOpen = false;
-    if (this.demoMode) {
-      this.workspaceRole = 'client';
-      this.activeView = 'measure';
-      this.menuOpen = false;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    if (this.activeView === 'client' && this.authenticatedUser) {
-      this.workspaceRole = 'client';
-      this.activeView = 'measure';
-      this.menuOpen = false;
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-    if (!this.auth.isAuthenticated || this.auth.appRole !== 'client') {
-      this.openLogin('client');
-      this.pendingAuthView = 'measure';
-      this.showToast('Connectez-vous avec votre compte client pour accéder à vos mesures');
-      return;
-    }
-    if (!await this.auth.validateSession()) {
-      this.authenticatedUser = null;
-      this.openLogin('client');
-      this.pendingAuthView = 'measure';
-      this.showToast('Votre session a expiré. Reconnectez-vous.');
-      return;
-    }
-    this.authenticatedUser = this.auth.user;
-    this.workspaceRole = 'client';
-    this.activeView = 'measure';
-    this.menuOpen = false;
-    void this.loadDashboard('client');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.setClientPage('measurements');
   }
 
   async installPwa(): Promise<void> {
@@ -1893,6 +1912,11 @@ export class App implements AfterViewInit, OnDestroy {
     this.loginOpen = false;
     this.workspaceRole = role;
     this.activeView = destination ?? role;
+    if (role === 'client') {
+      const page = this.clientPageFromUrl() ?? (destination === 'measure' ? 'measurements' : 'overview');
+      this.writeClientPageUrl(page);
+      this.applyClientPage(page);
+    } else this.leaveClientPage();
     if (role !== 'admin') void this.loadDashboard(role);
     this.showToast(`Bienvenue ${user.firstName}, votre espace est prêt.`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1911,6 +1935,11 @@ export class App implements AfterViewInit, OnDestroy {
     this.loginOpen = false;
     this.workspaceRole = role;
     this.activeView = destination ?? role;
+    if (role === 'client') {
+      const page = this.clientPageFromUrl() ?? (destination === 'measure' ? 'measurements' : 'overview');
+      this.writeClientPageUrl(page);
+      this.applyClientPage(page);
+    } else this.leaveClientPage();
     void this.loadDashboard(role);
     this.toast = role === 'stylist'
       ? 'Votre compte styliste est créé. Bienvenue dans votre atelier.'
@@ -1935,6 +1964,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.clearPrivateWorkspaceData();
       this.activeView = 'home';
       this.loggingOut = false;
+      this.leaveClientPage();
       this.showToast('Vous êtes déconnecté.');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }

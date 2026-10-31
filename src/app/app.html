@@ -267,10 +267,11 @@
         <button class="dashboard-menu-toggle client-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="client-measure-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
         <nav id="client-measure-nav" (click)="mobileDashboardMenuOpen = false">
           <button type="button" (click)="setClientPage('overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
-          <button type="button" [class.active]="clientPage === 'orders'" (click)="setClientPage('orders')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
-          <button class="active" type="button"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
-          <button type="button" [class.active]="clientPage === 'appointments'" (click)="setClientPage('appointments')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
-          <button type="button" [class.active]="clientPage === 'favorites'" (click)="setClientPage('favorites')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
+          <button type="button" [class.active]="clientPage === 'orders'" [attr.aria-current]="clientPage === 'orders' ? 'page' : null" (click)="setClientPage('orders')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
+          <button class="active" type="button" (click)="setClientPage('measurements')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
+          <button type="button" [class.active]="clientPage === 'appointments'" [attr.aria-current]="clientPage === 'appointments' ? 'page' : null" (click)="setClientPage('appointments')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
+          <button type="button" [class.active]="clientPage === 'favorites'" [attr.aria-current]="clientPage === 'favorites' ? 'page' : null" (click)="setClientPage('favorites')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
+          <button type="button" [class.active]="clientPage === 'profile'" [attr.aria-current]="clientPage === 'profile' ? 'page' : null" (click)="setClientPage('profile')"><i>♙</i><span>Mon profil</span></button>
         </nav>
         <div class="client-sidebar-profile"><button type="button" (click)="openClientProfile()"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button><button class="client-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
@@ -320,21 +321,22 @@
         </button>
         <button class="dashboard-menu-toggle client-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="client-main-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
         <nav id="client-main-nav" (click)="mobileDashboardMenuOpen = false">
-          <button [class.active]="clientPage === 'overview'" type="button" (click)="setClientPage('overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
-          <button type="button" [class.active]="clientPage === 'orders'" (click)="setClientPage('orders')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
-          <button type="button" [class.active]="clientPage === 'measurements'" (click)="setClientPage('measurements')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
-          <button type="button" [class.active]="clientPage === 'appointments'" (click)="setClientPage('appointments')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
-          <button type="button" [class.active]="clientPage === 'favorites'" (click)="setClientPage('favorites')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
+          <button [class.active]="clientPage === 'overview'" [attr.aria-current]="clientPage === 'overview' ? 'page' : null" type="button" (click)="setClientPage('overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
+          <button type="button" [class.active]="clientPage === 'orders'" [attr.aria-current]="clientPage === 'orders' ? 'page' : null" (click)="setClientPage('orders')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
+          <button type="button" [class.active]="clientPage === 'measurements'" [attr.aria-current]="clientPage === 'measurements' ? 'page' : null" (click)="setClientPage('measurements')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
+          <button type="button" [class.active]="clientPage === 'appointments'" [attr.aria-current]="clientPage === 'appointments' ? 'page' : null" (click)="setClientPage('appointments')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
+          <button type="button" [class.active]="clientPage === 'favorites'" [attr.aria-current]="clientPage === 'favorites' ? 'page' : null" (click)="setClientPage('favorites')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
+          <button type="button" [class.active]="clientPage === 'profile'" [attr.aria-current]="clientPage === 'profile' ? 'page' : null" (click)="setClientPage('profile')"><i>♙</i><span>Mon profil</span></button>
         </nav>
         <div class="client-sidebar-profile">
-          <button type="button" (click)="showToast('Profil client sécurisé')"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button>
+          <button type="button" (click)="openClientProfile()"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>Compte client vérifié</small></span></button>
           <button class="client-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button>
         </div>
       </aside>
 
       <div class="client-portal" id="client-overview">
         <header class="client-portal-header">
-          <div><span>Votre espace personnel</span><h1>{{ clientPageTitle }}</h1><p>Retrouvez ici l’essentiel de votre expérience sur mesure.</p></div>
+          <div><span>Votre espace personnel</span><h1>{{ clientPageTitle }}</h1><p>{{ clientPageDescription }}</p></div>
           <div class="client-header-actions">
             <button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button>
             <button class="client-alert" type="button" aria-label="Notifications de livraison" [attr.aria-expanded]="clientNotificationsOpen" (click)="openClientNotifications()">♧<b>{{ unreadDeliveryReminders }}</b></button>
@@ -410,7 +412,7 @@
           <ng-template #noCatalog><div class="dashboard-inline-empty">{{ showFavoritesOnly ? 'Aucun favori enregistré parmi ces créations.' : 'Aucune création publiée pour le moment.' }}</div></ng-template>
         </section>
 
-        <section class="client-panel client-profile-panel" id="client-profile" *ngIf="clientPage === 'overview'">
+        <section class="client-panel client-profile-panel" id="client-profile" *ngIf="clientPage === 'profile'">
           <div class="client-panel-heading"><div><span>Votre espace personnel</span><h2>Mon profil</h2></div></div>
           <div class="client-stylist-contact"><img [src]="authenticatedUser?.profileImage || '/assets/logo-mark.png'" [alt]="authenticatedUser?.profileImage ? 'Photo de profil' : 'Logo Sur Mesure'"><div><span>Compte client</span><h2>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</h2><p>{{ authenticatedUser?.email || 'E-mail non renseigné' }}<br>{{ authenticatedUser?.phone || 'Téléphone non renseigné' }}</p></div></div>
           <div class="client-header-actions"><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
@@ -653,10 +655,11 @@
 </div>
 
 <div class="dashboard-dialog-backdrop" *ngIf="stylistEditor" (click)="closeStylistEditor()">
-  <form class="dashboard-dialog stylist-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="stylist-editor-title" (ngSubmit)="saveStylistEditor()" (click)="$event.stopPropagation()">
+  <form #stylistEditorForm="ngForm" class="dashboard-dialog stylist-editor-dialog" [class.profile-editor]="stylistEditor === 'profile'" role="dialog" aria-modal="true" aria-labelledby="stylist-editor-title" (ngSubmit)="saveStylistEditor()" (click)="$event.stopPropagation()">
     <button class="dashboard-dialog-close" type="button" (click)="closeStylistEditor()" aria-label="Fermer">×</button>
     <span>{{ stylistEditor === 'catalog' ? 'Vitrine de l’atelier' : 'Votre atelier' }}</span>
     <h2 id="stylist-editor-title">{{ stylistEditor === 'catalog' ? (editingCatalogId ? 'Modifier la création' : 'Nouvelle création') : 'Modifier le profil' }}</h2>
+    <p class="profile-editor-intro" *ngIf="stylistEditor === 'profile'">Donnez un visage à votre atelier et faites découvrir votre savoir-faire.</p>
     <ng-container *ngIf="stylistEditor === 'catalog'; else stylistProfileForm">
       <div class="stylist-editor-fields">
         <label>Nom de la création<input name="catalogTitle" [(ngModel)]="catalogDraft.title" maxlength="100" required></label>
@@ -670,16 +673,27 @@
       </div>
     </ng-container>
     <ng-template #stylistProfileForm>
-      <div class="stylist-editor-fields">
-        <label class="catalog-image-upload stylist-photo-upload"><span>Photo du styliste</span><input name="stylistProfileImage" type="file" accept="image/*" (change)="onStylistPhotoSelected($event)"><small>{{ profileImageFileName || 'JPG, PNG ou WebP · 12 Mo maximum' }}</small></label>
-        <div class="catalog-image-preview stylist-photo-preview" *ngIf="profileDraft.profileImage"><img [src]="profileDraft.profileImage" alt="Aperçu de la photo du styliste"><button type="button" (click)="clearStylistPhoto()">Retirer la photo</button></div>
-        <p class="catalog-image-error" *ngIf="profileImageError" role="alert">{{ profileImageError }}</p>
-        <label>Nom de l’atelier<input name="profileBusinessName" [(ngModel)]="profileDraft.businessName" maxlength="120" required></label>
-        <label>Présentation<textarea name="profileAbout" [(ngModel)]="profileDraft.about" rows="4" maxlength="1000"></textarea></label>
-        <label>Spécialités séparées par des virgules<input name="profileSpecialties" [(ngModel)]="profileDraft.specialties" placeholder="Cérémonie, Traditionnel"></label>
+      <div class="profile-portrait-card">
+        <div class="profile-portrait"><img *ngIf="profileDraft.profileImage; else profilePortraitInitials" [src]="profileDraft.profileImage" alt="Aperçu de votre photo"><ng-template #profilePortraitInitials><span>{{ userInitials }}</span></ng-template></div>
+        <div class="profile-portrait-copy"><strong>Votre photo de profil</strong><p>Une photo qui vous ressemble.</p>
+          <div class="profile-photo-actions">
+            <label class="profile-photo-picker"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m8 5 1.5-2h5L16 5h4v15H4V5Z"/><circle cx="12" cy="12" r="4"/></svg><span>{{ profileDraft.profileImage ? 'Changer la photo' : 'Ajouter une photo' }}</span><input name="stylistProfileImage" type="file" accept="image/*" aria-label="Choisir une photo de profil" (change)="onStylistPhotoSelected($event)" [disabled]="editorSaving"></label>
+            <button class="profile-photo-remove" *ngIf="profileDraft.profileImage" type="button" (click)="clearStylistPhoto()" [disabled]="editorSaving">Retirer</button>
+          </div>
+          <small>{{ profileImageFileName || 'JPG, PNG ou WebP · 12 Mo maximum' }}</small>
+        </div>
+      </div>
+      <p class="profile-photo-error" *ngIf="profileImageError" role="alert">{{ profileImageError }}</p>
+      <div class="profile-details-fields">
+        <label>Nom de l’atelier *<input name="profileBusinessName" [(ngModel)]="profileDraft.businessName" maxlength="120" placeholder="Ex. Diva Couture" required [disabled]="editorSaving"></label>
+        <label>Présentation<textarea name="profileAbout" [(ngModel)]="profileDraft.about" rows="4" maxlength="1000" placeholder="Votre univers, votre histoire, ce qui rend vos créations uniques…" [disabled]="editorSaving"></textarea><small class="profile-field-count">{{ profileDraft.about.length }} / 1 000</small></label>
+        <label>Vos spécialités<input name="profileSpecialties" [(ngModel)]="profileDraft.specialties" placeholder="Cérémonie, Traditionnel, Mariage…" aria-describedby="profile-specialties-hint" [disabled]="editorSaving"><small id="profile-specialties-hint">Séparez vos spécialités par une virgule.</small></label>
       </div>
     </ng-template>
-    <button class="stylist-editor-submit" type="submit" [disabled]="editorSaving">{{ editorSaving ? 'Enregistrement…' : 'Enregistrer' }} <span>→</span></button>
+    <div [class.profile-editor-actions]="stylistEditor === 'profile'">
+      <button class="profile-cancel" *ngIf="stylistEditor === 'profile'" type="button" (click)="closeStylistEditor()" [disabled]="editorSaving">Annuler</button>
+      <button class="stylist-editor-submit" type="submit" [disabled]="editorSaving || (stylistEditor === 'profile' && stylistEditorForm.invalid)">{{ editorSaving ? 'Enregistrement…' : (stylistEditor === 'profile' ? 'Enregistrer le profil' : 'Enregistrer') }} <span>→</span></button>
+    </div>
   </form>
 </div>
 
