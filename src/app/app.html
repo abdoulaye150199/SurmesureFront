@@ -412,10 +412,34 @@
           <ng-template #noCatalog><div class="dashboard-inline-empty">{{ showFavoritesOnly ? 'Aucun favori enregistré parmi ces créations.' : 'Aucune création publiée pour le moment.' }}</div></ng-template>
         </section>
 
-        <section class="client-panel client-profile-panel" id="client-profile" *ngIf="clientPage === 'profile'">
-          <div class="client-panel-heading"><div><span>Votre espace personnel</span><h2>Mon profil</h2></div></div>
-          <div class="client-stylist-contact"><img [src]="authenticatedUser?.profileImage || '/assets/logo-mark.png'" [alt]="authenticatedUser?.profileImage ? 'Photo de profil' : 'Logo Sur Mesure'"><div><span>Compte client</span><h2>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</h2><p>{{ authenticatedUser?.email || 'E-mail non renseigné' }}<br>{{ authenticatedUser?.phone || 'Téléphone non renseigné' }}</p></div></div>
-          <div class="client-header-actions"><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+        <section class="customer-profile" id="client-profile" *ngIf="clientPage === 'profile'" aria-label="Mon profil client">
+          <div class="customer-profile-hero">
+            <div class="customer-profile-avatar"><img *ngIf="authenticatedUser?.profileImage; else customerInitials" [src]="authenticatedUser?.profileImage" alt="Ma photo de profil"><ng-template #customerInitials><span>{{ userInitials }}</span></ng-template></div>
+            <div class="customer-profile-identity"><span class="customer-profile-kicker">Votre univers sur mesure</span><h2>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</h2><p>Des créations qui vous ressemblent, un espace qui vous appartient.</p></div>
+            <span class="customer-profile-badge">Compte client</span>
+          </div>
+          <div class="customer-profile-content">
+            <section class="customer-profile-details" aria-labelledby="customer-details-title">
+              <div class="customer-profile-section-heading"><span>01 · Vos coordonnées</span><h3 id="customer-details-title">Faisons connaissance</h3><p>Les informations associées à votre compte.</p></div>
+              <dl class="customer-profile-contact">
+                <div><dt>Prénom</dt><dd>{{ authenticatedUser?.firstName || 'Non renseigné' }}</dd></div>
+                <div><dt>Nom</dt><dd>{{ authenticatedUser?.lastName || 'Non renseigné' }}</dd></div>
+                <div class="customer-profile-contact-wide"><dt>Adresse e-mail</dt><dd>{{ authenticatedUser?.email || 'Non renseignée' }}</dd></div>
+                <div class="customer-profile-contact-wide"><dt>Numéro de téléphone</dt><dd>{{ authenticatedUser?.phone || 'Non renseigné' }}</dd></div>
+              </dl>
+            </section>
+            <section class="customer-profile-activity" aria-labelledby="customer-activity-title">
+              <div class="customer-profile-section-heading"><span>02 · Votre vestiaire</span><h3 id="customer-activity-title">Votre histoire prend forme</h3><p>Retrouvez ce qui compose votre expérience.</p></div>
+              <div class="customer-profile-shortcuts">
+                <button type="button" (click)="setClientPage('orders')"><span><small>Mes commandes</small><strong>{{ clientOrders.length }}</strong></span><i aria-hidden="true">↗</i></button>
+                <button type="button" (click)="setClientPage('favorites')"><span><small>Mes favoris</small><strong>{{ favoritesCount }}</strong></span><i aria-hidden="true">♡</i></button>
+                <button type="button" (click)="setClientPage('appointments')"><span><small>Rendez-vous</small><strong>{{ clientAppointments.length }}</strong></span><i aria-hidden="true">◷</i></button>
+                <button type="button" (click)="setClientPage('measurements')"><span><small>Mes mesures</small><strong>{{ measurementCompletion }}<em>%</em></strong></span><i aria-hidden="true">⌁</i></button>
+              </div>
+              <div class="customer-profile-measure-note"><span aria-hidden="true">✂</span><p>Une tenue réussie commence par des mesures précises.<button type="button" (click)="setClientPage('measurements')">{{ measurementCompletion === 100 ? 'Consulter mes mesures' : 'Compléter mes mesures' }} →</button></p></div>
+            </section>
+          </div>
+          <div class="customer-profile-footer"><span>Sur Mesure Style · Votre espace personnel</span><button type="button" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</button></div>
         </section>
       </div>
     </div>

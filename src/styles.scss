@@ -1,4 +1,59 @@
 * { box-sizing: border-box; }
+app-root .customer-profile { overflow:hidden; border:1px solid #e8dce5; border-radius:20px; background:#fffdfb; }
+app-root .customer-profile-hero { position:relative; display:flex; align-items:center; gap:24px; padding:38px 34px; overflow:hidden; background:radial-gradient(ellipse at 95% 15%,#94618555,transparent 55%),linear-gradient(115deg,#3f173e,#65165d); color:#fff; }
+app-root .customer-profile-hero::after { content:''; position:absolute; right:-60px; top:-170px; width:370px; height:370px; border:1px solid #ffffff15; border-radius:50%; pointer-events:none; }
+app-root .customer-profile-avatar { position:relative; z-index:1; width:96px; height:96px; flex:0 0 96px; display:grid; place-items:center; overflow:hidden; border:4px solid #ffffff35; border-radius:50%; background:#f5e6f0; box-shadow:0 8px 24px #21051d22; }
+app-root .customer-profile-avatar img { width:100%; height:100%; object-fit:cover; }
+app-root .customer-profile-avatar > span { color:#67245e; font:34px Georgia,serif; }
+app-root .customer-profile-identity { min-width:0; position:relative; z-index:1; }
+app-root .customer-profile-kicker { color:#e3c4dc; font-size:10px; letter-spacing:.16em; text-transform:uppercase; }
+app-root .customer-profile-identity h2 { margin:10px 0 8px; color:#fff; font:clamp(27px,3vw,38px)/1.15 Georgia,serif; letter-spacing:-.025em; overflow-wrap:anywhere; }
+app-root .customer-profile-identity p { max-width:350px; margin:0; color:#ddc7d8; font-size:13px; line-height:1.7; }
+app-root .customer-profile-badge { align-self:flex-start; flex-shrink:0; margin-left:auto; padding:8px 12px; border:1px solid #ffffff30; border-radius:30px; color:#f5e7f2; font-size:10px; letter-spacing:.04em; }
+app-root .customer-profile-content { display:grid; grid-template-columns:1fr 1fr; gap:36px; padding:34px; }
+app-root .customer-profile-section-heading > span { color:#9a7d93; font-size:10px; letter-spacing:.09em; text-transform:uppercase; }
+app-root .customer-profile-section-heading h3 { margin:10px 0 7px; color:#47223f; font:24px Georgia,serif; letter-spacing:-.02em; }
+app-root .customer-profile-section-heading p { margin:0 0 24px; color:#8d7d87; font-size:12px; line-height:1.6; }
+app-root .customer-profile-contact { display:grid; grid-template-columns:1fr 1fr; gap:0 20px; margin:0; }
+app-root .customer-profile-contact > div { min-width:0; padding:17px 0; border-bottom:1px solid #eee5eb; }
+app-root .customer-profile-contact .customer-profile-contact-wide { grid-column:1/-1; }
+app-root .customer-profile-contact dt { margin-bottom:8px; color:#9a8794; font-size:11px; }
+app-root .customer-profile-contact dd { margin:0; color:#503248; font-size:14px; font-weight:500; line-height:1.6; overflow-wrap:anywhere; }
+app-root .customer-profile-activity { padding-left:30px; border-left:1px solid #eee4eb; }
+app-root .customer-profile-shortcuts { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+app-root .customer-profile-shortcuts > button { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; padding:17px; border:1px solid #eadee6; border-radius:12px; background:#fcf8fb; color:#612058; text-align:left; cursor:pointer; transition:background .2s,border-color .2s,transform .2s; }
+app-root .customer-profile-shortcuts > button:hover { transform:translateY(-2px); border-color:#cdaec5; background:#f6edf3; }
+app-root .customer-profile-shortcuts small { display:block; color:#8b7182; font-size:11px; }
+app-root .customer-profile-shortcuts strong { display:block; margin-top:10px; font:30px/1 Georgia,serif; }
+app-root .customer-profile-shortcuts em { margin-left:2px; font:14px Arial,sans-serif; }
+app-root .customer-profile-shortcuts i { color:#a4819a; font-size:20px; font-style:normal; }
+app-root .customer-profile-measure-note { display:flex; gap:12px; align-items:flex-start; margin-top:20px; padding:14px; border-radius:11px; background:#f7f3eb; }
+app-root .customer-profile-measure-note > span { color:#a48c5a; font-size:20px; }
+app-root .customer-profile-measure-note p { margin:0; color:#968368; font-size:11px; line-height:1.7; }
+app-root .customer-profile-measure-note button { display:block; margin-top:6px; padding:0; border:0; background:none; color:#65435c; font-size:11px; font-weight:600; cursor:pointer; }
+app-root .customer-profile-footer { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:14px; padding:19px 34px; border-top:1px solid #eee4eb; background:#fcf9fb; }
+app-root .customer-profile-footer > span { color:#a08e9b; font-size:10px; }
+app-root .customer-profile-footer > button { display:flex; align-items:center; gap:8px; padding:9px 12px; border:1px solid #e2d3dd; border-radius:8px; background:#fff; color:#89516c; font-size:12px; cursor:pointer; }
+app-root .customer-profile button:focus-visible { outline:3px solid #c59abd; outline-offset:3px; }
+app-root .customer-profile button:disabled { opacity:.55; cursor:wait; }
+@media(max-width:1100px) {
+  app-root .customer-profile-hero { flex-wrap:wrap; padding:28px; gap:18px; }
+  app-root .customer-profile-badge { margin-left:0; }
+  app-root .customer-profile-content { grid-template-columns:1fr; gap:30px; padding:28px; }
+  app-root .customer-profile-activity { padding:28px 0 0; border-left:0; border-top:1px solid #eee4eb; }
+}
+@media(max-width:620px) {
+  app-root .customer-profile-hero { padding:26px 20px; gap:16px; }
+  app-root .customer-profile-avatar { width:74px; height:74px; flex-basis:74px; }
+  app-root .customer-profile-identity { flex:1; }
+  app-root .customer-profile-kicker { font-size:8px; }
+  app-root .customer-profile-identity h2 { font-size:27px; }
+  app-root .customer-profile-identity p { font-size:12px; }
+  app-root .customer-profile-content { padding:24px 20px; }
+  app-root .customer-profile-section-heading h3 { font-size:23px; }
+  app-root .customer-profile-shortcuts > button { padding:15px 12px; }
+  app-root .customer-profile-footer { padding:18px 20px; }
+}
 app-root .dashboard-dialog.profile-editor { width:min(600px,calc(100vw - 32px)); padding:34px; border:1px solid #e8dce5; border-radius:24px; background:#fffcfa; box-shadow:0 28px 100px #2b102933; }
 app-root .profile-editor > span { color:#8c5884; font-size:10px; font-weight:600; letter-spacing:.16em; }
 app-root .profile-editor h2 { margin:12px 0 8px; font-size:34px; letter-spacing:-.035em; }
