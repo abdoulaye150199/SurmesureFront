@@ -742,22 +742,34 @@
 </div>
 
 <div class="dashboard-dialog-backdrop" *ngIf="stylistEditor" (click)="closeStylistEditor()">
-  <form #stylistEditorForm="ngForm" class="dashboard-dialog stylist-editor-dialog" [class.profile-editor]="stylistEditor === 'profile'" role="dialog" aria-modal="true" aria-labelledby="stylist-editor-title" (ngSubmit)="saveStylistEditor()" (click)="$event.stopPropagation()">
+  <form #stylistEditorForm="ngForm" class="dashboard-dialog stylist-editor-dialog" [class.profile-editor]="stylistEditor === 'profile'" [class.creation-editor]="stylistEditor === 'catalog'" role="dialog" aria-modal="true" aria-labelledby="stylist-editor-title" (ngSubmit)="stylistEditorForm.valid && saveStylistEditor()" (click)="$event.stopPropagation()">
     <button class="dashboard-dialog-close" type="button" (click)="closeStylistEditor()" aria-label="Fermer">×</button>
     <span>{{ stylistEditor === 'catalog' ? 'Vitrine de l’atelier' : 'Votre atelier' }}</span>
     <h2 id="stylist-editor-title">{{ stylistEditor === 'catalog' ? (editingCatalogId ? 'Modifier la création' : 'Nouvelle création') : 'Modifier le profil' }}</h2>
     <p class="profile-editor-intro" *ngIf="stylistEditor === 'profile'">Donnez un visage à votre atelier et faites découvrir votre savoir-faire.</p>
     <ng-container *ngIf="stylistEditor === 'catalog'; else stylistProfileForm">
-      <div class="stylist-editor-fields">
-        <label>Nom de la création<input name="catalogTitle" [(ngModel)]="catalogDraft.title" maxlength="100" required></label>
-        <label>Description<textarea name="catalogDescription" [(ngModel)]="catalogDraft.description" rows="3" maxlength="1000"></textarea></label>
-        <label>Adresse de l’image<input name="catalogImage" type="url" [(ngModel)]="catalogDraft.imageUrl" (ngModelChange)="clearCatalogImage()" placeholder="https://…" [required]="!catalogImageData"></label>
-        <label class="catalog-image-upload"><span>Importer l’image</span><input name="catalogImageFile" type="file" accept="image/*" (change)="onCatalogImageSelected($event)"><small>{{ catalogImageFileName || 'JPG, PNG ou WebP' }}</small></label>
-        <div class="catalog-image-preview" *ngIf="catalogImageData || catalogDraft.imageUrl"><img [src]="catalogImageData || catalogDraft.imageUrl" alt="Aperçu de la création"></div>
-        <p class="catalog-image-error" *ngIf="catalogImageError" role="alert">{{ catalogImageError }}</p>
-        <label>Prix en FCFA<input name="catalogPrice" type="number" min="0" step="1" [(ngModel)]="catalogDraft.price" required></label>
-        <label>Coloris séparés par des virgules<input name="catalogColors" [(ngModel)]="catalogDraft.colors" placeholder="Prune, Ivoire, Or"></label>
+      <p class="creation-editor-intro">Donnez vie à votre vitrine. Une belle photo, quelques détails et votre pièce est prête à être découverte.</p>
+      <div class="creation-editor-grid">
+        <section class="creation-photo-section" aria-label="Photo de la création">
+          <span class="creation-section-label">01 · Le visuel</span>
+          <div class="creation-photo-frame" [class.has-photo]="catalogImageData || catalogDraft.imageUrl">
+            <img *ngIf="catalogImageData || catalogDraft.imageUrl; else creationPhotoEmpty" [src]="catalogImageData || catalogDraft.imageUrl" alt="Aperçu de la création">
+            <ng-template #creationPhotoEmpty><div class="creation-photo-empty"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="7" y="9" width="34" height="30" rx="6"/><circle cx="18" cy="19" r="3"/><path d="m8 33 10-9 8 7 6-5 9 8"/></svg><strong>Votre création sous son meilleur jour</strong><span>Ajoutez une photo pour la mettre en valeur.</span></div></ng-template>
+          </div>
+          <label class="creation-photo-picker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="M12 16V4m-4 4 4-4 4 4M4 15v5h16v-5"/></svg><span>{{ catalogImageData || catalogDraft.imageUrl ? 'Changer la photo' : 'Choisir une photo' }}</span><input name="catalogImageFile" type="file" accept="image/*" (change)="onCatalogImageSelected($event)" [disabled]="editorSaving"></label>
+          <small class="creation-photo-hint">{{ catalogImageFileName || 'JPG, PNG ou WebP · 12 Mo maximum' }}</small>
+          <p class="creation-image-error" *ngIf="catalogImageError" role="alert">{{ catalogImageError }}</p>
+          <label class="creation-image-link">Ou utilisez un lien d’image<input name="catalogImage" type="url" [(ngModel)]="catalogDraft.imageUrl" (ngModelChange)="clearCatalogImage()" placeholder="https://…" [required]="!catalogImageData" [disabled]="editorSaving"></label>
+        </section>
+        <section class="creation-details-section" aria-label="Détails de la création">
+          <span class="creation-section-label">02 · Les détails</span>
+          <label>Nom de la création <span>*</span><input name="catalogTitle" [(ngModel)]="catalogDraft.title" maxlength="100" placeholder="Ex. Éclat de soirée" required [disabled]="editorSaving"></label>
+          <label>Description<textarea name="catalogDescription" [(ngModel)]="catalogDraft.description" rows="4" maxlength="1000" placeholder="Racontez la coupe, les matières et les détails qui font sa singularité…" [disabled]="editorSaving"></textarea><small class="creation-character-count">{{ catalogDraft.description.length }} / 1 000</small></label>
+          <label>Prix <span>*</span><div class="creation-price-field"><input name="catalogPrice" type="number" min="0" step="1" [(ngModel)]="catalogDraft.price" placeholder="25 000" required [disabled]="editorSaving"><b>FCFA</b></div></label>
+          <label>Coloris disponibles<input name="catalogColors" [(ngModel)]="catalogDraft.colors" placeholder="Prune, Ivoire, Or…" [disabled]="editorSaving"><small>Séparez chaque coloris par une virgule.</small></label>
+        </section>
       </div>
+
     </ng-container>
     <ng-template #stylistProfileForm>
       <div class="profile-portrait-card">
@@ -777,9 +789,11 @@
         <label>Vos spécialités<input name="profileSpecialties" [(ngModel)]="profileDraft.specialties" placeholder="Cérémonie, Traditionnel, Mariage…" aria-describedby="profile-specialties-hint" [disabled]="editorSaving"><small id="profile-specialties-hint">Séparez vos spécialités par une virgule.</small></label>
       </div>
     </ng-template>
-    <div [class.profile-editor-actions]="stylistEditor === 'profile'">
+    <div [class.profile-editor-actions]="stylistEditor === 'profile'" [class.creation-editor-actions]="stylistEditor === 'catalog'">
+      <span class="creation-required-hint" *ngIf="stylistEditor === 'catalog'">* Champs obligatoires · Une photo est requise.</span>
+      <button class="creation-cancel" *ngIf="stylistEditor === 'catalog'" type="button" (click)="closeStylistEditor()" [disabled]="editorSaving">Annuler</button>
       <button class="profile-cancel" *ngIf="stylistEditor === 'profile'" type="button" (click)="closeStylistEditor()" [disabled]="editorSaving">Annuler</button>
-      <button class="stylist-editor-submit" type="submit" [disabled]="editorSaving || (stylistEditor === 'profile' && stylistEditorForm.invalid)">{{ editorSaving ? 'Enregistrement…' : (stylistEditor === 'profile' ? 'Enregistrer le profil' : 'Enregistrer') }} <span>→</span></button>
+      <button class="stylist-editor-submit" type="submit" [disabled]="editorSaving || stylistEditorForm.invalid">{{ editorSaving ? 'Enregistrement…' : (stylistEditor === 'profile' ? 'Enregistrer le profil' : (editingCatalogId ? 'Enregistrer les modifications' : 'Publier la création')) }} <span>→</span></button>
     </div>
   </form>
 </div>
