@@ -36,6 +36,8 @@ describe('App', () => {
       jasmine.clock().mockDate(new Date('2030-01-02T11:59:00Z'));
       fixture = TestBed.createComponent(App);
       const app = fixture.componentInstance;
+      spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
+      spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.returnValue({ id: 'client', role: 'CLIENT' } as NonNullable<App['authenticatedUser']>);
       app.clientOrders = [timedOrder()];
       expect(app.clientDeliveryReminders.length).toBe(0);
       jasmine.clock().tick(60_000);
@@ -51,8 +53,10 @@ describe('App', () => {
   it('remembers read reminders per client and alerts again for a changed delivery date', () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.orderClock.set(new Date('2030-01-02T12:00:00Z').getTime());
-    app.clientOrders = [timedOrder()];
-    app.authenticatedUser = { id: 'reminder-client-a' } as typeof app.authenticatedUser;
+    app.clientOrders = [timedOrder({ clientId: 'reminder-client-a' })];
+    app.authenticatedUser = { id: 'reminder-client-a', role: 'CLIENT' } as typeof app.authenticatedUser;
+    spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
+    spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.callFake(() => app.authenticatedUser);
     localStorage.removeItem('surmesure.delivery-reminders.reminder-client-a');
     localStorage.removeItem('surmesure.delivery-reminders.reminder-client-b');
     expect(app.unreadDeliveryReminders).toBe(1);
@@ -60,9 +64,10 @@ describe('App', () => {
     spyOn(app, 'updateOrderClock');
     app.openClientNotifications();
     expect(app.unreadDeliveryReminders).toBe(0);
-    app.clientOrders = [timedOrder({ dueAt: '2030-01-03T11:00:00Z' })];
+    app.clientOrders = [timedOrder({ clientId: 'reminder-client-a', dueAt: '2030-01-03T11:00:00Z' })];
     expect(app.unreadDeliveryReminders).toBe(1);
-    app.authenticatedUser = { id: 'reminder-client-b' } as typeof app.authenticatedUser;
+    app.authenticatedUser = { id: 'reminder-client-b', role: 'CLIENT' } as typeof app.authenticatedUser;
+    app.clientOrders = [timedOrder({ clientId: 'reminder-client-b' })];
     expect(app.unreadDeliveryReminders).toBe(1);
     localStorage.removeItem('surmesure.delivery-reminders.reminder-client-a');
     localStorage.removeItem('surmesure.delivery-reminders.reminder-client-b');
@@ -82,6 +87,28 @@ describe('App', () => {
     expect(app.orderTimeRemainingLabel(delivered)).toBe('Commande livrée');
     expect(app.orderTimeProgress(cancelled)).toBeNull();
     expect(app.orderTimeProgress(undated)).toBeNull();
+  });
+
+  it('restricts tracking to the signed-in client and their own linked orders', () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.orderClock.set(new Date('2030-01-02T12:00:00Z').getTime());
+    const order = timedOrder();
+    app.clientOrders = [order];
+    expect(app.canTrackOrder(order)).toBeFalse();
+    expect(app.clientDeliveryReminders).toEqual([]);
+    const signedIn = spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
+    spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.returnValue({ id: 'client', role: 'CLIENT' } as NonNullable<App['authenticatedUser']>);
+    expect(app.canTrackOrder(order)).toBeTrue();
+    expect(app.canTrackOrder({ ...order, clientId: 'other' })).toBeFalse();
+    expect(app.canTrackOrder({ ...order, clientId: null })).toBeFalse();
+    app.demoMode = true;
+    expect(app.canTrackOrder(order)).toBeFalse();
+    app.demoMode = false;
+    signedIn.and.returnValue(false);
+    expect(app.clientDeliveryReminders).toEqual([]);
+    app.openClientNotifications();
+    expect(app.clientNotificationsOpen).toBeFalse();
+    expect(app.loginOpen).toBeTrue();
   });
 
   it('creates a stylist order and adds it to the order list', async () => {

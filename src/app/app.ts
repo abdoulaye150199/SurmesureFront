@@ -132,6 +132,14 @@ export class App implements AfterViewInit, OnDestroy {
     return Number.isFinite(due) ? due - this.orderClock() : null;
   }
 
+  get canViewClientTracking(): boolean {
+    return !this.demoMode && this.auth.isAuthenticated && this.auth.user?.role === 'CLIENT';
+  }
+
+  canTrackOrder(order: DashboardOrder): boolean {
+    return this.canViewClientTracking && !!order.clientId && order.clientId === this.auth.user?.id;
+  }
+
   orderTimeProgress(order: DashboardOrder): number | null {
     const due = order.dueAt ? new Date(order.dueAt).getTime() : NaN;
     const created = new Date(order.createdAt).getTime();
@@ -155,13 +163,14 @@ export class App implements AfterViewInit, OnDestroy {
 
   get clientDeliveryReminders(): DashboardOrder[] {
     return this.clientOrders.filter(order => {
+      if (!this.canTrackOrder(order)) return false;
       const remaining = this.orderRemainingMs(order);
       return order.status !== 'cancelled' && order.status !== 'delivered' && remaining !== null && remaining > 0 && remaining <= 86_400_000;
     }).sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime());
   }
 
   private get deliveryReminderStorageKey(): string {
-    return `surmesure.delivery-reminders.${this.authenticatedUser?.id ?? (this.demoMode ? 'demo' : 'visitor')}`;
+    return `surmesure.delivery-reminders.${this.auth.user?.id ?? 'visitor'}`;
   }
 
   private deliveryReminderKey(order: DashboardOrder): string { return `${order.id}:${order.dueAt}`; }
@@ -172,6 +181,12 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   openClientNotifications(): void {
+    if (!this.canViewClientTracking) {
+      this.clientNotificationsOpen = false;
+      this.openLogin('client');
+      this.showToast('Connectez-vous à votre compte client pour suivre vos commandes.');
+      return;
+    }
     this.updateOrderClock();
     this.clientNotificationsOpen = !this.clientNotificationsOpen;
     if (this.clientNotificationsOpen) {
