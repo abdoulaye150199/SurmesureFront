@@ -159,8 +159,6 @@ footer button { display:block; border:0; background:none; color:#bcaebe; padding
 .remove-item:hover { color: #5e0a61; }
 .drawer-overlay { position: fixed; inset: 0; z-index: 50; background: rgba(20,0,20,.4); opacity: 0; visibility: hidden; transition: .3s; }
 .drawer-overlay.open { opacity: 1; visibility: visible; }
-.toast { position: fixed; z-index: 70; bottom: 28px; left: 50%; transform: translate(-50%,80px); background: #2d022e; color: #fff; padding: 14px 24px; font-size: 12px; opacity: 0; transition: .3s; }
-.toast.show { transform: translate(-50%,0); opacity: 1; }
 .reveal-ready { opacity: 0; transform: translateY(36px); transition: opacity .75s ease, transform .75s cubic-bezier(.2,.7,.2,1); }
 .reveal-ready.is-visible { opacity: 1; transform: translateY(0); }
 

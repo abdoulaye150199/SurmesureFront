@@ -1,4 +1,6 @@
 * { box-sizing: border-box; }
+app-root .toast,app-root .admin-toast { position:fixed; z-index:200; top:calc(env(safe-area-inset-top,0px) + 20px); left:calc(env(safe-area-inset-left,0px) + 20px); max-width:min(400px,calc(100vw - env(safe-area-inset-left,0px) - 40px)); padding:14px 20px; border:1px solid #ffffff20; border-radius:10px; background:#2d022e; color:#fff; box-shadow:0 8px 24px #2d022e26; font-size:12px; line-height:1.6; overflow-wrap:anywhere; opacity:0; transform:translateY(-20px); pointer-events:none; transition:opacity .25s,transform .25s; }
+app-root .toast.show,app-root .admin-toast.show { opacity:1; transform:translateY(0); }
 app-root .client-model-dialog { width:min(640px,calc(100vw - 32px)); }
 app-root .client-model-dialog .employee-intake-form label { font-size:12px; }
 app-root .client-model-dialog .employee-intake-form input,app-root .client-model-dialog .employee-intake-form textarea,app-root .client-model-dialog select { width:100%; min-width:0; height:auto; min-height:44px; padding:10px 12px; border:1px solid #dacbd4; border-radius:9px; background:#fff; color:#4b1f47; font:14px 'Segoe UI',Arial,sans-serif; }

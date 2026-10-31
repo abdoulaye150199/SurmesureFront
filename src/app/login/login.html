@@ -43,8 +43,6 @@
       <div class="login-divider" *ngIf="accountRole === 'client' || accountRole === 'stylist'"><span>ou continuer avec</span></div>
       <div class="login-socials" *ngIf="accountRole === 'client' || accountRole === 'stylist'">
         <button type="button" aria-label="Continuer avec Google">G</button>
-        <button type="button" aria-label="Continuer avec Facebook">f</button>
-        <button type="button" aria-label="Continuer avec Apple">●</button>
       </div>
       <p class="login-register" *ngIf="accountRole === 'client' || accountRole === 'stylist'">Pas encore de compte ? <button type="button" (click)="requestSignup()">Créer mon compte</button></p>
       <p class="login-admin-note" *ngIf="accountRole === 'admin'">Accès réservé au propriétaire de la plateforme.</p>
