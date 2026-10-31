@@ -637,7 +637,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   get userInitials(): string {
     const user = this.authenticatedUser;
-    return user ? `${user.firstName[0] ?? ''}${user.lastName[0] ?? ''}`.toUpperCase() : 'FS';
+    return `${user?.firstName?.trim().charAt(0) ?? ''}${user?.lastName?.trim().charAt(0) ?? ''}`.toLocaleUpperCase('fr-FR') || '?';
   }
 
   get stylistPhotoUrl(): string {
@@ -669,6 +669,14 @@ export class App implements AfterViewInit, OnDestroy {
 
   get latestClientMeasurement(): DashboardMeasurement | null {
     return this.clientMeasurements[0] ?? null;
+  }
+
+  measurementFieldLabel(key: string): string {
+    return this.measurementDefinitions.find(definition => definition.key === key)?.label ?? key;
+  }
+
+  measurementAtelierName(record: DashboardMeasurement): string {
+    return this.clientStylists.find(stylist => stylist.id === record.stylistId)?.businessName ?? 'Atelier partenaire';
   }
 
   get nextClientAppointment(): DashboardAppointment | null {

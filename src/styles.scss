@@ -1,4 +1,14 @@
 * { box-sizing: border-box; }
+app-root .client-measurement-history { margin-top:20px; }
+app-root .client-measurement-history > p,app-root .client-measurement-history details > p { color:#887281; font-size:12px; line-height:1.7; white-space:pre-line; overflow-wrap:anywhere; }
+app-root .client-measurement-history details { margin-top:12px; padding:16px; border:1px solid #e8dce5; border-radius:12px; }
+app-root .client-measurement-history summary { display:flex; align-items:center; justify-content:space-between; gap:12px; color:#5e3155; font-size:13px; cursor:pointer; }
+app-root .client-measurement-history summary small { display:block; margin-top:5px; color:#9a8492; font-size:11px; }
+app-root .client-measurement-history dl { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 24px; margin:18px 0 0; }
+app-root .client-measurement-history dl > div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px; padding-bottom:9px; border-bottom:1px solid #f0e8ed; font-size:12px; }
+app-root .client-measurement-history dt { color:#8d7686; overflow-wrap:anywhere; }
+app-root .client-measurement-history dd { margin:0; color:#55274c; font-weight:600; }
+@media(max-width:620px) { app-root .client-measurement-history dl { grid-template-columns:1fr; } }
 app-root .customer-profile { overflow:hidden; border:1px solid #e8dce5; border-radius:20px; background:#fffdfb; }
 app-root .customer-profile-hero { position:relative; display:flex; align-items:center; gap:24px; padding:38px 34px; overflow:hidden; background:radial-gradient(ellipse at 95% 15%,#94618555,transparent 55%),linear-gradient(115deg,#3f173e,#65165d); color:#fff; }
 app-root .customer-profile-hero::after { content:''; position:absolute; right:-60px; top:-170px; width:370px; height:370px; border:1px solid #ffffff15; border-radius:50%; pointer-events:none; }

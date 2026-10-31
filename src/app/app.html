@@ -307,7 +307,16 @@
           </article>
         </section>
 
-        <section class="measurement-note"><span>Vos mensurations sont privées</span><p>Une mesure enregistrée est réutilisée pour tous les modèles qui en ont besoin. Touchez une ligne pour la modifier.</p></section>
+        <section class="client-panel client-measurement-history" *ngIf="clientMeasurements.length" aria-labelledby="client-measurement-history-title">
+          <div class="client-panel-heading"><div><span>Votre historique</span><h2 id="client-measurement-history-title">Mes fiches de mesures</h2></div></div>
+          <p>Retrouvez les mesures enregistrées avec vos ateliers. La fiche la plus récemment modifiée est utilisée dans votre profil ci-dessus.</p>
+          <details *ngFor="let record of clientMeasurements; let index = index" [open]="index === 0">
+            <summary><span><strong>{{ measurementAtelierName(record) }}</strong><small>Mis à jour le {{ formatDate(record.updatedAt) }}{{ index === 0 ? ' · Fiche actuelle' : '' }}</small></span><span aria-hidden="true">⌄</span></summary>
+            <dl><div *ngFor="let field of record.measurements | keyvalue"><dt>{{ measurementFieldLabel(field.key) }}</dt><dd>{{ field.value }} cm</dd></div></dl>
+            <p *ngIf="record.notes">{{ record.notes }}</p>
+          </details>
+        </section>
+        <section class="measurement-note"><span>Vos mensurations sont privées</span><p>Les mesures saisies par votre styliste avec le numéro de téléphone de votre compte apparaissent ici, même si elles ont été enregistrées avant votre inscription. Actualisez votre espace pour récupérer les dernières modifications.</p></section>
       </div>
     </div>
   </ng-container>
