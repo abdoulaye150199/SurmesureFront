@@ -293,6 +293,7 @@
         </section>
 
         <section class="measurement-models" aria-label="Mesures par type de vêtement">
+          <button class="client-add-measurement" type="button" (click)="editNextMeasurement()"><span aria-hidden="true">＋</span> Ajouter une nouvelle mensuration</button>
           <article class="client-panel measurement-model-card" *ngFor="let model of measurementModels; let modelIndex = index">
             <button class="measurement-model-toggle" type="button" [attr.aria-expanded]="openMeasurementModel === model.name" [attr.aria-controls]="'measurement-model-fields-' + modelIndex" (click)="toggleMeasurementModel(model.name)">
               <span class="measurement-model-copy"><span>Mesures pour</span><strong>{{ model.name }}</strong><small>{{ model.description }}</small></span>
@@ -680,6 +681,10 @@
     <h2 id="measurement-editor-title">{{ editingMeasurement.label }}</h2>
     <p>Indiquez la valeur en centimètres. Vous pourrez la modifier à tout moment.</p>
     <form (ngSubmit)="saveMeasurement()">
+      <label for="client-measurement-type">Mensuration à renseigner</label>
+      <select class="client-measurement-select" id="client-measurement-type" name="measurementType" [ngModel]="editingMeasurement.key" (ngModelChange)="editMeasurementByKey($event)" [disabled]="measurementSaving">
+        <option *ngFor="let definition of measurementDefinitions" [value]="definition.key">{{ definition.label }}{{ measurementValue(definition.key) !== null ? ' · déjà renseignée' : '' }}</option>
+      </select>
       <label for="measurement-value">Valeur en centimètres</label>
       <div><input id="measurement-value" type="number" name="measurementValue" [(ngModel)]="measurementDraft" min="1" max="300" step="0.5" required><b>cm</b></div>
       <button type="submit" [disabled]="measurementSaving">{{ measurementSaving ? 'Enregistrement…' : 'Enregistrer la mesure' }} <i>→</i></button>
