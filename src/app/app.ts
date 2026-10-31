@@ -71,12 +71,6 @@ interface MeasurementDefinition {
   group: 'upper' | 'lower';
 }
 
-interface MeasurementModel {
-  name: string;
-  description: string;
-  fields: MeasurementDefinition[];
-}
-
 interface StylistClientRecord {
   key: string;
   name: string;
@@ -304,7 +298,6 @@ export class App implements AfterViewInit, OnDestroy {
   editingMeasurement: MeasurementDefinition | null = null;
   private editingMeasurementRecord: DashboardMeasurement | null = null;
   clientModelEditorOpen = false;
-  clientModelType = '';
   clientModelName = '';
   clientModelStylistId = '';
   clientModelNotes = '';
@@ -313,11 +306,10 @@ export class App implements AfterViewInit, OnDestroy {
   clientModelError = '';
 
   get clientModelFields(): MeasurementDefinition[] {
-    return this.measurementModels.find(model => model.name === this.clientModelType)?.fields ?? this.measurementDefinitions;
+    return this.measurementDefinitions;
   }
 
   openClientModelEditor(): void {
-    this.clientModelType = '';
     this.clientModelName = '';
     this.clientModelStylistId = this.latestClientMeasurement?.stylistId ?? '';
     this.clientModelNotes = '';
@@ -326,17 +318,11 @@ export class App implements AfterViewInit, OnDestroy {
     this.clientModelEditorOpen = true;
   }
 
-  changeClientModelType(): void {
-    this.clientModelName = this.clientModelType === 'Autre modèle' ? '' : this.clientModelType;
-    this.clientModelValues = {};
-    this.clientModelError = '';
-  }
-
   async saveClientModel(): Promise<void> {
     if (this.clientModelSaving) return;
     this.clientModelError = '';
-    if (!this.clientModelType || this.clientModelName.trim().length < 2 || !this.clientModelStylistId) {
-      this.clientModelError = 'Choisissez un type de modèle, son nom et l’atelier associé.';
+    if (this.clientModelName.trim().length < 2 || !this.clientModelStylistId) {
+      this.clientModelError = 'Précisez le nom de votre modèle et l’atelier associé.';
       return;
     }
     const measurements: Record<string, number> = {};
@@ -355,7 +341,7 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.clientModelSaving = true;
     try {
-      const input = { stylistId: this.clientModelStylistId, modelName: this.clientModelName.trim(), modelType: this.clientModelType, measurements, notes: this.clientModelNotes.trim() };
+      const input = { stylistId: this.clientModelStylistId, modelName: this.clientModelName.trim(), measurements, notes: this.clientModelNotes.trim() };
       const now = new Date().toISOString();
       const saved = this.demoMode ? {
         ...input, id: `demo-model-${Date.now()}`, clientId: this.authenticatedUser?.id ?? null,
@@ -563,33 +549,12 @@ export class App implements AfterViewInit, OnDestroy {
     { key: 'tourBras', label: 'Tour de bras', group: 'upper' },
     { key: 'taille', label: 'Tour de taille', group: 'lower' },
     { key: 'hanches', label: 'Tour de hanches', group: 'lower' },
-    { key: 'longueurRobe', label: 'Longueur robe', group: 'lower' },
+    { key: 'longueurRobe', label: 'Longueur du vêtement', group: 'lower' },
     { key: 'entrejambe', label: 'Longueur entrejambe', group: 'lower' },
     { key: 'hauteur', label: 'Hauteur', group: 'lower' },
     { key: 'longueurManche', label: 'Longueur manche', group: 'upper' },
   ];
 
-  readonly measurementModels: MeasurementModel[] = [
-    {
-      name: 'Robe & ensemble',
-      description: 'Pour une tenue ajustée du buste aux jambes.',
-      fields: ['poitrine', 'epaules', 'taille', 'hanches', 'longueurRobe', 'longueurManche']
-        .map(key => this.measurementDefinitions.find(item => item.key === key)!)
-    },
-    {
-      name: 'Chemise & veste',
-      description: 'Pour ajuster le col, les épaules et les manches.',
-      fields: ['cou', 'poitrine', 'epaules', 'tourBras', 'longueurManche']
-        .map(key => this.measurementDefinitions.find(item => item.key === key)!)
-    },
-    {
-      name: 'Pantalon',
-      description: 'Pour une coupe confortable et à la bonne longueur.',
-      fields: ['taille', 'hanches', 'entrejambe', 'hauteur']
-        .map(key => this.measurementDefinitions.find(item => item.key === key)!)
-    },
-  ];
-  openMeasurementModel: string | null = this.measurementModels[0]?.name ?? null;
 
   get visibleCreations(): Creation[] {
     const available = this.publicCatalogLoaded
@@ -754,14 +719,6 @@ export class App implements AfterViewInit, OnDestroy {
     return this.clientAppointments.find(item => item.status !== 'cancelled' && new Date(item.startsAt).getTime() >= now)
       ?? this.clientAppointments.find(item => item.status !== 'cancelled')
       ?? null;
-  }
-
-  toggleMeasurementModel(name: string): void {
-    this.openMeasurementModel = this.openMeasurementModel === name ? null : name;
-  }
-
-  measurementModelCompletedCount(model: MeasurementModel): number {
-    return model.fields.filter(item => this.measurementValue(item.key, model.name) != null).length;
   }
 
   get measurementCompletion(): number {

@@ -76,19 +76,33 @@ describe('App', () => {
   it('creates a named measurement model without replacing earlier sheets', async () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.openClientModelEditor();
-    app.clientModelType = 'Pantalon';
-    app.changeClientModelType();
-    app.clientModelName = 'Pantalon de cérémonie';
+    app.clientModelName = 'Tenue de cérémonie';
     app.clientModelStylistId = 'atelier';
     app.clientModelValues = { taille: 74, entrejambe: 80 };
-    const created = { id: 'model-sheet', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001', modelName: 'Pantalon de cérémonie', modelType: 'Pantalon', measurements: { taille: 74, entrejambe: 80 }, notes: '', createdAt: '', updatedAt: '' };
+    const created = { id: 'model-sheet', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001', modelName: 'Tenue de cérémonie', measurements: { taille: 74, entrejambe: 80 }, notes: '', createdAt: '', updatedAt: '' };
     const create = spyOn(TestBed.inject(DashboardService), 'createClientModelMeasurements').and.resolveTo(created);
     await app.saveClientModel();
-    expect(create).toHaveBeenCalledWith(jasmine.objectContaining({ modelName: 'Pantalon de cérémonie', modelType: 'Pantalon', measurements: { taille: 74, entrejambe: 80 } }));
+    expect(create).toHaveBeenCalledWith(jasmine.objectContaining({ modelName: 'Tenue de cérémonie', measurements: { taille: 74, entrejambe: 80 } }));
     expect(app.clientMeasurements[0]).toEqual(created);
     expect(app.clientModelEditorOpen).toBeFalse();
-    expect(app.measurementValue('taille', 'Pantalon')).toBe(74);
+    expect(app.measurementValue('taille', 'Tenue de cérémonie')).toBe(74);
     expect(app.measurementValue('taille', 'Robe & ensemble')).toBeNull();
+  });
+
+  it('shows only actual measurement sheets without preset clothing categories', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    app.demoMode = true;
+    app.activeView = 'measure';
+    fixture.detectChanges();
+    const page = fixture.nativeElement as HTMLElement;
+    expect(page.querySelector('.measurement-model-card')).toBeNull();
+    expect(page.querySelector('.measurement-profile-progress')).toBeNull();
+    expect(page.textContent).toContain('Aucune fiche de mesures');
+    (page.querySelector('.client-add-measurement') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(page.querySelector('[name="clientModelType"]')).toBeNull();
+    expect(page.querySelector('[name="clientModelName"]')).not.toBeNull();
   });
 
   const timedOrder = (overrides: Partial<DashboardOrder> = {}): DashboardOrder => ({

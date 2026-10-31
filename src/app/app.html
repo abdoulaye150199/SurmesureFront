@@ -268,7 +268,7 @@
         <nav id="client-measure-nav" (click)="mobileDashboardMenuOpen = false">
           <button type="button" (click)="setClientPage('overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
           <button type="button" [class.active]="clientPage === 'orders'" [attr.aria-current]="clientPage === 'orders' ? 'page' : null" (click)="setClientPage('orders')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
-          <button class="active" type="button" (click)="setClientPage('measurements')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
+          <button class="active" type="button" (click)="setClientPage('measurements')"><i>⌁</i><span>Mes mesures</span><b>{{ clientMeasurements.length }}</b></button>
           <button type="button" [class.active]="clientPage === 'appointments'" [attr.aria-current]="clientPage === 'appointments' ? 'page' : null" (click)="setClientPage('appointments')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
           <button type="button" [class.active]="clientPage === 'favorites'" [attr.aria-current]="clientPage === 'favorites' ? 'page' : null" (click)="setClientPage('favorites')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
           <button type="button" [class.active]="clientPage === 'profile'" [attr.aria-current]="clientPage === 'profile' ? 'page' : null" (click)="setClientPage('profile')"><i>♙</i><span>Mon profil</span></button>
@@ -278,7 +278,7 @@
 
       <div class="client-portal measurement-portal">
         <header class="client-portal-header">
-          <div><span>Mensurations enregistrées · {{ latestClientMeasurement ? 'Mis à jour le ' + formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span><h1>Mes mesures</h1><p>Retrouvez les mesures utiles à chaque type de vêtement.</p></div>
+          <div><span>Mensurations enregistrées · {{ latestClientMeasurement ? 'Mis à jour le ' + formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span><h1>Mes mesures</h1><p>Retrouvez les mesures de votre styliste et les fiches que vous avez créées.</p></div>
           <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Ajouter une mesure" (click)="openClientModelEditor()">＋</button><button class="client-alert" type="button" aria-label="Notifications de livraison" [attr.aria-expanded]="clientNotificationsOpen" (click)="openClientNotifications()">♧<b>{{ unreadDeliveryReminders }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
         </header>
 
@@ -286,26 +286,12 @@
         <div class="dashboard-feedback loading" *ngIf="dashboardLoading"><i></i><span>Synchronisation de vos mesures…</span></div>
         <div class="dashboard-feedback error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
 
-        <section class="measurement-profile-progress" aria-label="Avancement de votre profil de mesures">
-          <div><span>{{ completedMeasurementCount }} mesure(s) enregistrée(s) sur {{ measurementDefinitions.length }}</span><strong>{{ measurementCompletion }}%</strong></div>
-          <div class="measurement-progress-track"><i [style.width.%]="measurementCompletion"></i></div>
-          <p>{{ missingMeasurements.length ? 'Complétez les mesures manquantes pour préparer vos prochaines créations.' : 'Votre profil est prêt pour vos prochaines créations.' }}</p>
-        </section>
-
-        <section class="measurement-models" aria-label="Mesures par type de vêtement">
+        <section class="measurement-models" aria-label="Vos fiches de mensurations">
           <button class="client-add-measurement" type="button" (click)="openClientModelEditor()"><span aria-hidden="true">＋</span> Ajouter une nouvelle mensuration</button>
-          <article class="client-panel measurement-model-card" *ngFor="let model of measurementModels; let modelIndex = index">
-            <button class="measurement-model-toggle" type="button" [attr.aria-expanded]="openMeasurementModel === model.name" [attr.aria-controls]="'measurement-model-fields-' + modelIndex" (click)="toggleMeasurementModel(model.name)">
-              <span class="measurement-model-copy"><span>Mesures pour</span><strong>{{ model.name }}</strong><small>{{ model.description }}</small></span>
-              <span class="measurement-model-summary">{{ measurementModelCompletedCount(model) }}/{{ model.fields.length }}<small>mesures</small></span>
-              <i class="measurement-model-chevron" aria-hidden="true">⌄</i>
-            </button>
-            <div class="measurement-model-fields" *ngIf="openMeasurementModel === model.name" [id]="'measurement-model-fields-' + modelIndex">
-              <button *ngFor="let item of model.fields" type="button" [class.missing]="measurementValue(item.key, model.name) == null" (click)="editMeasurement(item, model.name)">
-                <span>{{ item.label }}</span><strong>{{ measurementValue(item.key, model.name) == null ? 'Ajouter' : measurementValue(item.key, model.name) + ' cm' }}</strong><i>{{ measurementValue(item.key, model.name) == null ? '＋' : '✎' }}</i>
-              </button>
-            </div>
-          </article>
+        </section>
+        <section class="client-panel dashboard-empty-state" *ngIf="!clientMeasurements.length && !dashboardLoading">
+          <h2>Aucune fiche de mesures pour le moment</h2>
+          <p>Les mensurations enregistrées par votre styliste apparaîtront ici. Vous pouvez aussi créer votre propre fiche pour le modèle de votre choix.</p>
         </section>
 
         <section class="client-panel client-measurement-history" *ngIf="clientMeasurements.length" aria-labelledby="client-measurement-history-title">
@@ -333,7 +319,7 @@
         <nav id="client-main-nav" (click)="mobileDashboardMenuOpen = false">
           <button [class.active]="clientPage === 'overview'" [attr.aria-current]="clientPage === 'overview' ? 'page' : null" type="button" (click)="setClientPage('overview')"><i>⌂</i><span>Vue d’ensemble</span></button>
           <button type="button" [class.active]="clientPage === 'orders'" [attr.aria-current]="clientPage === 'orders' ? 'page' : null" (click)="setClientPage('orders')"><i>▣</i><span>Mes commandes</span><b>{{ clientOrders.length }}</b></button>
-          <button type="button" [class.active]="clientPage === 'measurements'" [attr.aria-current]="clientPage === 'measurements' ? 'page' : null" (click)="setClientPage('measurements')"><i>⌁</i><span>Mes mesures</span><b>{{ measurementCompletion }}%</b></button>
+          <button type="button" [class.active]="clientPage === 'measurements'" [attr.aria-current]="clientPage === 'measurements' ? 'page' : null" (click)="setClientPage('measurements')"><i>⌁</i><span>Mes mesures</span><b>{{ clientMeasurements.length }}</b></button>
           <button type="button" [class.active]="clientPage === 'appointments'" [attr.aria-current]="clientPage === 'appointments' ? 'page' : null" (click)="setClientPage('appointments')"><i>◷</i><span>Rendez-vous</span><b>{{ clientAppointments.length }}</b></button>
           <button type="button" [class.active]="clientPage === 'favorites'" [attr.aria-current]="clientPage === 'favorites' ? 'page' : null" (click)="setClientPage('favorites')"><i>♡</i><span>Mes favoris</span><b>{{ favoritesCount }}</b></button>
           <button type="button" [class.active]="clientPage === 'profile'" [attr.aria-current]="clientPage === 'profile' ? 'page' : null" (click)="setClientPage('profile')"><i>♙</i><span>Mon profil</span></button>
@@ -361,7 +347,7 @@
 
         <section *ngIf="clientPage === 'overview'" class="client-quick-overview" aria-label="Raccourcis de votre espace">
           <button type="button" (click)="setClientPage('orders')"><i>▣</i><span><small>Ma commande</small><strong>{{ currentClientOrder?.description || 'Découvrir les créations' }}</strong><em>{{ currentClientOrder ? orderStatusLabel(currentClientOrder.status) : 'Choisir une pièce' }}</em></span><b>→</b></button>
-          <button type="button" (click)="setClientPage('measurements')"><i>⌁</i><span><small>Mes mesures</small><strong>{{ measurementCompletion }}% complété</strong><em>{{ measurementCompletion === 100 ? 'Profil prêt' : 'Compléter mon profil' }}</em></span><b>→</b></button>
+          <button type="button" (click)="setClientPage('measurements')"><i>⌁</i><span><small>Mes mesures</small><strong>{{ clientMeasurements.length }} fiche(s) enregistrée(s)</strong><em>Consulter mes mensurations</em></span><b>→</b></button>
           <button type="button" (click)="setClientPage('appointments')"><i>◷</i><span><small>Prochain rendez-vous</small><strong>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt) : 'Aucun rendez-vous' }}</strong><em>{{ nextClientAppointment ? formatDate(nextClientAppointment.startsAt, 'time') : 'Votre atelier reste disponible' }}</em></span><b>→</b></button>
         </section>
 
@@ -444,9 +430,9 @@
                 <button type="button" (click)="setClientPage('orders')"><span><small>Mes commandes</small><strong>{{ clientOrders.length }}</strong></span><i aria-hidden="true">↗</i></button>
                 <button type="button" (click)="setClientPage('favorites')"><span><small>Mes favoris</small><strong>{{ favoritesCount }}</strong></span><i aria-hidden="true">♡</i></button>
                 <button type="button" (click)="setClientPage('appointments')"><span><small>Rendez-vous</small><strong>{{ clientAppointments.length }}</strong></span><i aria-hidden="true">◷</i></button>
-                <button type="button" (click)="setClientPage('measurements')"><span><small>Mes mesures</small><strong>{{ measurementCompletion }}<em>%</em></strong></span><i aria-hidden="true">⌁</i></button>
+                <button type="button" (click)="setClientPage('measurements')"><span><small>Mes mesures</small><strong>{{ clientMeasurements.length }}</strong></span><i aria-hidden="true">⌁</i></button>
               </div>
-              <div class="customer-profile-measure-note"><span aria-hidden="true">✂</span><p>Une tenue réussie commence par des mesures précises.<button type="button" (click)="setClientPage('measurements')">{{ measurementCompletion === 100 ? 'Consulter mes mesures' : 'Compléter mes mesures' }} →</button></p></div>
+              <div class="customer-profile-measure-note"><span aria-hidden="true">✂</span><p>Une tenue réussie commence par des mesures précises.<button type="button" (click)="setClientPage('measurements')">Consulter mes mesures →</button></p></div>
             </section>
           </div>
           <div class="customer-profile-footer"><span>Sur Mesure Style · Votre espace personnel</span><button type="button" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</button></div>
@@ -678,13 +664,12 @@
   <form #clientModelForm="ngForm" class="dashboard-dialog stylist-editor-dialog client-model-dialog" role="dialog" aria-modal="true" aria-labelledby="client-model-title" (ngSubmit)="clientModelForm.valid && saveClientModel()" (click)="$event.stopPropagation()">
     <button class="dashboard-dialog-close" type="button" (click)="clientModelEditorOpen = false" [disabled]="clientModelSaving" aria-label="Fermer">×</button>
     <span>Vos modèles, vos mesures</span><h2 id="client-model-title">Nouvelle fiche de mensurations</h2>
-    <p>Précisez le modèle que vous souhaitez enregistrer, puis renseignez ses mesures. Une nouvelle fiche sera créée.</p>
+    <p>Nommez librement votre modèle et renseignez uniquement les mesures utiles. Aucun type de vêtement n’est imposé.</p>
     <p role="alert" *ngIf="clientModelError">{{ clientModelError }}</p>
     <div class="employee-intake-form">
-      <label>Type de modèle<select name="clientModelType" [(ngModel)]="clientModelType" (ngModelChange)="changeClientModelType()" required [disabled]="clientModelSaving"><option value="" disabled>Choisir un modèle</option><option *ngFor="let model of measurementModels" [value]="model.name">{{ model.name }}</option><option value="Autre modèle">Autre modèle</option></select></label>
-      <label>Nom du modèle<input name="clientModelName" [(ngModel)]="clientModelName" placeholder="Ex. Boubou de Tabaski" minlength="2" maxlength="120" required [disabled]="clientModelSaving"></label>
+      <label>Nom du modèle<input name="clientModelName" [(ngModel)]="clientModelName" placeholder="Ex. Tenue de cérémonie" minlength="2" maxlength="120" required [disabled]="clientModelSaving"></label>
       <label class="employee-intake-notes">Atelier associé<select name="clientModelStylist" [(ngModel)]="clientModelStylistId" required [disabled]="clientModelSaving"><option value="" disabled>Choisir un atelier</option><option *ngFor="let stylist of clientStylists" [value]="stylist.id">{{ stylist.businessName }}</option></select></label>
-      <ng-container *ngIf="clientModelType">
+      <ng-container>
         <label *ngFor="let field of clientModelFields">{{ field.label }} (cm)<input type="number" [name]="'client-model-' + field.key" [(ngModel)]="clientModelValues[field.key]" min="0.1" max="300" step="0.1" [disabled]="clientModelSaving"></label>
       </ng-container>
       <label class="employee-intake-notes">Notes (facultatif)<textarea name="clientModelNotes" [(ngModel)]="clientModelNotes" rows="3" maxlength="1000" placeholder="Coupe souhaitée, préférences…" [disabled]="clientModelSaving"></textarea></label>
