@@ -354,7 +354,7 @@
         <div class="client-content-grid" *ngIf="clientPage === 'overview'">
           <section class="client-panel client-order-panel" id="client-order" *ngIf="currentClientOrder as order; else noClientOrderPanel">
             <div class="client-panel-heading"><div><span>Suivi de création</span><h2>{{ order.description }}</h2></div><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b></div>
-            <div class="client-order-product"><img [src]="orderImage(order)" [alt]="order.description"><div><span>{{ order.stylist?.businessName || 'Atelier partenaire' }} · #{{ orderShortId(order) }}</span><h3>Une pièce créée pour vous</h3><p>Dernière mise à jour le {{ formatDate(order.updatedAt) }}</p></div><button type="button" (click)="showToast(order.notes || 'Commande synchronisée avec votre atelier')">Voir les détails ↗</button></div>
+            <div class="client-order-product"><img [src]="orderImage(order)" [alt]="order.description"><div><span>{{ order.stylist?.businessName || 'Atelier partenaire' }} · #{{ orderShortId(order) }}</span><h3>Une pièce créée pour vous</h3><p>Dernière mise à jour le {{ formatDate(order.updatedAt) }}</p><p *ngIf="order.dueAt">Livraison / retrait : {{ orderDeliveryLabel(order) }} (Dakar)</p></div><button type="button" (click)="showToast(order.notes || 'Commande synchronisée avec votre atelier')">Voir les détails ↗</button></div>
             <div class="client-timeline">
               <article [class.complete]="orderStepReached(0)"><i>{{ orderStepReached(0) ? '✓' : '01' }}</i><div><strong>Commande confirmée</strong><span>{{ formatDate(order.createdAt) }}</span></div></article>
               <article [class.complete]="orderStepReached(1)"><i>{{ orderStepReached(1) ? '✓' : '02' }}</i><div><strong>Mesures validées</strong><span>{{ latestClientMeasurement ? formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span></div></article>
@@ -383,7 +383,7 @@
           <div class="client-panel-heading"><h2>Mes commandes</h2><span>{{ clientOrders.length }} commande(s)</span></div>
           <article class="client-order-product" *ngFor="let order of clientOrders">
             <img [src]="orderImage(order)" [alt]="order.description">
-            <div><span>#{{ orderShortId(order) }} · {{ order.stylist?.businessName || 'Atelier partenaire' }}</span><h3>{{ order.description }}</h3><p>{{ formatDate(order.createdAt) }} · {{ price(order.totalPrice) | number:'1.0-0' }} FCFA</p><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b></div>
+            <div><span>#{{ orderShortId(order) }} · {{ order.stylist?.businessName || 'Atelier partenaire' }}</span><h3>{{ order.description }}</h3><p *ngIf="order.dueAt">Livraison / retrait : {{ orderDeliveryLabel(order) }} (Dakar)</p><p>{{ formatDate(order.createdAt) }} · {{ price(order.totalPrice) | number:'1.0-0' }} FCFA</p><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b></div>
             <button type="button" (click)="showToast(order.notes || 'Commande synchronisée avec votre atelier')">Voir les détails ↗</button>
           </article>
           <div class="dashboard-inline-empty" *ngIf="!clientOrders.length">Aucune commande pour le moment.</div>
@@ -471,7 +471,7 @@
           <button class="stylist-editor-submit" type="button" (click)="openOrderEditor()">Nouvelle commande ＋</button>
           <div class="analytics-panel-heading"><div><span>Suivi de production</span><h2>{{ showAllStylistOrders ? 'Toutes les commandes' : 'Commandes récentes' }}</h2></div><button type="button" (click)="setStylistPage(stylistPage === 'orders' ? 'overview' : 'orders')">{{ stylistPage === 'orders' ? 'Retour au tableau' : 'Voir tout' }} ↗</button></div>
           <div class="analytics-order-head"><span>Cliente et création</span><span>Mise à jour</span><span>Statut</span><span></span></div>
-          <div class="analytics-order" *ngFor="let order of visibleStylistOrders; let index = index"><div class="analytics-order-person"><img [src]="orderImage(order, index)" [alt]="order.description"><div><strong>{{ order.clientName }}</strong><small>{{ order.description }} · #{{ orderShortId(order) }}</small></div></div><time>{{ formatDate(order.updatedAt) }}</time><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b><button class="analytics-contact" type="button" (click)="copyPhone(order.clientPhone)" [attr.aria-label]="'Copier le numéro de ' + order.clientName">✉</button><button type="button" (click)="advanceOrder(order)" [disabled]="updatingOrderId === order.id || order.status === 'delivered' || order.status === 'cancelled'" [attr.aria-label]="'Faire avancer ' + order.description">{{ updatingOrderId === order.id ? '…' : '→' }}</button></div>
+          <div class="analytics-order" *ngFor="let order of visibleStylistOrders; let index = index"><div class="analytics-order-person"><img [src]="orderImage(order, index)" [alt]="order.description"><div><strong>{{ order.clientName }}</strong><small>{{ order.description }} · #{{ orderShortId(order) }}</small><small *ngIf="order.durationDays">Confection : {{ order.durationDays }} jour(s)</small><small *ngIf="order.dueAt">Livraison / retrait : {{ orderDeliveryLabel(order) }} (Dakar)</small><small *ngIf="orderMeasurementSummary(order)">{{ orderMeasurementSummary(order) }}</small></div></div><time>{{ formatDate(order.updatedAt) }}</time><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b><button class="analytics-contact" type="button" (click)="copyPhone(order.clientPhone)" [attr.aria-label]="'Copier le numéro de ' + order.clientName">✉</button><button type="button" (click)="advanceOrder(order)" [disabled]="updatingOrderId === order.id || order.status === 'delivered' || order.status === 'cancelled'" [attr.aria-label]="'Faire avancer ' + order.description">{{ updatingOrderId === order.id ? '…' : '→' }}</button></div>
           <div class="dashboard-inline-empty dark" *ngIf="!stylistOrders.length && !dashboardLoading">Aucune commande dans votre atelier.</div>
         </section>
 
@@ -647,6 +647,14 @@
       <label>Téléphone<input name="orderClientPhone" type="tel" [(ngModel)]="orderDraft.clientPhone" placeholder="+221 77 000 00 00" autocomplete="tel" required></label>
       <label>Description de la commande<textarea name="orderDescription" [(ngModel)]="orderDraft.description" minlength="2" rows="3" placeholder="Ex. Robe de cérémonie sur mesure" required></textarea></label>
       <label>Prix total (FCFA)<input name="orderTotalPrice" type="number" [(ngModel)]="orderDraft.totalPrice" min="0" step="0.01" required></label>
+      <label>Durée de confection (jours)<input name="orderDurationDays" type="number" [(ngModel)]="orderDurationDays" min="1" max="3650" step="1" required></label>
+      <label>Livraison / retrait prévu (heure de Dakar)<input name="orderDueAt" type="datetime-local" [(ngModel)]="orderDueAt" required></label>
+      <div class="employee-custom-measurements">
+        <p>Mesures de la commande (cm) — renseignez au moins une mesure.</p>
+        <div class="employee-intake-form">
+          <label *ngFor="let definition of measurementDefinitions">{{ definition.label }} (cm)<input type="number" [name]="'order-measure-' + definition.key" [(ngModel)]="orderMeasurements[definition.key]" min="0.1" max="300" step="0.1"></label>
+        </div>
+      </div>
       <label>Notes (facultatif)<textarea name="orderNotes" [(ngModel)]="orderDraft.notes" rows="3" placeholder="Tissu, coloris, détails de confection…"></textarea></label>
     </div>
     <button class="stylist-editor-submit" type="submit" [disabled]="orderSaving || orderForm.invalid">{{ orderSaving ? 'Enregistrement…' : 'Créer la commande' }} <span>→</span></button>

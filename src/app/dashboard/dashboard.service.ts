@@ -5,6 +5,9 @@ import { getApiUrl } from '../api-url';
 
 export type DashboardOrderStatus = 'pending' | 'inProgress' | 'completed' | 'delivered' | 'cancelled';
 export interface OrderInput {
+  measurements?: Record<string, number>;
+  durationDays?: number;
+  dueAt?: string;
   clientName: string;
   clientPhone: string;
   description: string;
@@ -30,6 +33,9 @@ export interface CatalogItemInput {
 }
 
 export interface DashboardOrder {
+  measurements?: Record<string, number>;
+  durationDays?: number | null;
+  dueAt?: string | null;
   id: string;
   stylistId: string;
   clientId: string | null;

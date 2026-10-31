@@ -175,9 +175,15 @@ export class App implements AfterViewInit, OnDestroy {
   orderEditorOpen = false;
   orderSaving = false;
   orderError = '';
+  orderMeasurements: Record<string, number | null> = {};
+  orderDurationDays: number | null = null;
+  orderDueAt = '';
   orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null as number | null, notes: '' };
 
   openOrderEditor(): void {
+    this.orderMeasurements = {};
+    this.orderDurationDays = null;
+    this.orderDueAt = '';
     this.orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null, notes: '' };
     this.orderError = '';
     this.orderEditorOpen = true;
@@ -187,9 +193,34 @@ export class App implements AfterViewInit, OnDestroy {
     if (this.orderSaving) return;
     this.orderError = '';
     const draft = this.orderDraft;
+    const measurements: Record<string, number> = {};
+    for (const [key, value] of Object.entries(this.orderMeasurements)) {
+      if (value == null) continue;
+      if (!Number.isFinite(value) || value <= 0 || value > 300) {
+        this.orderError = 'Chaque mesure doit être supérieure à 0 et inférieure ou égale à 300 cm.';
+        return;
+      }
+      measurements[key] = value;
+    }
+    if (!Object.keys(measurements).length) {
+      this.orderError = 'Renseignez au moins une mesure pour cette commande.';
+      return;
+    }
+    if (this.orderDurationDays == null || !Number.isInteger(this.orderDurationDays) || this.orderDurationDays < 1 || this.orderDurationDays > 3650) {
+      this.orderError = 'Indiquez la durée de confection en jours (de 1 à 3650).';
+      return;
+    }
+    const dueAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(this.orderDueAt)
+      ? new Date(`${this.orderDueAt}:00Z`) : null;
+    if (!dueAt || !Number.isFinite(dueAt.getTime()) || dueAt.getTime() <= Date.now()) {
+      this.orderError = 'Indiquez une date et une heure de livraison/retrait dans le futur (heure de Dakar).';
+      return;
+    }
     const input = {
       clientName: draft.clientName.trim(), clientPhone: draft.clientPhone.trim(),
       description: draft.description.trim(), totalPrice: Number(draft.totalPrice), notes: draft.notes.trim(),
+      measurements, durationDays: this.orderDurationDays,
+      dueAt: dueAt.toISOString(),
     };
     if (input.clientName.length < 2 || input.description.length < 2) {
       this.orderError = 'Indiquez le nom de la cliente et une description (2 caractères minimum).';
@@ -218,12 +249,27 @@ export class App implements AfterViewInit, OnDestroy {
       this.orderEditorOpen = false;
       this.setStylistPage('orders');
       this.showToast('Commande ajoutée à votre atelier.');
+      if (!this.demoMode) void this.loadDashboard('stylist');
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
       this.orderError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible de créer la commande. Réessayez.';
     } finally {
       this.orderSaving = false;
     }
+  }
+
+  orderMeasurementSummary(order: DashboardOrder): string {
+    return Object.entries(order.measurements ?? {}).map(([key, value]) =>
+      `${this.measurementDefinitions.find(definition => definition.key === key)?.label ?? key} : ${value} cm`
+    ).join(' · ');
+  }
+
+  orderDeliveryLabel(order: DashboardOrder): string {
+    if (!order.dueAt) return '';
+    const date = new Date(order.dueAt);
+    return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('fr-FR', {
+      timeZone: 'Africa/Dakar', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+    }).format(date) : '';
   }
   stylistEditor: StylistEditor = null;
   editingCatalogId: string | null = null;

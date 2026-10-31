@@ -27,11 +27,14 @@ describe('App', () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.stylistProfile = { id: 'atelier' } as typeof app.stylistProfile;
     app.openOrderEditor();
+    app.orderMeasurements = { poitrine: 92, taille: 74 };
+    app.orderDurationDays = 7;
+    app.orderDueAt = '2099-12-20T15:30';
     app.orderDraft = { clientName: ' Fatou Ndiaye ', clientPhone: '+221770000001', description: ' Robe sur mesure ', totalPrice: 45000, notes: '' };
     const created = { ...app.orderDraft, id: 'order', stylistId: 'atelier', clientId: null, currency: 'XOF', status: 'pending' as const, createdAt: '', updatedAt: '', totalPrice: 45000 };
     const create = spyOn(TestBed.inject(DashboardService), 'createOrder').and.resolveTo(created);
     await app.saveOrder();
-    expect(create).toHaveBeenCalledWith('atelier', jasmine.objectContaining({ clientName: 'Fatou Ndiaye', description: 'Robe sur mesure', totalPrice: 45000 }));
+    expect(create).toHaveBeenCalledWith('atelier', jasmine.objectContaining({ clientName: 'Fatou Ndiaye', description: 'Robe sur mesure', totalPrice: 45000, measurements: { poitrine: 92, taille: 74 }, durationDays: 7, dueAt: '2099-12-20T15:30:00.000Z' }));
     expect(app.stylistOrders).toEqual([created]);
     expect(app.orderEditorOpen).toBeFalse();
     expect(app.stylistPage).toBe('orders');
@@ -41,6 +44,9 @@ describe('App', () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.stylistProfile = { id: 'atelier' } as typeof app.stylistProfile;
     app.openOrderEditor();
+    app.orderMeasurements = { poitrine: 92, taille: 74 };
+    app.orderDurationDays = 7;
+    app.orderDueAt = '2099-12-20T15:30';
     app.orderDraft = { clientName: 'Fatou Ndiaye', clientPhone: '+221770000001', description: 'Robe', totalPrice: 45000, notes: '' };
     spyOn(TestBed.inject(DashboardService), 'createOrder').and.rejectWith(new HttpErrorResponse({ status: 400, error: { message: 'Téléphone invalide' } }));
     await app.saveOrder();
@@ -48,6 +54,34 @@ describe('App', () => {
     expect(app.orderEditorOpen).toBeTrue();
     expect(app.orderDraft.clientName).toBe('Fatou Ndiaye');
     expect(app.orderSaving).toBeFalse();
+  });
+
+  it('rejects a new order without measurements or a valid duration before sending it', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.openOrderEditor();
+    const create = spyOn(TestBed.inject(DashboardService), 'createOrder');
+    await app.saveOrder();
+    expect(app.orderError).toContain('au moins une mesure');
+    app.orderMeasurements = { poitrine: 92 };
+    app.orderDurationDays = -1;
+    await app.saveOrder();
+    expect(app.orderError).toContain('durée');
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('requires a future delivery time and displays it in Dakar time', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.openOrderEditor();
+    app.orderMeasurements = { poitrine: 92 };
+    app.orderDurationDays = 7;
+    const create = spyOn(TestBed.inject(DashboardService), 'createOrder');
+    for (const value of ['', '2000-01-01T12:00', 'invalid']) {
+      app.orderDueAt = value;
+      await app.saveOrder();
+      expect(app.orderError).toContain('livraison/retrait');
+    }
+    expect(create).not.toHaveBeenCalled();
+    expect(app.orderDeliveryLabel({ dueAt: '2099-12-20T15:30:00.000Z' } as Parameters<App['orderDeliveryLabel']>[0])).toContain('15:30');
   });
 
   it('opens separate client tabs and keeps navigation available from measurements', () => {
