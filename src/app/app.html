@@ -468,6 +468,7 @@
 
       <div class="analytics-content-grid" [class.orders-page]="stylistPage === 'orders'" *ngIf="stylistPage === 'overview' || stylistPage === 'orders'">
         <section class="analytics-panel analytics-orders" id="stylist-orders">
+          <button class="stylist-editor-submit" type="button" (click)="openOrderEditor()">Nouvelle commande ＋</button>
           <div class="analytics-panel-heading"><div><span>Suivi de production</span><h2>{{ showAllStylistOrders ? 'Toutes les commandes' : 'Commandes récentes' }}</h2></div><button type="button" (click)="setStylistPage(stylistPage === 'orders' ? 'overview' : 'orders')">{{ stylistPage === 'orders' ? 'Retour au tableau' : 'Voir tout' }} ↗</button></div>
           <div class="analytics-order-head"><span>Cliente et création</span><span>Mise à jour</span><span>Statut</span><span></span></div>
           <div class="analytics-order" *ngFor="let order of visibleStylistOrders; let index = index"><div class="analytics-order-person"><img [src]="orderImage(order, index)" [alt]="order.description"><div><strong>{{ order.clientName }}</strong><small>{{ order.description }} · #{{ orderShortId(order) }}</small></div></div><time>{{ formatDate(order.updatedAt) }}</time><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b><button class="analytics-contact" type="button" (click)="copyPhone(order.clientPhone)" [attr.aria-label]="'Copier le numéro de ' + order.clientName">✉</button><button type="button" (click)="advanceOrder(order)" [disabled]="updatingOrderId === order.id || order.status === 'delivered' || order.status === 'cancelled'" [attr.aria-label]="'Faire avancer ' + order.description">{{ updatingOrderId === order.id ? '…' : '→' }}</button></div>
@@ -633,6 +634,23 @@
       <button type="submit" [disabled]="measurementSaving">{{ measurementSaving ? 'Enregistrement…' : 'Enregistrer la mesure' }} <i>→</i></button>
     </form>
   </section>
+</div>
+
+<div class="dashboard-dialog-backdrop" *ngIf="orderEditorOpen" (click)="!orderSaving && (orderEditorOpen = false)">
+  <form #orderForm="ngForm" class="dashboard-dialog stylist-editor-dialog" role="dialog" aria-modal="true" aria-labelledby="order-editor-title" (ngSubmit)="orderForm.valid && saveOrder()" (click)="$event.stopPropagation()">
+    <button class="dashboard-dialog-close" type="button" (click)="orderEditorOpen = false" [disabled]="orderSaving" aria-label="Fermer">×</button>
+    <span>Commandes de l’atelier</span><h2 id="order-editor-title">Nouvelle commande</h2>
+    <p>Enregistrez une commande pour votre cliente, avec ou sans compte Sur Mesure.</p>
+    <p role="alert" *ngIf="orderError">{{ orderError }}</p>
+    <div class="stylist-editor-fields">
+      <label>Nom de la cliente<input name="orderClientName" [(ngModel)]="orderDraft.clientName" minlength="2" autocomplete="name" required></label>
+      <label>Téléphone<input name="orderClientPhone" type="tel" [(ngModel)]="orderDraft.clientPhone" placeholder="+221 77 000 00 00" autocomplete="tel" required></label>
+      <label>Description de la commande<textarea name="orderDescription" [(ngModel)]="orderDraft.description" minlength="2" rows="3" placeholder="Ex. Robe de cérémonie sur mesure" required></textarea></label>
+      <label>Prix total (FCFA)<input name="orderTotalPrice" type="number" [(ngModel)]="orderDraft.totalPrice" min="0" step="0.01" required></label>
+      <label>Notes (facultatif)<textarea name="orderNotes" [(ngModel)]="orderDraft.notes" rows="3" placeholder="Tissu, coloris, détails de confection…"></textarea></label>
+    </div>
+    <button class="stylist-editor-submit" type="submit" [disabled]="orderSaving || orderForm.invalid">{{ orderSaving ? 'Enregistrement…' : 'Créer la commande' }} <span>→</span></button>
+  </form>
 </div>
 
 <div class="dashboard-dialog-backdrop" *ngIf="stylistEditor" (click)="closeStylistEditor()">

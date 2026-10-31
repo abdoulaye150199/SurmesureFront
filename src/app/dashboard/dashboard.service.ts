@@ -4,6 +4,13 @@ import { firstValueFrom } from 'rxjs';
 import { getApiUrl } from '../api-url';
 
 export type DashboardOrderStatus = 'pending' | 'inProgress' | 'completed' | 'delivered' | 'cancelled';
+export interface OrderInput {
+  clientName: string;
+  clientPhone: string;
+  description: string;
+  totalPrice: number;
+  notes: string;
+}
 export type DashboardAppointmentStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed';
 
 export interface StylistProfileUpdate {
@@ -25,7 +32,7 @@ export interface CatalogItemInput {
 export interface DashboardOrder {
   id: string;
   stylistId: string;
-  clientId: string;
+  clientId: string | null;
   clientName: string;
   clientPhone: string;
   description: string;
@@ -36,7 +43,7 @@ export interface DashboardOrder {
   createdAt: string;
   updatedAt: string;
   stylist?: { businessName: string };
-  client?: { firstName: string; lastName: string; email: string };
+  client?: { firstName: string; lastName: string; email: string } | null;
 }
 
 export interface DashboardMeasurement {
@@ -272,6 +279,10 @@ export class DashboardService {
 
   updateOrderStatus(id: string, status: DashboardOrderStatus): Promise<DashboardOrder> {
     return firstValueFrom(this.http.patch<DashboardOrder>(getApiUrl(`/orders/${id}`), { status }));
+  }
+
+  createOrder(stylistId: string, input: OrderInput): Promise<DashboardOrder> {
+    return firstValueFrom(this.http.post<DashboardOrder>(getApiUrl(`/stylist/${stylistId}/orders`), input));
   }
 
   updateAppointmentStatus(id: string, status: DashboardAppointmentStatus): Promise<DashboardAppointment> {

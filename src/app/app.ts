@@ -172,6 +172,59 @@ export class App implements AfterViewInit, OnDestroy {
   updatingOrderId: string | null = null;
   updatingAppointmentId: string | null = null;
   showAllStylistOrders = false;
+  orderEditorOpen = false;
+  orderSaving = false;
+  orderError = '';
+  orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null as number | null, notes: '' };
+
+  openOrderEditor(): void {
+    this.orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null, notes: '' };
+    this.orderError = '';
+    this.orderEditorOpen = true;
+  }
+
+  async saveOrder(): Promise<void> {
+    if (this.orderSaving) return;
+    this.orderError = '';
+    const draft = this.orderDraft;
+    const input = {
+      clientName: draft.clientName.trim(), clientPhone: draft.clientPhone.trim(),
+      description: draft.description.trim(), totalPrice: Number(draft.totalPrice), notes: draft.notes.trim(),
+    };
+    if (input.clientName.length < 2 || input.description.length < 2) {
+      this.orderError = 'Indiquez le nom de la cliente et une description (2 caractères minimum).';
+      return;
+    }
+    if (!/^\+[1-9]\d{7,14}$/.test(input.clientPhone.replace(/[\s().-]/g, ''))) {
+      this.orderError = 'Indiquez un téléphone avec son indicatif pays, par exemple +221 77 000 00 00.';
+      return;
+    }
+    if (draft.totalPrice === null || !Number.isFinite(input.totalPrice) || input.totalPrice < 0) {
+      this.orderError = 'Indiquez un prix valide, supérieur ou égal à zéro.';
+      return;
+    }
+    const stylistId = this.stylistProfile?.id;
+    if (!stylistId) {
+      this.orderError = 'Le profil de l’atelier est introuvable. Actualisez la page.';
+      return;
+    }
+    this.orderSaving = true;
+    try {
+      const now = new Date().toISOString();
+      const order: DashboardOrder = this.demoMode
+        ? { ...input, id: `demo-order-${Date.now()}`, stylistId, clientId: null, currency: 'XOF', status: 'pending', createdAt: now, updatedAt: now }
+        : await this.dashboard.createOrder(stylistId, input);
+      this.stylistOrders = [order, ...this.stylistOrders];
+      this.orderEditorOpen = false;
+      this.setStylistPage('orders');
+      this.showToast('Commande ajoutée à votre atelier.');
+    } catch (error) {
+      const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
+      this.orderError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible de créer la commande. Réessayez.';
+    } finally {
+      this.orderSaving = false;
+    }
+  }
   stylistEditor: StylistEditor = null;
   editingCatalogId: string | null = null;
   editorSaving = false;

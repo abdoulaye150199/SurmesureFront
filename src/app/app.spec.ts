@@ -23,6 +23,33 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
+  it('creates a stylist order and adds it to the order list', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.stylistProfile = { id: 'atelier' } as typeof app.stylistProfile;
+    app.openOrderEditor();
+    app.orderDraft = { clientName: ' Fatou Ndiaye ', clientPhone: '+221770000001', description: ' Robe sur mesure ', totalPrice: 45000, notes: '' };
+    const created = { ...app.orderDraft, id: 'order', stylistId: 'atelier', clientId: null, currency: 'XOF', status: 'pending' as const, createdAt: '', updatedAt: '', totalPrice: 45000 };
+    const create = spyOn(TestBed.inject(DashboardService), 'createOrder').and.resolveTo(created);
+    await app.saveOrder();
+    expect(create).toHaveBeenCalledWith('atelier', jasmine.objectContaining({ clientName: 'Fatou Ndiaye', description: 'Robe sur mesure', totalPrice: 45000 }));
+    expect(app.stylistOrders).toEqual([created]);
+    expect(app.orderEditorOpen).toBeFalse();
+    expect(app.stylistPage).toBe('orders');
+  });
+
+  it('keeps the order draft and shows the API error when creation fails', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.stylistProfile = { id: 'atelier' } as typeof app.stylistProfile;
+    app.openOrderEditor();
+    app.orderDraft = { clientName: 'Fatou Ndiaye', clientPhone: '+221770000001', description: 'Robe', totalPrice: 45000, notes: '' };
+    spyOn(TestBed.inject(DashboardService), 'createOrder').and.rejectWith(new HttpErrorResponse({ status: 400, error: { message: 'Téléphone invalide' } }));
+    await app.saveOrder();
+    expect(app.orderError).toBe('Téléphone invalide');
+    expect(app.orderEditorOpen).toBeTrue();
+    expect(app.orderDraft.clientName).toBe('Fatou Ndiaye');
+    expect(app.orderSaving).toBeFalse();
+  });
+
   it('opens separate client tabs and keeps navigation available from measurements', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
