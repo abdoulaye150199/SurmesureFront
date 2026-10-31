@@ -1,4 +1,6 @@
 * { box-sizing: border-box; }
+app-root .measurement-validation { display:inline-block; padding:6px 10px; border:1px solid #e6d5ad; border-radius:20px; background:#fff7e6; color:#806124; font-size:11px; line-height:1.5; }
+app-root .measurement-validation.approved { border-color:#cce2d0; background:#edf6ef; color:#426a4c; }
 app-root .toast,app-root .admin-toast { position:fixed; z-index:200; top:calc(env(safe-area-inset-top,0px) + 20px); left:calc(env(safe-area-inset-left,0px) + 20px); max-width:min(400px,calc(100vw - env(safe-area-inset-left,0px) - 40px)); padding:14px 20px; border:1px solid #ffffff20; border-radius:10px; background:#2d022e; color:#fff; box-shadow:0 8px 24px #2d022e26; font-size:12px; line-height:1.6; overflow-wrap:anywhere; opacity:0; transform:translateY(-20px); pointer-events:none; transition:opacity .25s,transform .25s; }
 app-root .toast.show,app-root .admin-toast.show { opacity:1; transform:translateY(0); }
 app-root .client-model-dialog { width:min(640px,calc(100vw - 32px)); }

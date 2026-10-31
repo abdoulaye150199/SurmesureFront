@@ -300,7 +300,7 @@
           <details *ngFor="let record of clientMeasurements; let index = index" [open]="index === 0">
             <summary><span><strong>{{ record.modelName || measurementAtelierName(record) }}</strong><small>{{ record.modelName ? measurementAtelierName(record) + ' · ' : '' }}Mis à jour le {{ formatDate(record.updatedAt) }}{{ index === 0 ? ' · Fiche la plus récente' : '' }}</small></span><span aria-hidden="true">⌄</span></summary>
             <dl><div *ngFor="let field of record.measurements | keyvalue"><dt>{{ measurementFieldLabel(field.key) }}</dt><dd>{{ field.value }} cm</dd></div></dl>
-            <p *ngIf="record.notes">{{ record.notes }}</p>
+            <p><span class="measurement-validation" [class.approved]="record.validatedAt">{{ measurementValidationLabel(record) }}</span></p><p *ngIf="record.validatedAt">Validées le {{ formatDate(record.validatedAt) }}{{ record.modelName ? ' pour « ' + record.modelName + ' »' : '' }}.</p><p *ngIf="record.notes">{{ record.notes }}</p>
           </details>
         </section>
         <section class="measurement-note"><span>Vos mensurations sont privées</span><p>Les mesures saisies par votre styliste avec le numéro de téléphone de votre compte apparaissent ici, même si elles ont été enregistrées avant votre inscription. Actualisez votre espace pour récupérer les dernières modifications.</p></section>
@@ -358,7 +358,7 @@
             <ng-container *ngTemplateOutlet="orderTimeTracking; context: { $implicit: order }"></ng-container>
             <div class="client-timeline">
               <article [class.complete]="orderStepReached(0)"><i>{{ orderStepReached(0) ? '✓' : '01' }}</i><div><strong>Commande confirmée</strong><span>{{ formatDate(order.createdAt) }}</span></div></article>
-              <article [class.complete]="orderStepReached(1)"><i>{{ orderStepReached(1) ? '✓' : '02' }}</i><div><strong>Mesures validées</strong><span>{{ latestClientMeasurement ? formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span></div></article>
+              <article [class.complete]="orderStepReached(1)"><i>{{ orderStepReached(1) ? '✓' : '02' }}</i><div><strong>Mesures validées</strong><span>{{ orderStepReached(1) ? 'Validées pour cette commande' : 'À valider par le styliste' }}</span></div></article>
               <article [class.complete]="orderStepReached(2)" [class.current]="order.status === 'inProgress'"><i>{{ orderStepReached(2) ? '✓' : '03' }}</i><div><strong>Confection</strong><span>{{ order.status === 'inProgress' ? 'En cours à l’atelier' : 'À venir' }}</span></div></article>
               <article [class.complete]="orderStepReached(3)" [class.current]="order.status === 'completed'"><i>{{ orderStepReached(3) ? '✓' : '04' }}</i><div><strong>Prête à livrer</strong><span>{{ orderStatusLabel(order.status) }}</span></div></article>
             </div>
@@ -538,7 +538,7 @@
           <summary><span><strong>{{ client.name }}</strong><small>{{ client.phone }} · {{ client.measurements.length }} fiche(s) de mesures · {{ client.orders.length }} commande(s) · {{ client.appointments.length }} rendez-vous</small></span><i>Ouvrir le dossier</i></summary>
           <div class="stylist-client-record-content">
             <div class="stylist-client-record-actions"><button type="button" (click)="copyPhone(client.phone)">Copier le numéro</button><button type="button" *ngIf="client.measurements[0] as latestMeasurement" (click)="copyMeasurement(latestMeasurement)">Copier les dernières mesures</button></div>
-            <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>{{ measurement.modelName || 'Mensurations' }} · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p *ngIf="measurement.notes">{{ measurement.notes }}</p><button *ngIf="activeView === 'stylist'" type="button" (click)="editStylistMeasurement(measurement)">Modifier ces mesures</button></section>
+            <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>{{ measurement.modelName || 'Mensurations' }} · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p><span class="measurement-validation" [class.approved]="measurement.validatedAt">{{ measurementValidationLabel(measurement) }}</span></p><p *ngIf="measurement.notes">{{ measurement.notes }}</p><button *ngIf="activeView === 'stylist' && !measurement.validatedAt" type="button" (click)="openMeasurementValidation(measurement)">Vérifier et valider pour un modèle</button><button *ngIf="activeView === 'stylist'" type="button" (click)="editStylistMeasurement(measurement)">Modifier ces mesures</button></section>
             <section class="stylist-client-history" *ngFor="let order of client.orders"><h3>Commande · {{ order.description }}</h3><p>{{ orderStatusLabel(order.status) }} · {{ formatDate(order.updatedAt) }} · {{ price(order.totalPrice) | number:'1.0-0' }} FCFA</p></section>
             <section class="stylist-client-history" *ngFor="let appointment of client.appointments"><h3>Rendez-vous · {{ appointment.service }}</h3><p>{{ formatDate(appointment.startsAt) }} à {{ formatDate(appointment.startsAt, 'time') }} · {{ appointment.status === 'pending' ? 'À confirmer' : appointment.status === 'confirmed' ? 'Confirmé' : appointment.status === 'completed' ? 'Terminé' : 'Annulé' }}</p></section>
           </div>
@@ -559,7 +559,7 @@
         <details class="stylist-record" *ngFor="let measurement of stylistMeasurements">
           <summary><span><strong>{{ measurement.clientName }}{{ measurement.modelName ? ' · ' + measurement.modelName : '' }}</strong><small>{{ measurement.clientPhone }} · mis à jour le {{ formatDate(measurement.updatedAt) }}</small></span><i>Voir les mesures</i></summary>
           <div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div>
-          <div class="stylist-record-actions"><button type="button" (click)="editStylistMeasurement(measurement)">Modifier les mesures</button><button type="button" (click)="copyMeasurement(measurement)">Copier les mesures</button><button type="button" (click)="copyPhone(measurement.clientPhone)">Copier le numéro</button></div>
+          <p><span class="measurement-validation" [class.approved]="measurement.validatedAt">{{ measurementValidationLabel(measurement) }}</span></p><div class="stylist-record-actions"><button *ngIf="!measurement.validatedAt" type="button" (click)="openMeasurementValidation(measurement)">Vérifier et valider pour un modèle</button><button type="button" (click)="editStylistMeasurement(measurement)">Modifier les mesures</button><button type="button" (click)="copyMeasurement(measurement)">Copier les mesures</button><button type="button" (click)="copyPhone(measurement.clientPhone)">Copier le numéro</button></div>
         </details>
         <div class="dashboard-inline-empty dark" *ngIf="!stylistMeasurements.length">Aucun profil de mensurations pour le moment.</div>
       </section>
@@ -650,7 +650,7 @@
             <summary><span><strong>{{ client.name }}</strong><small>{{ client.phone }} · {{ client.measurements.length }} fiche(s) de mesures</small></span><i>Ouvrir le dossier</i></summary>
             <div class="stylist-client-record-content">
               <div class="stylist-client-record-actions"><button type="button" (click)="copyPhone(client.phone)">Copier le numéro</button><button type="button" *ngIf="client.measurements[0] as latestMeasurement" (click)="copyMeasurement(latestMeasurement)">Copier les dernières mesures</button></div>
-              <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>{{ measurement.modelName || 'Mensurations' }} · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p *ngIf="measurement.notes">{{ measurement.notes }}</p></section>
+              <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>{{ measurement.modelName || 'Mensurations' }} · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p><span class="measurement-validation" [class.approved]="measurement.validatedAt">{{ measurementValidationLabel(measurement) }}</span></p><p *ngIf="measurement.notes">{{ measurement.notes }}</p></section>
             </div>
           </details>
           <div class="dashboard-inline-empty dark" *ngIf="!stylistClientRecords.length && !dashboardLoading">{{ stylistClientSearch ? 'Aucune cliente ne correspond à cette recherche.' : 'Aucune fiche cliente dans cet atelier.' }}</div>
@@ -660,20 +660,34 @@
   </ng-container>
 </section>
 
+<div class="dashboard-dialog-backdrop" *ngIf="measurementValidationRecord as record" (click)="!measurementValidationSaving && (measurementValidationRecord = null)">
+  <form #validationForm="ngForm" class="dashboard-dialog stylist-editor-dialog client-model-dialog" role="dialog" aria-modal="true" aria-labelledby="measurement-validation-title" (ngSubmit)="validationForm.valid && confirmMeasurementValidation()" (click)="$event.stopPropagation()">
+    <button class="dashboard-dialog-close" type="button" (click)="measurementValidationRecord = null" [disabled]="measurementValidationSaving" aria-label="Fermer">×</button>
+    <span>Vérification par le styliste</span><h2 id="measurement-validation-title">Valider les mesures</h2>
+    <p>{{ record.clientName }} · Vérifiez que ces mesures conviennent au modèle indiqué avant de confirmer.</p>
+    <div class="measurement-values"><span *ngFor="let field of record.measurements | keyvalue"><b>{{ measurementFieldLabel(field.key) }}</b>{{ field.value }} cm</span></div>
+    <p role="alert" *ngIf="measurementValidationError">{{ measurementValidationError }}</p>
+    <div class="employee-intake-form">
+      <label class="employee-intake-notes">Modèle concerné<input name="measurementValidationModel" [(ngModel)]="measurementValidationModel" minlength="2" maxlength="120" required [disabled]="measurementValidationSaving" placeholder="Nom du modèle à confectionner"></label>
+      <button class="stylist-editor-submit" type="submit" [disabled]="measurementValidationSaving || validationForm.invalid">{{ measurementValidationSaving ? 'Validation…' : 'Valider ces mesures pour ce modèle' }} <span>✓</span></button>
+    </div>
+  </form>
+</div>
+
 <div class="dashboard-dialog-backdrop" *ngIf="clientModelEditorOpen" (click)="!clientModelSaving && (clientModelEditorOpen = false)">
   <form #clientModelForm="ngForm" class="dashboard-dialog stylist-editor-dialog client-model-dialog" role="dialog" aria-modal="true" aria-labelledby="client-model-title" (ngSubmit)="clientModelForm.valid && saveClientModel()" (click)="$event.stopPropagation()">
     <button class="dashboard-dialog-close" type="button" (click)="clientModelEditorOpen = false" [disabled]="clientModelSaving" aria-label="Fermer">×</button>
     <span>Vos modèles, vos mesures</span><h2 id="client-model-title">Nouvelle fiche de mensurations</h2>
-    <p>Nommez librement votre modèle et renseignez uniquement les mesures utiles. Aucun type de vêtement n’est imposé.</p>
+    <p>Nommez votre modèle, saisissez vos mesures et choisissez le styliste à qui les envoyer. Il devra les vérifier et les valider.</p>
     <p role="alert" *ngIf="clientModelError">{{ clientModelError }}</p>
     <div class="employee-intake-form">
       <label>Nom du modèle<input name="clientModelName" [(ngModel)]="clientModelName" placeholder="Ex. Tenue de cérémonie" minlength="2" maxlength="120" required [disabled]="clientModelSaving"></label>
-      <label class="employee-intake-notes">Atelier associé<select name="clientModelStylist" [(ngModel)]="clientModelStylistId" required [disabled]="clientModelSaving"><option value="" disabled>Choisir un atelier</option><option *ngFor="let stylist of clientStylists" [value]="stylist.id">{{ stylist.businessName }}</option></select></label>
+      <label class="employee-intake-notes">Envoyer à quel atelier ?<select name="clientModelStylist" [(ngModel)]="clientModelStylistId" required [disabled]="clientModelSaving"><option value="" disabled>Choisir un atelier</option><option *ngFor="let stylist of clientStylists" [value]="stylist.id">{{ stylist.businessName }}</option></select></label>
       <ng-container>
         <label *ngFor="let field of clientModelFields">{{ field.label }} (cm)<input type="number" [name]="'client-model-' + field.key" [(ngModel)]="clientModelValues[field.key]" min="0.1" max="300" step="0.1" [disabled]="clientModelSaving"></label>
       </ng-container>
       <label class="employee-intake-notes">Notes (facultatif)<textarea name="clientModelNotes" [(ngModel)]="clientModelNotes" rows="3" maxlength="1000" placeholder="Coupe souhaitée, préférences…" [disabled]="clientModelSaving"></textarea></label>
-      <button class="stylist-editor-submit" type="submit" [disabled]="clientModelSaving || clientModelForm.invalid">{{ clientModelSaving ? 'Enregistrement…' : 'Enregistrer ce modèle et ses mesures' }} <span>→</span></button>
+      <button class="stylist-editor-submit" type="submit" [disabled]="clientModelSaving || clientModelForm.invalid">{{ clientModelSaving ? 'Envoi…' : 'Envoyer au styliste' }} <span>→</span></button>
     </div>
   </form>
 </div>

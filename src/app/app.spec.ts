@@ -73,6 +73,34 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
+  it('lets the stylist approve the selected model and updates its displayed status', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const record = { id: 'sheet', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001', modelName: 'Tenue de fête', measurements: { poitrine: 92 }, notes: '', source: 'client' as const, validatedAt: null, createdAt: '', updatedAt: '2026-10-31T12:00:00Z' };
+    app.stylistMeasurements = [record];
+    app.openMeasurementValidation(record);
+    const approved = { ...record, validatedAt: '2026-10-31T13:00:00Z', validatedById: 'stylist' };
+    const approve = spyOn(TestBed.inject(DashboardService), 'validateMeasurement').and.resolveTo(approved);
+    await app.confirmMeasurementValidation();
+    expect(approve).toHaveBeenCalledWith(record, 'Tenue de fête');
+    expect(app.stylistMeasurements[0]).toEqual(approved);
+    expect(app.measurementValidationRecord).toBeNull();
+    expect(app.measurementValidationLabel(app.stylistMeasurements[0])).toContain('Validées');
+  });
+
+  it('does not mark order measurements approved based on production status or a different model', () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.clientOrders = [timedOrder({ description: 'Tenue de fête', status: 'inProgress' })];
+    expect(app.orderStepReached(1)).toBeFalse();
+    const record = { id: 'sheet', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '', modelName: 'Autre modèle', measurements: { poitrine: 92 }, notes: '', validatedAt: '2026-10-31T13:00:00Z', createdAt: '', updatedAt: '' };
+    app.clientMeasurements = [record];
+    expect(app.orderStepReached(1)).toBeFalse();
+    app.clientMeasurements = [{ ...record, modelName: 'Tenue de fête' }];
+    expect(app.orderStepReached(1)).toBeTrue();
+    app.clientMeasurements = [];
+    app.clientOrders = [timedOrder({ measurements: { poitrine: 92 } })];
+    expect(app.orderStepReached(1)).toBeTrue();
+  });
+
   it('creates a named measurement model without replacing earlier sheets', async () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.openClientModelEditor();

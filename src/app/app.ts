@@ -350,7 +350,7 @@ export class App implements AfterViewInit, OnDestroy {
       } : await this.dashboard.createClientModelMeasurements(input);
       this.clientMeasurements = [saved, ...this.clientMeasurements];
       this.clientModelEditorOpen = false;
-      this.showToast(`Les mesures du modèle « ${input.modelName} » sont enregistrées.`);
+      this.showToast(`Les mesures du modèle « ${input.modelName} » ont été envoyées au styliste pour validation.`);
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
       this.clientModelError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible d’enregistrer ce modèle. Réessayez.';
@@ -473,6 +473,45 @@ export class App implements AfterViewInit, OnDestroy {
   stylistMeasurementDraft: Record<string, number> = {};
   stylistMeasurementNotes = '';
   stylistMeasurementSaving = false;
+  measurementValidationRecord: DashboardMeasurement | null = null;
+  measurementValidationModel = '';
+  measurementValidationSaving = false;
+  measurementValidationError = '';
+
+  measurementValidationLabel(record: DashboardMeasurement): string {
+    return record.validatedAt ? 'Validées par le styliste' : record.source === 'client' ? 'En attente de validation du styliste' : 'Validation à confirmer';
+  }
+
+  openMeasurementValidation(record: DashboardMeasurement): void {
+    this.measurementValidationRecord = record;
+    this.measurementValidationModel = record.modelName ?? '';
+    this.measurementValidationError = '';
+  }
+
+  async confirmMeasurementValidation(): Promise<void> {
+    const record = this.measurementValidationRecord;
+    if (!record || this.measurementValidationSaving) return;
+    const modelName = this.measurementValidationModel.trim();
+    if (modelName.length < 2) {
+      this.measurementValidationError = 'Précisez le modèle concerné.';
+      return;
+    }
+    this.measurementValidationSaving = true;
+    this.measurementValidationError = '';
+    try {
+      const saved: DashboardMeasurement = this.demoMode
+        ? { ...record, modelName, validatedAt: new Date().toISOString(), validatedById: this.authenticatedUser?.id }
+        : await this.dashboard.validateMeasurement(record, modelName);
+      this.stylistMeasurements = this.stylistMeasurements.map(item => item.id === saved.id ? saved : item);
+      this.measurementValidationRecord = null;
+      this.showToast(`Mesures validées pour « ${modelName} ».`);
+    } catch (error) {
+      const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
+      this.measurementValidationError = typeof detail === 'string' ? detail : 'La validation a échoué. Actualisez la fiche et réessayez.';
+    } finally {
+      this.measurementValidationSaving = false;
+    }
+  }
   catalogDraft = { title: '', description: '', imageUrl: '', price: null as number | null, colors: '' };
   profileDraft = { businessName: '', about: '', specialties: '', profileImage: '' };
   profileImageFileName = '';
@@ -1716,6 +1755,13 @@ export class App implements AfterViewInit, OnDestroy {
     const order = this.currentClientOrder;
     if (!order) return false;
     const current = ({ pending: 0, inProgress: 2, completed: 3, delivered: 4, cancelled: -1 } as const)[order.status];
+    if (step === 1) {
+      if (order.status === 'cancelled') return false;
+      // Order measurements are captured by the stylist when creating the order.
+      if (Object.keys(order.measurements ?? {}).length) return true;
+      return this.clientMeasurements.some(record => !!record.validatedAt && record.stylistId === order.stylistId
+        && record.modelName?.trim().toLocaleLowerCase() === order.description.trim().toLocaleLowerCase());
+    }
     return current >= step;
   }
 

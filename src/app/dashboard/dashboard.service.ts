@@ -53,6 +53,9 @@ export interface DashboardOrder {
 }
 
 export interface DashboardMeasurement {
+  source?: 'stylist' | 'client' | 'employee' | 'legacy';
+  validatedAt?: string | null;
+  validatedById?: string | null;
   modelName?: string | null;
   modelType?: string | null;
   id: string;
@@ -323,6 +326,10 @@ export class DashboardService {
 
   createClientModelMeasurements(input: { stylistId: string; modelName: string; modelType?: string; measurements: Record<string, number>; notes: string }): Promise<DashboardMeasurement> {
     return firstValueFrom(this.http.post<DashboardMeasurement>(getApiUrl('/client/measurements'), input));
+  }
+
+  validateMeasurement(record: DashboardMeasurement, modelName: string): Promise<DashboardMeasurement> {
+    return firstValueFrom(this.http.patch<DashboardMeasurement>(getApiUrl(`/measurements/${record.id}/validate`), { modelName, expectedUpdatedAt: record.updatedAt }));
   }
 
   loadAdminDashboard(): Promise<AdminDashboardSnapshot> {
