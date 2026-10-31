@@ -53,6 +53,8 @@ export interface DashboardOrder {
 }
 
 export interface DashboardMeasurement {
+  modelName?: string | null;
+  modelType?: string | null;
   id: string;
   stylistId: string;
   clientId: string | null;
@@ -315,8 +317,12 @@ export class DashboardService {
     return firstValueFrom(this.http.delete<{ success: boolean }>(getApiUrl(`/catalog/${id}`)));
   }
 
-  saveClientMeasurements(stylistId: string, measurements: Record<string, number>): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.put<DashboardMeasurement>(getApiUrl('/client/measurements'), { stylistId, measurements }));
+  saveClientMeasurements(stylistId: string, measurements: Record<string, number>, measurementId?: string): Promise<DashboardMeasurement> {
+    return firstValueFrom(this.http.put<DashboardMeasurement>(getApiUrl('/client/measurements'), { stylistId, measurements, ...(measurementId && { measurementId }) }));
+  }
+
+  createClientModelMeasurements(input: { stylistId: string; modelName: string; modelType?: string; measurements: Record<string, number>; notes: string }): Promise<DashboardMeasurement> {
+    return firstValueFrom(this.http.post<DashboardMeasurement>(getApiUrl('/client/measurements'), input));
   }
 
   loadAdminDashboard(): Promise<AdminDashboardSnapshot> {

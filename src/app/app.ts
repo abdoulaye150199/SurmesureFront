@@ -302,6 +302,76 @@ export class App implements AfterViewInit, OnDestroy {
   stylistClientSearch = '';
   showStylistClientForm = false;
   editingMeasurement: MeasurementDefinition | null = null;
+  private editingMeasurementRecord: DashboardMeasurement | null = null;
+  clientModelEditorOpen = false;
+  clientModelType = '';
+  clientModelName = '';
+  clientModelStylistId = '';
+  clientModelNotes = '';
+  clientModelValues: Record<string, number | null> = {};
+  clientModelSaving = false;
+  clientModelError = '';
+
+  get clientModelFields(): MeasurementDefinition[] {
+    return this.measurementModels.find(model => model.name === this.clientModelType)?.fields ?? this.measurementDefinitions;
+  }
+
+  openClientModelEditor(): void {
+    this.clientModelType = '';
+    this.clientModelName = '';
+    this.clientModelStylistId = this.latestClientMeasurement?.stylistId ?? '';
+    this.clientModelNotes = '';
+    this.clientModelValues = {};
+    this.clientModelError = '';
+    this.clientModelEditorOpen = true;
+  }
+
+  changeClientModelType(): void {
+    this.clientModelName = this.clientModelType === 'Autre modèle' ? '' : this.clientModelType;
+    this.clientModelValues = {};
+    this.clientModelError = '';
+  }
+
+  async saveClientModel(): Promise<void> {
+    if (this.clientModelSaving) return;
+    this.clientModelError = '';
+    if (!this.clientModelType || this.clientModelName.trim().length < 2 || !this.clientModelStylistId) {
+      this.clientModelError = 'Choisissez un type de modèle, son nom et l’atelier associé.';
+      return;
+    }
+    const measurements: Record<string, number> = {};
+    for (const field of this.clientModelFields) {
+      const value = this.clientModelValues[field.key];
+      if (value == null) continue;
+      if (!Number.isFinite(value) || value <= 0 || value > 300) {
+        this.clientModelError = 'Chaque mesure doit être comprise entre 0 et 300 cm (zéro exclu).';
+        return;
+      }
+      measurements[field.key] = value;
+    }
+    if (!Object.keys(measurements).length) {
+      this.clientModelError = 'Renseignez au moins une mesure pour ce modèle.';
+      return;
+    }
+    this.clientModelSaving = true;
+    try {
+      const input = { stylistId: this.clientModelStylistId, modelName: this.clientModelName.trim(), modelType: this.clientModelType, measurements, notes: this.clientModelNotes.trim() };
+      const now = new Date().toISOString();
+      const saved = this.demoMode ? {
+        ...input, id: `demo-model-${Date.now()}`, clientId: this.authenticatedUser?.id ?? null,
+        clientName: `${this.authenticatedUser?.firstName ?? ''} ${this.authenticatedUser?.lastName ?? ''}`,
+        clientPhone: this.authenticatedUser?.phone ?? '', createdAt: now, updatedAt: now,
+      } : await this.dashboard.createClientModelMeasurements(input);
+      this.clientMeasurements = [saved, ...this.clientMeasurements];
+      this.clientModelEditorOpen = false;
+      this.showToast(`Les mesures du modèle « ${input.modelName} » sont enregistrées.`);
+    } catch (error) {
+      const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
+      this.clientModelError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible d’enregistrer ce modèle. Réessayez.';
+    } finally {
+      this.clientModelSaving = false;
+    }
+  }
   measurementDraft: number | null = null;
   measurementSaving = false;
   updatingOrderId: string | null = null;
@@ -691,7 +761,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   measurementModelCompletedCount(model: MeasurementModel): number {
-    return model.fields.filter(item => this.measurementValue(item.key) != null).length;
+    return model.fields.filter(item => this.measurementValue(item.key, model.name) != null).length;
   }
 
   get measurementCompletion(): number {
@@ -1126,14 +1196,19 @@ export class App implements AfterViewInit, OnDestroy {
     void this.loadDashboard(role);
   }
 
-  measurementValue(key: string): number | null {
-    const value = this.latestClientMeasurement?.measurements[key];
+  measurementValue(key: string, modelName?: string): number | null {
+    const record = modelName ? this.clientMeasurements.find(item => (item.modelType === modelName || item.modelName === modelName))
+      ?? this.clientMeasurements.find(item => !item.modelName) : this.latestClientMeasurement;
+    const value = record?.measurements[key];
     return value == null || !Number.isFinite(Number(value)) ? null : Number(value);
   }
 
-  editMeasurement(definition: MeasurementDefinition): void {
+  editMeasurement(definition: MeasurementDefinition, modelName?: string): void {
+    this.editingMeasurementRecord = modelName ? this.clientMeasurements.find(item => (item.modelType === modelName || item.modelName === modelName))
+      ?? this.clientMeasurements.find(item => !item.modelName) ?? null : this.latestClientMeasurement;
     this.editingMeasurement = definition;
-    this.measurementDraft = this.measurementValue(definition.key);
+    const value = this.editingMeasurementRecord?.measurements[definition.key];
+    this.measurementDraft = value == null ? null : Number(value);
   }
 
   editMeasurementByKey(key: string): void {
@@ -1146,6 +1221,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   closeMeasurementEditor(): void {
+    this.editingMeasurementRecord = null;
     this.editingMeasurement = null;
     this.measurementDraft = null;
   }
@@ -1155,7 +1231,8 @@ export class App implements AfterViewInit, OnDestroy {
       this.showToast('Saisissez une mesure valide en centimètres');
       return;
     }
-    const stylistId = this.latestClientMeasurement?.stylistId ?? this.clientStylists[0]?.id;
+    const record = this.editingMeasurementRecord;
+    const stylistId = record?.stylistId ?? this.clientStylists[0]?.id;
     if (!stylistId) {
       this.showToast('Aucun styliste disponible pour enregistrer ce profil');
       return;
@@ -1163,22 +1240,23 @@ export class App implements AfterViewInit, OnDestroy {
     this.measurementSaving = true;
     try {
       const values = {
-        ...(this.latestClientMeasurement?.measurements ?? {}),
+        ...(record?.measurements ?? {}),
         [this.editingMeasurement.key]: Number(this.measurementDraft),
       };
       const saved = this.demoMode
         ? {
-            id: this.latestClientMeasurement?.id ?? 'demo-measurement-client',
+            id: record?.id ?? 'demo-measurement-client',
+            modelName: record?.modelName, modelType: record?.modelType,
             stylistId,
             clientId: this.authenticatedUser?.id ?? 'demo-client-id',
             clientName: `${this.authenticatedUser?.firstName ?? 'Fatou'} ${this.authenticatedUser?.lastName ?? 'Ndiaye'}`,
             clientPhone: this.authenticatedUser?.phone ?? '+221 77 000 00 01',
             measurements: values,
             notes: 'Profil de mensurations de démonstration',
-            createdAt: this.latestClientMeasurement?.createdAt ?? new Date().toISOString(),
+            createdAt: record?.createdAt ?? new Date().toISOString(),
             updatedAt: new Date().toISOString(),
           }
-        : await this.dashboard.saveClientMeasurements(stylistId, values);
+        : await this.dashboard.saveClientMeasurements(stylistId, values, record?.id);
       this.clientMeasurements = [saved, ...this.clientMeasurements.filter(item => item.id !== saved.id)];
       this.showToast(`${this.editingMeasurement.label} mise à jour`);
       this.closeMeasurementEditor();

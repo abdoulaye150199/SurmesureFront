@@ -73,6 +73,24 @@ describe('App', () => {
     expect(app).toBeTruthy();
   });
 
+  it('creates a named measurement model without replacing earlier sheets', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.openClientModelEditor();
+    app.clientModelType = 'Pantalon';
+    app.changeClientModelType();
+    app.clientModelName = 'Pantalon de cérémonie';
+    app.clientModelStylistId = 'atelier';
+    app.clientModelValues = { taille: 74, entrejambe: 80 };
+    const created = { id: 'model-sheet', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001', modelName: 'Pantalon de cérémonie', modelType: 'Pantalon', measurements: { taille: 74, entrejambe: 80 }, notes: '', createdAt: '', updatedAt: '' };
+    const create = spyOn(TestBed.inject(DashboardService), 'createClientModelMeasurements').and.resolveTo(created);
+    await app.saveClientModel();
+    expect(create).toHaveBeenCalledWith(jasmine.objectContaining({ modelName: 'Pantalon de cérémonie', modelType: 'Pantalon', measurements: { taille: 74, entrejambe: 80 } }));
+    expect(app.clientMeasurements[0]).toEqual(created);
+    expect(app.clientModelEditorOpen).toBeFalse();
+    expect(app.measurementValue('taille', 'Pantalon')).toBe(74);
+    expect(app.measurementValue('taille', 'Robe & ensemble')).toBeNull();
+  });
+
   const timedOrder = (overrides: Partial<DashboardOrder> = {}): DashboardOrder => ({
     id: 'timed-order', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001',
     description: 'Robe', totalPrice: 45000, currency: 'XOF', status: 'inProgress',

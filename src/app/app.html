@@ -279,7 +279,7 @@
       <div class="client-portal measurement-portal">
         <header class="client-portal-header">
           <div><span>Mensurations enregistrées · {{ latestClientMeasurement ? 'Mis à jour le ' + formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span><h1>Mes mesures</h1><p>Retrouvez les mesures utiles à chaque type de vêtement.</p></div>
-          <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Ajouter une mesure" (click)="editNextMeasurement()">＋</button><button class="client-alert" type="button" aria-label="Notifications de livraison" [attr.aria-expanded]="clientNotificationsOpen" (click)="openClientNotifications()">♧<b>{{ unreadDeliveryReminders }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+          <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Ajouter une mesure" (click)="openClientModelEditor()">＋</button><button class="client-alert" type="button" aria-label="Notifications de livraison" [attr.aria-expanded]="clientNotificationsOpen" (click)="openClientNotifications()">♧<b>{{ unreadDeliveryReminders }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
         </header>
 
         <ng-container *ngTemplateOutlet="deliveryNotifications"></ng-container>
@@ -293,7 +293,7 @@
         </section>
 
         <section class="measurement-models" aria-label="Mesures par type de vêtement">
-          <button class="client-add-measurement" type="button" (click)="editNextMeasurement()"><span aria-hidden="true">＋</span> Ajouter une nouvelle mensuration</button>
+          <button class="client-add-measurement" type="button" (click)="openClientModelEditor()"><span aria-hidden="true">＋</span> Ajouter une nouvelle mensuration</button>
           <article class="client-panel measurement-model-card" *ngFor="let model of measurementModels; let modelIndex = index">
             <button class="measurement-model-toggle" type="button" [attr.aria-expanded]="openMeasurementModel === model.name" [attr.aria-controls]="'measurement-model-fields-' + modelIndex" (click)="toggleMeasurementModel(model.name)">
               <span class="measurement-model-copy"><span>Mesures pour</span><strong>{{ model.name }}</strong><small>{{ model.description }}</small></span>
@@ -301,8 +301,8 @@
               <i class="measurement-model-chevron" aria-hidden="true">⌄</i>
             </button>
             <div class="measurement-model-fields" *ngIf="openMeasurementModel === model.name" [id]="'measurement-model-fields-' + modelIndex">
-              <button *ngFor="let item of model.fields" type="button" [class.missing]="measurementValue(item.key) == null" (click)="editMeasurement(item)">
-                <span>{{ item.label }}</span><strong>{{ measurementValue(item.key) == null ? 'Ajouter' : measurementValue(item.key) + ' cm' }}</strong><i>{{ measurementValue(item.key) == null ? '＋' : '✎' }}</i>
+              <button *ngFor="let item of model.fields" type="button" [class.missing]="measurementValue(item.key, model.name) == null" (click)="editMeasurement(item, model.name)">
+                <span>{{ item.label }}</span><strong>{{ measurementValue(item.key, model.name) == null ? 'Ajouter' : measurementValue(item.key, model.name) + ' cm' }}</strong><i>{{ measurementValue(item.key, model.name) == null ? '＋' : '✎' }}</i>
               </button>
             </div>
           </article>
@@ -310,9 +310,9 @@
 
         <section class="client-panel client-measurement-history" *ngIf="clientMeasurements.length" aria-labelledby="client-measurement-history-title">
           <div class="client-panel-heading"><div><span>Votre historique</span><h2 id="client-measurement-history-title">Mes fiches de mesures</h2></div></div>
-          <p>Retrouvez les mesures enregistrées avec vos ateliers. La fiche la plus récemment modifiée est utilisée dans votre profil ci-dessus.</p>
+          <p>Retrouvez les mesures enregistrées avec vos ateliers. Chaque modèle conserve ses propres mesures. Les fiches sans modèle servent de profil général.</p>
           <details *ngFor="let record of clientMeasurements; let index = index" [open]="index === 0">
-            <summary><span><strong>{{ measurementAtelierName(record) }}</strong><small>Mis à jour le {{ formatDate(record.updatedAt) }}{{ index === 0 ? ' · Fiche actuelle' : '' }}</small></span><span aria-hidden="true">⌄</span></summary>
+            <summary><span><strong>{{ record.modelName || measurementAtelierName(record) }}</strong><small>{{ record.modelName ? measurementAtelierName(record) + ' · ' : '' }}Mis à jour le {{ formatDate(record.updatedAt) }}{{ index === 0 ? ' · Fiche la plus récente' : '' }}</small></span><span aria-hidden="true">⌄</span></summary>
             <dl><div *ngFor="let field of record.measurements | keyvalue"><dt>{{ measurementFieldLabel(field.key) }}</dt><dd>{{ field.value }} cm</dd></div></dl>
             <p *ngIf="record.notes">{{ record.notes }}</p>
           </details>
@@ -552,7 +552,7 @@
           <summary><span><strong>{{ client.name }}</strong><small>{{ client.phone }} · {{ client.measurements.length }} fiche(s) de mesures · {{ client.orders.length }} commande(s) · {{ client.appointments.length }} rendez-vous</small></span><i>Ouvrir le dossier</i></summary>
           <div class="stylist-client-record-content">
             <div class="stylist-client-record-actions"><button type="button" (click)="copyPhone(client.phone)">Copier le numéro</button><button type="button" *ngIf="client.measurements[0] as latestMeasurement" (click)="copyMeasurement(latestMeasurement)">Copier les dernières mesures</button></div>
-            <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>Mensurations · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p *ngIf="measurement.notes">{{ measurement.notes }}</p><button *ngIf="activeView === 'stylist'" type="button" (click)="editStylistMeasurement(measurement)">Modifier ces mesures</button></section>
+            <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>{{ measurement.modelName || 'Mensurations' }} · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p *ngIf="measurement.notes">{{ measurement.notes }}</p><button *ngIf="activeView === 'stylist'" type="button" (click)="editStylistMeasurement(measurement)">Modifier ces mesures</button></section>
             <section class="stylist-client-history" *ngFor="let order of client.orders"><h3>Commande · {{ order.description }}</h3><p>{{ orderStatusLabel(order.status) }} · {{ formatDate(order.updatedAt) }} · {{ price(order.totalPrice) | number:'1.0-0' }} FCFA</p></section>
             <section class="stylist-client-history" *ngFor="let appointment of client.appointments"><h3>Rendez-vous · {{ appointment.service }}</h3><p>{{ formatDate(appointment.startsAt) }} à {{ formatDate(appointment.startsAt, 'time') }} · {{ appointment.status === 'pending' ? 'À confirmer' : appointment.status === 'confirmed' ? 'Confirmé' : appointment.status === 'completed' ? 'Terminé' : 'Annulé' }}</p></section>
           </div>
@@ -571,7 +571,7 @@
       <section class="analytics-panel stylist-records" id="stylist-measurements" *ngIf="stylistPage === 'measurements'">
         <div class="analytics-panel-heading"><div><span>Profils clients</span><h2>Mensurations</h2></div><b>{{ stylistMeasurements.length }} profil(s)</b></div>
         <details class="stylist-record" *ngFor="let measurement of stylistMeasurements">
-          <summary><span><strong>{{ measurement.clientName }}</strong><small>{{ measurement.clientPhone }} · mis à jour le {{ formatDate(measurement.updatedAt) }}</small></span><i>Voir les mesures</i></summary>
+          <summary><span><strong>{{ measurement.clientName }}{{ measurement.modelName ? ' · ' + measurement.modelName : '' }}</strong><small>{{ measurement.clientPhone }} · mis à jour le {{ formatDate(measurement.updatedAt) }}</small></span><i>Voir les mesures</i></summary>
           <div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div>
           <div class="stylist-record-actions"><button type="button" (click)="editStylistMeasurement(measurement)">Modifier les mesures</button><button type="button" (click)="copyMeasurement(measurement)">Copier les mesures</button><button type="button" (click)="copyPhone(measurement.clientPhone)">Copier le numéro</button></div>
         </details>
@@ -664,7 +664,7 @@
             <summary><span><strong>{{ client.name }}</strong><small>{{ client.phone }} · {{ client.measurements.length }} fiche(s) de mesures</small></span><i>Ouvrir le dossier</i></summary>
             <div class="stylist-client-record-content">
               <div class="stylist-client-record-actions"><button type="button" (click)="copyPhone(client.phone)">Copier le numéro</button><button type="button" *ngIf="client.measurements[0] as latestMeasurement" (click)="copyMeasurement(latestMeasurement)">Copier les dernières mesures</button></div>
-              <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>Mensurations · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p *ngIf="measurement.notes">{{ measurement.notes }}</p></section>
+              <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>{{ measurement.modelName || 'Mensurations' }} · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p *ngIf="measurement.notes">{{ measurement.notes }}</p></section>
             </div>
           </details>
           <div class="dashboard-inline-empty dark" *ngIf="!stylistClientRecords.length && !dashboardLoading">{{ stylistClientSearch ? 'Aucune cliente ne correspond à cette recherche.' : 'Aucune fiche cliente dans cet atelier.' }}</div>
@@ -674,6 +674,25 @@
   </ng-container>
 </section>
 
+<div class="dashboard-dialog-backdrop" *ngIf="clientModelEditorOpen" (click)="!clientModelSaving && (clientModelEditorOpen = false)">
+  <form #clientModelForm="ngForm" class="dashboard-dialog stylist-editor-dialog client-model-dialog" role="dialog" aria-modal="true" aria-labelledby="client-model-title" (ngSubmit)="clientModelForm.valid && saveClientModel()" (click)="$event.stopPropagation()">
+    <button class="dashboard-dialog-close" type="button" (click)="clientModelEditorOpen = false" [disabled]="clientModelSaving" aria-label="Fermer">×</button>
+    <span>Vos modèles, vos mesures</span><h2 id="client-model-title">Nouvelle fiche de mensurations</h2>
+    <p>Précisez le modèle que vous souhaitez enregistrer, puis renseignez ses mesures. Une nouvelle fiche sera créée.</p>
+    <p role="alert" *ngIf="clientModelError">{{ clientModelError }}</p>
+    <div class="employee-intake-form">
+      <label>Type de modèle<select name="clientModelType" [(ngModel)]="clientModelType" (ngModelChange)="changeClientModelType()" required [disabled]="clientModelSaving"><option value="" disabled>Choisir un modèle</option><option *ngFor="let model of measurementModels" [value]="model.name">{{ model.name }}</option><option value="Autre modèle">Autre modèle</option></select></label>
+      <label>Nom du modèle<input name="clientModelName" [(ngModel)]="clientModelName" placeholder="Ex. Boubou de Tabaski" minlength="2" maxlength="120" required [disabled]="clientModelSaving"></label>
+      <label class="employee-intake-notes">Atelier associé<select name="clientModelStylist" [(ngModel)]="clientModelStylistId" required [disabled]="clientModelSaving"><option value="" disabled>Choisir un atelier</option><option *ngFor="let stylist of clientStylists" [value]="stylist.id">{{ stylist.businessName }}</option></select></label>
+      <ng-container *ngIf="clientModelType">
+        <label *ngFor="let field of clientModelFields">{{ field.label }} (cm)<input type="number" [name]="'client-model-' + field.key" [(ngModel)]="clientModelValues[field.key]" min="0.1" max="300" step="0.1" [disabled]="clientModelSaving"></label>
+      </ng-container>
+      <label class="employee-intake-notes">Notes (facultatif)<textarea name="clientModelNotes" [(ngModel)]="clientModelNotes" rows="3" maxlength="1000" placeholder="Coupe souhaitée, préférences…" [disabled]="clientModelSaving"></textarea></label>
+      <button class="stylist-editor-submit" type="submit" [disabled]="clientModelSaving || clientModelForm.invalid">{{ clientModelSaving ? 'Enregistrement…' : 'Enregistrer ce modèle et ses mesures' }} <span>→</span></button>
+    </div>
+  </form>
+</div>
+
 <div class="dashboard-dialog-backdrop" *ngIf="editingMeasurement" (click)="closeMeasurementEditor()">
   <section class="dashboard-dialog" role="dialog" aria-modal="true" aria-labelledby="measurement-editor-title" (click)="$event.stopPropagation()">
     <button class="dashboard-dialog-close" type="button" (click)="closeMeasurementEditor()" aria-label="Fermer">×</button>
@@ -681,10 +700,6 @@
     <h2 id="measurement-editor-title">{{ editingMeasurement.label }}</h2>
     <p>Indiquez la valeur en centimètres. Vous pourrez la modifier à tout moment.</p>
     <form (ngSubmit)="saveMeasurement()">
-      <label for="client-measurement-type">Mensuration à renseigner</label>
-      <select class="client-measurement-select" id="client-measurement-type" name="measurementType" [ngModel]="editingMeasurement.key" (ngModelChange)="editMeasurementByKey($event)" [disabled]="measurementSaving">
-        <option *ngFor="let definition of measurementDefinitions" [value]="definition.key">{{ definition.label }}{{ measurementValue(definition.key) !== null ? ' · déjà renseignée' : '' }}</option>
-      </select>
       <label for="measurement-value">Valeur en centimètres</label>
       <div><input id="measurement-value" type="number" name="measurementValue" [(ngModel)]="measurementDraft" min="1" max="300" step="0.5" required><b>cm</b></div>
       <button type="submit" [disabled]="measurementSaving">{{ measurementSaving ? 'Enregistrement…' : 'Enregistrer la mesure' }} <i>→</i></button>

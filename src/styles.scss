@@ -1,4 +1,7 @@
 * { box-sizing: border-box; }
+app-root .client-model-dialog { width:min(640px,calc(100vw - 32px)); }
+app-root .client-model-dialog .employee-intake-form label { font-size:12px; }
+app-root .client-model-dialog .employee-intake-form input,app-root .client-model-dialog .employee-intake-form textarea,app-root .client-model-dialog select { width:100%; min-width:0; height:auto; min-height:44px; padding:10px 12px; border:1px solid #dacbd4; border-radius:9px; background:#fff; color:#4b1f47; font:14px 'Segoe UI',Arial,sans-serif; }
 app-root .client-add-measurement { grid-column:1/-1; justify-self:start; display:inline-flex; align-items:center; gap:9px; min-height:44px; padding:12px 18px; border:0; border-radius:10px; background:#5e0a61; color:#fff; font:600 13px 'Segoe UI',Arial,sans-serif; cursor:pointer; }
 app-root .client-add-measurement > span { font-size:20px; font-weight:400; }
 app-root .client-add-measurement:focus-visible { outline:3px solid #c59abd; outline-offset:3px; }
