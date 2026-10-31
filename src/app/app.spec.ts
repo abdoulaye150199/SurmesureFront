@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
-import { DashboardService } from './dashboard/dashboard.service';
+import { DashboardOrder, DashboardService } from './dashboard/dashboard.service';
 import { OfflineWorkspaceStore } from './dashboard/offline-workspace.store';
 import { AuthService } from './auth/auth.service';
 
@@ -21,6 +21,67 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     expect(app).toBeTruthy();
+  });
+
+  const timedOrder = (overrides: Partial<DashboardOrder> = {}): DashboardOrder => ({
+    id: 'timed-order', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001',
+    description: 'Robe', totalPrice: 45000, currency: 'XOF', status: 'inProgress',
+    createdAt: '2030-01-01T12:00:00Z', updatedAt: '2030-01-01T12:00:00Z', dueAt: '2030-01-03T12:00:00Z', ...overrides,
+  });
+
+  it('updates time progress and triggers the reminder at 24 hours remaining', () => {
+    jasmine.clock().install();
+    let fixture: ReturnType<typeof TestBed.createComponent<App>> | undefined;
+    try {
+      jasmine.clock().mockDate(new Date('2030-01-02T11:59:00Z'));
+      fixture = TestBed.createComponent(App);
+      const app = fixture.componentInstance;
+      app.clientOrders = [timedOrder()];
+      expect(app.clientDeliveryReminders.length).toBe(0);
+      jasmine.clock().tick(60_000);
+      expect(app.clientDeliveryReminders.length).toBe(1);
+      expect(app.orderTimeProgress(app.clientOrders[0])).toBe(50);
+      expect(app.orderTimeRemainingLabel(app.clientOrders[0])).toBe('Temps restant : 1 j');
+    } finally {
+      fixture?.destroy();
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it('remembers read reminders per client and alerts again for a changed delivery date', () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.orderClock.set(new Date('2030-01-02T12:00:00Z').getTime());
+    app.clientOrders = [timedOrder()];
+    app.authenticatedUser = { id: 'reminder-client-a' } as typeof app.authenticatedUser;
+    localStorage.removeItem('surmesure.delivery-reminders.reminder-client-a');
+    localStorage.removeItem('surmesure.delivery-reminders.reminder-client-b');
+    expect(app.unreadDeliveryReminders).toBe(1);
+    // Opening the notification panel updates the clock to the actual current time.
+    spyOn(app, 'updateOrderClock');
+    app.openClientNotifications();
+    expect(app.unreadDeliveryReminders).toBe(0);
+    app.clientOrders = [timedOrder({ dueAt: '2030-01-03T11:00:00Z' })];
+    expect(app.unreadDeliveryReminders).toBe(1);
+    app.authenticatedUser = { id: 'reminder-client-b' } as typeof app.authenticatedUser;
+    expect(app.unreadDeliveryReminders).toBe(1);
+    localStorage.removeItem('surmesure.delivery-reminders.reminder-client-a');
+    localStorage.removeItem('surmesure.delivery-reminders.reminder-client-b');
+  });
+
+  it('handles overdue, cancelled, delivered and undated orders without false reminders', () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.orderClock.set(new Date('2030-01-03T12:00:00Z').getTime());
+    const overdue = timedOrder();
+    const cancelled = timedOrder({ status: 'cancelled', dueAt: '2030-01-04T11:00:00Z' });
+    const delivered = timedOrder({ status: 'delivered', dueAt: '2030-01-04T11:00:00Z' });
+    const undated = timedOrder({ dueAt: null });
+    app.clientOrders = [overdue, cancelled, delivered, undated];
+    expect(app.clientDeliveryReminders).toEqual([]);
+    expect(app.orderTimeProgress(overdue)).toBe(100);
+    expect(app.orderTimeRemainingLabel(overdue)).toContain('Échéance atteinte');
+    expect(app.orderTimeRemainingLabel(delivered)).toBe('Commande livrée');
+    expect(app.orderTimeProgress(cancelled)).toBeNull();
+    expect(app.orderTimeProgress(undated)).toBeNull();
   });
 
   it('creates a stylist order and adds it to the order list', async () => {

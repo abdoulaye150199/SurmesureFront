@@ -278,9 +278,10 @@
       <div class="client-portal measurement-portal">
         <header class="client-portal-header">
           <div><span>Mensurations enregistrées · {{ latestClientMeasurement ? 'Mis à jour le ' + formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span><h1>Mes mesures</h1><p>Retrouvez les mesures utiles à chaque type de vêtement.</p></div>
-          <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Ajouter une mesure" (click)="editNextMeasurement()">＋</button><button class="client-alert" type="button" aria-label="Mesures restant à compléter" (click)="showToast(missingMeasurements.length + ' mesure(s) reste(nt) à compléter')">♧<b>{{ missingMeasurements.length }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+          <div class="client-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" aria-label="Ajouter une mesure" (click)="editNextMeasurement()">＋</button><button class="client-alert" type="button" aria-label="Notifications de livraison" [attr.aria-expanded]="clientNotificationsOpen" (click)="openClientNotifications()">♧<b>{{ unreadDeliveryReminders }}</b></button><button class="client-avatar" type="button">{{ userInitials }}</button><button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
         </header>
 
+        <ng-container *ngTemplateOutlet="deliveryNotifications"></ng-container>
         <div class="dashboard-feedback loading" *ngIf="dashboardLoading"><i></i><span>Synchronisation de vos mesures…</span></div>
         <div class="dashboard-feedback error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
 
@@ -336,12 +337,13 @@
           <div><span>Votre espace personnel</span><h1>{{ clientPageTitle }}</h1><p>Retrouvez ici l’essentiel de votre expérience sur mesure.</p></div>
           <div class="client-header-actions">
             <button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button>
-            <button class="client-alert" type="button" aria-label="Notifications" (click)="showToast(nextClientAppointment ? 'Votre prochain rendez-vous est le ' + formatDate(nextClientAppointment.startsAt) : 'Aucune nouvelle notification')">♧<b>{{ nextClientAppointment ? 1 : 0 }}</b></button>
+            <button class="client-alert" type="button" aria-label="Notifications de livraison" [attr.aria-expanded]="clientNotificationsOpen" (click)="openClientNotifications()">♧<b>{{ unreadDeliveryReminders }}</b></button>
             <button class="client-avatar" type="button" (click)="openClientProfile()" aria-label="Ouvrir mon profil">{{ userInitials }}</button>
             <button class="dashboard-logout light" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button>
           </div>
         </header>
 
+        <ng-container *ngTemplateOutlet="deliveryNotifications"></ng-container>
         <div class="dashboard-feedback loading" *ngIf="dashboardLoading"><i></i><span>Actualisation de votre espace…</span></div>
         <div class="dashboard-feedback error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
 
@@ -355,6 +357,7 @@
           <section class="client-panel client-order-panel" id="client-order" *ngIf="currentClientOrder as order; else noClientOrderPanel">
             <div class="client-panel-heading"><div><span>Suivi de création</span><h2>{{ order.description }}</h2></div><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b></div>
             <div class="client-order-product"><img [src]="orderImage(order)" [alt]="order.description"><div><span>{{ order.stylist?.businessName || 'Atelier partenaire' }} · #{{ orderShortId(order) }}</span><h3>Une pièce créée pour vous</h3><p>Dernière mise à jour le {{ formatDate(order.updatedAt) }}</p><p *ngIf="order.dueAt">Livraison / retrait : {{ orderDeliveryLabel(order) }} (Dakar)</p></div><button type="button" (click)="showToast(order.notes || 'Commande synchronisée avec votre atelier')">Voir les détails ↗</button></div>
+            <ng-container *ngTemplateOutlet="orderTimeTracking; context: { $implicit: order }"></ng-container>
             <div class="client-timeline">
               <article [class.complete]="orderStepReached(0)"><i>{{ orderStepReached(0) ? '✓' : '01' }}</i><div><strong>Commande confirmée</strong><span>{{ formatDate(order.createdAt) }}</span></div></article>
               <article [class.complete]="orderStepReached(1)"><i>{{ orderStepReached(1) ? '✓' : '02' }}</i><div><strong>Mesures validées</strong><span>{{ latestClientMeasurement ? formatDate(latestClientMeasurement.updatedAt) : 'À compléter' }}</span></div></article>
@@ -383,7 +386,7 @@
           <div class="client-panel-heading"><h2>Mes commandes</h2><span>{{ clientOrders.length }} commande(s)</span></div>
           <article class="client-order-product" *ngFor="let order of clientOrders">
             <img [src]="orderImage(order)" [alt]="order.description">
-            <div><span>#{{ orderShortId(order) }} · {{ order.stylist?.businessName || 'Atelier partenaire' }}</span><h3>{{ order.description }}</h3><p *ngIf="order.dueAt">Livraison / retrait : {{ orderDeliveryLabel(order) }} (Dakar)</p><p>{{ formatDate(order.createdAt) }} · {{ price(order.totalPrice) | number:'1.0-0' }} FCFA</p><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b></div>
+            <div><span>#{{ orderShortId(order) }} · {{ order.stylist?.businessName || 'Atelier partenaire' }}</span><h3>{{ order.description }}</h3><ng-container *ngTemplateOutlet="orderTimeTracking; context: { $implicit: order }"></ng-container><p *ngIf="order.dueAt">Livraison / retrait : {{ orderDeliveryLabel(order) }} (Dakar)</p><p>{{ formatDate(order.createdAt) }} · {{ price(order.totalPrice) | number:'1.0-0' }} FCFA</p><b [class]="orderStatusClass(order.status)">{{ orderStatusLabel(order.status) }}</b></div>
             <button type="button" (click)="showToast(order.notes || 'Commande synchronisée avec votre atelier')">Voir les détails ↗</button>
           </article>
           <div class="dashboard-inline-empty" *ngIf="!clientOrders.length">Aucune commande pour le moment.</div>
@@ -761,3 +764,31 @@
 <app-signup-page *ngIf="activeView === 'signup'" [initialRole]="signupRole" (closed)="setView('home')" (loginRequested)="openLogin($event)" (accountCreated)="onAccountCreated($event)"></app-signup-page>
 <app-login *ngIf="loginOpen" [initialRole]="loginRole" (closed)="closeLogin()" (signupRequested)="onSignupRequested($event)" (loggedIn)="onLoggedIn($event)"></app-login>
 <div class="toast" role="status" aria-live="polite" [class.show]="toast">{{ toast }}</div>
+
+<ng-template #orderTimeTracking let-order>
+  <div class="client-order-time" *ngIf="order.dueAt">
+    <strong>{{ orderTimeRemainingLabel(order) }}</strong>
+    <ng-container *ngIf="orderTimeProgress(order) !== null">
+      <label>Temps écoulé avant la livraison prévue : {{ orderTimeProgress(order) }} %</label>
+      <progress max="100" [value]="orderTimeProgress(order)" aria-label="Temps écoulé avant la livraison prévue"></progress>
+      <small>Le statut de confection est mis à jour par votre styliste.</small>
+    </ng-container>
+  </div>
+</ng-template>
+
+<ng-template #deliveryNotifications>
+  <div class="client-delivery-notice" *ngIf="unreadDeliveryReminders && !clientNotificationsOpen" role="status">
+    <span>◷ {{ unreadDeliveryReminders }} commande(s) prévue(s) dans moins de 24 heures.</span>
+    <button type="button" (click)="openClientNotifications()">Voir les rappels</button>
+  </div>
+  <section class="client-panel client-delivery-notifications" *ngIf="clientNotificationsOpen" aria-label="Notifications de livraison">
+    <div class="client-panel-heading"><h2>Notifications</h2><button type="button" (click)="clientNotificationsOpen = false">Fermer</button></div>
+    <article *ngFor="let order of clientDeliveryReminders">
+      <strong>Votre commande « {{ order.description }} » est prévue dans moins de 24 heures.</strong>
+      <p>Livraison / retrait : {{ orderDeliveryLabel(order) }} (heure de Dakar).</p>
+      <p>{{ orderTimeRemainingLabel(order) }}</p>
+      <button type="button" (click)="setClientPage('orders'); clientNotificationsOpen = false">Voir mes commandes →</button>
+    </article>
+    <p *ngIf="!clientDeliveryReminders.length">Aucun rappel de livraison pour le moment.</p>
+  </section>
+</ng-template>

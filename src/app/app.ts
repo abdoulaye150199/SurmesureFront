@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { AfterViewInit, Component, HostListener, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, HostListener, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { LoginComponent } from './login/login';
 import { SignupPageComponent } from './signup-page/signup-page';
@@ -120,6 +120,65 @@ export class App implements AfterViewInit, OnDestroy {
   loggingOut = false;
   demoMode = false;
   clientOrders: DashboardOrder[] = [];
+  readonly orderClock = signal(Date.now());
+  clientNotificationsOpen = false;
+  private readonly orderClockTimer = setInterval(() => this.orderClock.set(Date.now()), 60_000);
+
+  @HostListener('window:focus')
+  updateOrderClock(): void { this.orderClock.set(Date.now()); }
+
+  private orderRemainingMs(order: DashboardOrder): number | null {
+    const due = order.dueAt ? new Date(order.dueAt).getTime() : NaN;
+    return Number.isFinite(due) ? due - this.orderClock() : null;
+  }
+
+  orderTimeProgress(order: DashboardOrder): number | null {
+    const due = order.dueAt ? new Date(order.dueAt).getTime() : NaN;
+    const created = new Date(order.createdAt).getTime();
+    if (!Number.isFinite(due) || !Number.isFinite(created) || due <= created || order.status === 'cancelled') return null;
+    if (order.status === 'delivered') return 100;
+    return Math.max(0, Math.min(100, Math.floor((this.orderClock() - created) / (due - created) * 100)));
+  }
+
+  orderTimeRemainingLabel(order: DashboardOrder): string {
+    if (order.status === 'delivered') return 'Commande livrée';
+    if (order.status === 'cancelled') return 'Commande annulée';
+    const remaining = this.orderRemainingMs(order);
+    if (remaining === null) return 'Date de livraison à confirmer';
+    if (remaining <= 0) return 'Échéance atteinte — contactez votre atelier';
+    const minutes = Math.ceil(remaining / 60_000);
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor(minutes % 1440 / 60);
+    const rest = minutes % 60;
+    return `Temps restant : ${days ? days + ' j ' : ''}${hours ? hours + ' h ' : ''}${rest || (!days && !hours) ? rest + ' min' : ''}`.trim();
+  }
+
+  get clientDeliveryReminders(): DashboardOrder[] {
+    return this.clientOrders.filter(order => {
+      const remaining = this.orderRemainingMs(order);
+      return order.status !== 'cancelled' && order.status !== 'delivered' && remaining !== null && remaining > 0 && remaining <= 86_400_000;
+    }).sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime());
+  }
+
+  private get deliveryReminderStorageKey(): string {
+    return `surmesure.delivery-reminders.${this.authenticatedUser?.id ?? (this.demoMode ? 'demo' : 'visitor')}`;
+  }
+
+  private deliveryReminderKey(order: DashboardOrder): string { return `${order.id}:${order.dueAt}`; }
+
+  get unreadDeliveryReminders(): number {
+    const read = this.readStoredArray<string>(this.deliveryReminderStorageKey);
+    return this.clientDeliveryReminders.filter(order => !read.includes(this.deliveryReminderKey(order))).length;
+  }
+
+  openClientNotifications(): void {
+    this.updateOrderClock();
+    this.clientNotificationsOpen = !this.clientNotificationsOpen;
+    if (this.clientNotificationsOpen) {
+      const read = this.readStoredArray<string>(this.deliveryReminderStorageKey);
+      this.writeStoredArray(this.deliveryReminderStorageKey, [...new Set([...read, ...this.clientDeliveryReminders.map(order => this.deliveryReminderKey(order))])].slice(-500));
+    }
+  }
   clientPage: ClientPage = 'overview';
 
   get clientPageTitle(): string {
@@ -720,6 +779,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    clearInterval(this.orderClockTimer);
     this.revealObserver?.disconnect();
     if (this.scrollStopTimer) clearTimeout(this.scrollStopTimer);
   }
@@ -759,6 +819,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private clearPrivateWorkspaceData(): void {
+    this.clientNotificationsOpen = false;
     this.clientOrders = [];
     this.clientMeasurements = [];
     this.clientAppointments = [];
