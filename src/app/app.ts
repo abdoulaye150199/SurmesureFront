@@ -181,6 +181,7 @@ export class App implements AfterViewInit, OnDestroy {
   orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null as number | null, notes: '' };
 
   openOrderEditor(): void {
+    this.setStylistPage('orders');
     this.orderMeasurements = {};
     this.orderDurationDays = null;
     this.orderDueAt = '';
