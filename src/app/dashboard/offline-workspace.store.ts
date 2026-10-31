@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import {
+  DashboardOrder,
   DashboardMeasurement,
   DashboardStylist,
   EmployeeWorkspaceContext,
@@ -12,6 +13,7 @@ export interface OfflineWorkspaceSnapshot {
   role: OfflineWorkspaceRole;
   savedAt: string;
   measurements: DashboardMeasurement[];
+  orders?: DashboardOrder[];
   stylistProfile?: DashboardStylist | null;
   employeeContext?: EmployeeWorkspaceContext | null;
 }

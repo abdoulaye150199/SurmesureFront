@@ -15,6 +15,7 @@ export interface AuthUser {
   phone: string;
   profileImage: string;
   isActive: boolean;
+  mustChangePassword?: boolean;
 }
 
 export interface AuthSession {
@@ -74,6 +75,10 @@ export class AuthService {
   async register(role: Exclude<AppAccountRole, 'admin' | 'employee'>, payload: RegisterPayload): Promise<AuthUser> {
     const endpoint = role === 'stylist' ? '/auth/stylist/signup' : '/auth/register';
     return this.authenticate(endpoint, payload);
+  }
+
+  changeEmployeePassword(currentPassword: string, newPassword: string): Promise<AuthUser> {
+    return this.authenticate('/auth/employee/password', { currentPassword, newPassword });
   }
 
   async validateSession(): Promise<boolean> {

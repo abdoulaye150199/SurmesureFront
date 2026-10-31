@@ -23,6 +23,41 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
+  it('shows exactly four employee pages and the first-login password suggestion', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    spyOn(app, 'ngAfterViewInit');
+    app.activeView = 'employee';
+    app.authenticatedUser = { id: 'employee', role: 'EMPLOYEE', firstName: 'Mame', lastName: 'Sarr', mustChangePassword: true } as NonNullable<App['authenticatedUser']>;
+    fixture.detectChanges();
+    const nav = fixture.nativeElement.querySelector('#employee-main-nav');
+    expect(nav.querySelectorAll('button').length).toBe(4);
+    expect(nav.textContent).toContain('Nouvelle commande');
+    expect(nav.textContent).not.toContain('Nouvelle fiche');
+    expect(fixture.nativeElement.querySelector('#employee-order-form')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.employee-password-welcome')).toBeTruthy();
+    app.setEmployeePage('profile');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#employee-order-form')).toBeNull();
+    expect(fixture.nativeElement.querySelector('.employee-security-form').textContent).toContain('Modifier mon mot de passe');
+    expect(fixture.nativeElement.querySelector('.customer-profile').textContent).toContain('Première connexion');
+  });
+
+  it('rejects different password confirmations and clears secrets after success', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const auth = TestBed.inject(AuthService);
+    const change = spyOn(auth, 'changeEmployeePassword').and.resolveTo({ mustChangePassword: false } as NonNullable<App['authenticatedUser']>);
+    app.employeePasswordDraft = { current: 'InitialPassword2026', next: 'PersonalPassword2026', confirm: 'DifferentPassword2026' };
+    await app.changeEmployeePassword();
+    expect(change).not.toHaveBeenCalled();
+    expect(app.employeePasswordError).toBeTruthy();
+    app.employeePasswordDraft.confirm = app.employeePasswordDraft.next;
+    await app.changeEmployeePassword();
+    expect(change).toHaveBeenCalledWith('InitialPassword2026', 'PersonalPassword2026');
+    expect(app.employeePasswordDraft.current).toBe('');
+    expect(app.authenticatedUser?.mustChangePassword).toBeFalse();
+  });
+
   it('gives client pages distinct URLs and responds to browser history', () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.demoMode = true;

@@ -142,3 +142,29 @@ body { width: 100%; margin: 0; overflow-x: clip; background: #fffcf8; font-famil
   .stylist-profile-close { top:calc(env(safe-area-inset-top, 0px) + 12px)!important; right:calc(env(safe-area-inset-right, 0px) + 12px)!important; z-index:10!important; width:42px!important; height:42px!important; background:#5e0a61!important; color:#fff!important; }
   .stylist-profile-back { display:inline-flex; align-items:center; align-self:flex-start; gap:7px; margin:0 0 12px; padding:8px 11px; border:1px solid #e3d4df; border-radius:20px; background:#fffaf7; color:#5e0a61; font:inherit; font-size:13px; }
 }
+
+/* Espace employé : mêmes repères visuels que l’espace client. */
+app-root .employee-workspace {
+  .employee-workspace-panel { padding: clamp(20px, 3vw, 36px); }
+  .employee-workspace-panel h3 { font-family: Georgia, serif; font-size: 26px; font-weight: 400; margin: 0; }
+  .employee-workspace-panel > p { color: #857782; line-height: 1.7; }
+  .employee-workspace-panel .stylist-client-create-form { margin: 0; padding: 0; background: transparent; border: 0; }
+  .employee-password-welcome { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 22px 26px; margin-bottom: 24px; border: 1px solid #e8d9e6; border-radius: 20px; background: #faf4f9; color: #571356; }
+  .employee-password-welcome p { margin: 6px 0 0; font-size: 13px; line-height: 1.6; }
+  .employee-password-welcome button { background: white; border: 1px solid #e3d1df; border-radius: 12px; padding: 12px 16px; color: inherit; cursor: pointer; flex-shrink: 0; }
+  .employee-security-form { display: grid; gap: 18px; }
+  .employee-security-form label { display: grid; gap: 8px; font-size: 13px; color: #5c4356; }
+  .employee-security-form input { width: 100%; box-sizing: border-box; border: 1px solid #e0d4dc; background: white; border-radius: 12px; padding: 13px 15px; font: inherit; color: #402039; }
+  .employee-security-form input:focus { outline: 2px solid #8c4a87; outline-offset: 2px; }
+  .employee-security-form small { color: #8c7b87; }
+  .employee-security-form [role=alert], .employee-workspace-panel [role=alert] { color: #ab2548; }
+  .employee-workspace-panel .catalog-image-preview { max-width: 320px; }
+  .employee-workspace-panel .catalog-image-preview img { width: 100%; max-height: 320px; object-fit: cover; border-radius: 16px; }
+  @media (max-width: 700px) { .employee-password-welcome { align-items: flex-start; flex-direction: column; } }
+}
+
+@media (max-width: 900px) {
+  app-root .employee-bottom-nav { z-index: 90; }
+  app-root .employee-bottom-nav > button { flex: 1; min-width: 0; }
+  app-root .employee-bottom-nav small { font-size: 9px; white-space: normal; line-height: 1.25; }
+}

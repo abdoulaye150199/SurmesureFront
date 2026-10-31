@@ -248,12 +248,21 @@ export class DashboardService {
     };
   }
 
-  async loadEmployeeDashboard(): Promise<{ employee: EmployeeWorkspaceContext; measurements: DashboardMeasurement[] }> {
-    const [employee, measurements] = await Promise.all([
+  async loadEmployeeDashboard(): Promise<{ employee: EmployeeWorkspaceContext; measurements: DashboardMeasurement[]; orders: DashboardOrder[] }> {
+    const [employee, measurements, orders] = await Promise.all([
       firstValueFrom(this.http.get<EmployeeWorkspaceContext>(getApiUrl('/employee/me'))),
       firstValueFrom(this.http.get<CursorPage<DashboardMeasurement>>(getApiUrl('/employee/measurements?limit=100'))),
+      firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(getApiUrl('/employee/orders?limit=100'))),
     ]);
-    return { employee, measurements: measurements.data };
+    return { employee, measurements: measurements.data, orders: orders.data };
+  }
+
+  createEmployeeOrder(input: OrderInput): Promise<DashboardOrder> {
+    return firstValueFrom(this.http.post<DashboardOrder>(getApiUrl('/employee/orders'), input));
+  }
+
+  createEmployeeCatalog(input: CatalogItemInput): Promise<DashboardCatalogItem> {
+    return firstValueFrom(this.http.post<DashboardCatalogItem>(getApiUrl('/employee/catalog'), input));
   }
 
   listStylistPersonnel(stylistId: string): Promise<DashboardPersonnel[]> {

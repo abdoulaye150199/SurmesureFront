@@ -220,7 +220,7 @@
   </div>
 </footer>
 
-<section class="workspace" [class.stylist-workspace]="activeView === 'stylist' || activeView === 'employee'" [class.client-workspace]="activeView === 'client' || activeView === 'measure'" *ngIf="activeView !== 'home' && activeView !== 'signup' && activeView !== 'admin'" aria-label="Espace personnel">
+<section class="workspace" [class.stylist-workspace]="activeView === 'stylist'" [class.client-workspace]="activeView === 'client' || activeView === 'measure' || activeView === 'employee'" *ngIf="activeView !== 'home' && activeView !== 'signup' && activeView !== 'admin'" aria-label="Espace personnel">
   <div class="workspace-topbar" *ngIf="activeView !== 'stylist' && activeView !== 'employee' && activeView !== 'client' && activeView !== 'measure'">
     <button class="back-home" type="button" (click)="setView('home')">← Accueil</button>
     <span class="workspace-status"><i></i> Espace sécurisé</span>
@@ -610,50 +610,85 @@
   </ng-container>
 
   <ng-container *ngIf="activeView === 'employee'">
-    <div class="stylist-dashboard-layout employee-dashboard-layout">
-      <aside class="stylist-dashboard-sidebar" [class.mobile-open]="mobileDashboardMenuOpen" aria-label="Navigation employé">
-        <button class="stylist-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Équipe atelier</small></span></button>
-        <button class="dashboard-menu-toggle stylist-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="employee-main-nav" [attr.aria-label]="mobileDashboardMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
+    <div class="client-dashboard-layout employee-workspace">
+      <aside class="client-dashboard-sidebar" [class.mobile-open]="mobileDashboardMenuOpen" aria-label="Navigation employé">
+        <button class="client-sidebar-logo" type="button" (click)="setView('home')" aria-label="Retour à l’accueil"><img src="/assets/logo-mark.png" alt=""><span>Sur Mesure<small>Espace employé</small></span></button>
+        <button class="dashboard-menu-toggle client-menu-toggle" type="button" [attr.aria-expanded]="mobileDashboardMenuOpen" aria-controls="employee-main-nav" aria-label="Menu employé" (click)="mobileDashboardMenuOpen = !mobileDashboardMenuOpen"><i aria-hidden="true"></i><span>Menu</span></button>
         <nav id="employee-main-nav" (click)="mobileDashboardMenuOpen = false">
-          <button type="button" [class.active]="employeePage === 'intake'" (click)="setEmployeePage('intake')"><i>＋</i><span>Nouvelle fiche</span></button>
-          <button type="button" [class.active]="employeePage === 'clients'" (click)="setEmployeePage('clients')"><i>♙</i><span>Mes clientes</span><b>{{ stylistClientRecords.length }}</b></button>
+          <button type="button" [class.active]="employeePage === 'orders'" [attr.aria-current]="employeePage === 'orders' ? 'page' : null" (click)="setEmployeePage('orders')"><i>＋</i><span>Nouvelle commande</span></button>
+          <button type="button" [class.active]="employeePage === 'clients'" [attr.aria-current]="employeePage === 'clients' ? 'page' : null" (click)="setEmployeePage('clients')"><i>♙</i><span>Mes clients</span><b>{{ stylistClientRecords.length }}</b></button>
+          <button type="button" [class.active]="employeePage === 'creation'" [attr.aria-current]="employeePage === 'creation' ? 'page' : null" (click)="setEmployeePage('creation')"><i>◇</i><span>Ajouter une création</span></button>
+          <button type="button" [class.active]="employeePage === 'profile'" [attr.aria-current]="employeePage === 'profile' ? 'page' : null" (click)="setEmployeePage('profile')"><i>♙</i><span>Mon profil</span></button>
         </nav>
-        <div class="stylist-sidebar-profile"><span class="employee-sidebar-identity"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>{{ employeeContext?.stylist?.businessName || 'Atelier' }}</small></span></span><button class="stylist-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
+        <div class="client-sidebar-profile"><button type="button" (click)="setEmployeePage('profile')"><b>{{ userInitials }}</b><span>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}<small>{{ employeeContext?.stylist?.businessName || 'Équipe atelier' }}</small></span></button><button class="client-sidebar-exit" type="button" (click)="logout()" aria-label="Se déconnecter">↗</button></div>
       </aside>
-      <div class="stylist-analytics employee-analytics">
-        <header class="analytics-header"><div><span>{{ employeeContext?.stylist?.businessName || 'Espace atelier' }}</span><h1>{{ employeePage === 'intake' ? 'Nouvelle fiche' : 'Mes clientes' }}</h1></div><div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button class="dashboard-logout dark" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div></header>
-        <div class="dashboard-feedback dark loading" *ngIf="dashboardLoading"><i></i><span>Chargement des fiches de l’atelier…</span></div>
-        <div class="dashboard-feedback dark error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
-        <section class="analytics-panel employee-intake-panel" id="employee-intake" *ngIf="employeePage === 'intake'">
-          <div class="analytics-panel-heading"><div><span>Nouvelle cliente</span><h2>Enregistrer ses mensurations</h2></div></div>
-          <p class="employee-access-note">Si la cliente a déjà un compte, sa fiche sera associée à celui-ci. Sinon, ses coordonnées et ses mesures seront conservées dans l’atelier.</p>
-          <form class="employee-intake-form" (ngSubmit)="saveEmployeeMeasurement()">
-            <label>Nom complet<input name="employeeClientName" [(ngModel)]="employeeClientName" minlength="2" maxlength="160" autocomplete="name" required></label>
-            <label>Téléphone<input name="employeeClientPhone" type="tel" [(ngModel)]="employeeClientPhone" placeholder="+221 77 000 00 00" autocomplete="tel" required></label>
-            <label *ngFor="let definition of measurementDefinitions">{{ definition.label }} (cm)<input type="number" [name]="'employee-measure-' + definition.key" [(ngModel)]="employeeMeasurementDraft[definition.key]" min="0.1" max="300" step="0.1"></label>
-            <div class="employee-custom-measurements">
-              <div class="employee-custom-heading"><span>Mesures complémentaires</span><button type="button" (click)="addEmployeeCustomMeasurement()">＋ Ajouter un champ</button></div>
-              <div class="employee-custom-row" *ngFor="let field of employeeCustomMeasurements">
-                <label>Nom du champ<input type="text" [name]="'employee-custom-label-' + field.id" [(ngModel)]="field.label" maxlength="80" placeholder="Ex. Tour de poignet" required></label>
-                <label>Mesure (cm)<input type="number" [name]="'employee-custom-value-' + field.id" [(ngModel)]="field.value" min="0.1" max="300" step="0.1" placeholder="0" required></label>
-                <button class="employee-custom-remove" type="button" (click)="removeEmployeeCustomMeasurement(field.id)" [attr.aria-label]="'Supprimer le champ ' + (field.label || 'personnalisé')">×</button>
-              </div>
-            </div>
-            <label class="employee-intake-notes">Notes<textarea name="employeeMeasurementNotes" [(ngModel)]="employeeMeasurementNotes" rows="3" maxlength="1000" placeholder="Préférences ou informations utiles"></textarea></label>
-            <button class="stylist-editor-submit" type="submit" [disabled]="employeeMeasurementSaving">{{ employeeMeasurementSaving ? 'Enregistrement…' : 'Enregistrer la fiche' }} <span>→</span></button>
+      <div class="client-portal">
+        <header class="client-portal-header"><div><span>{{ employeeContext?.stylist?.businessName || 'Votre atelier' }}</span><h1>{{ employeePageTitle }}</h1><p>Votre savoir-faire, au service de chaque création.</p></div><div class="client-header-actions"><button type="button" aria-label="Actualiser" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button class="client-avatar" type="button" aria-label="Ouvrir mon profil" (click)="setEmployeePage('profile')">{{ userInitials }}</button></div></header>
+        <div class="dashboard-feedback loading" *ngIf="dashboardLoading"><i></i><span>Actualisation de votre atelier…</span></div>
+        <div class="dashboard-feedback error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
+        <div class="employee-password-welcome" *ngIf="authenticatedUser?.mustChangePassword && employeePage !== 'profile'"><div><strong>Bienvenue dans votre atelier</strong><p>Pour votre première connexion, pensez à remplacer votre mot de passe initial.</p></div><button type="button" (click)="setEmployeePage('profile')">Sécuriser mon compte →</button></div>
+        <section class="analytics-panel employee-workspace-panel" *ngIf="employeePage === 'orders'">
+          <form id="employee-order-form" #employeeOrderForm="ngForm" class="employee-intake-form stylist-client-create-form" aria-labelledby="employee-order-title" (ngSubmit)="employeeOrderForm.valid && saveOrder()">
+            <h3 class="employee-intake-notes" id="employee-order-title">Nouvelle commande</h3>
+            <p class="employee-intake-notes">Enregistrez une commande pour votre client, avec ou sans compte Sur Mesure.</p>
+            <p class="employee-intake-notes" role="alert" *ngIf="orderError">{{ orderError }}</p>
+            <label>Nom du client<input name="orderClientName" [(ngModel)]="orderDraft.clientName" minlength="2" autocomplete="name" required></label>
+            <label>Téléphone<input name="orderClientPhone" type="tel" [(ngModel)]="orderDraft.clientPhone" placeholder="+221 77 000 00 00" autocomplete="tel" required></label>
+            <label>Description de la commande<textarea name="orderDescription" [(ngModel)]="orderDraft.description" minlength="2" rows="3" placeholder="Modèle, tissu et détails souhaités" required></textarea></label>
+            <label>Prix total (FCFA)<input name="orderTotalPrice" type="number" [(ngModel)]="orderDraft.totalPrice" min="0" step="0.01" required></label>
+            <label>Durée de confection (jours)<input name="orderDurationDays" type="number" [(ngModel)]="orderDurationDays" min="1" max="3650" step="1" required></label>
+            <label>Livraison / retrait prévu (heure de Dakar)<input name="orderDueAt" type="datetime-local" [(ngModel)]="orderDueAt" required></label>
+            <label *ngFor="let definition of measurementDefinitions">{{ definition.label }} (cm)<input type="number" [name]="'order-measure-' + definition.key" [(ngModel)]="orderMeasurements[definition.key]" min="0.1" max="300" step="0.1"></label>
+            <label class="employee-intake-notes">Notes (facultatif)<textarea name="orderNotes" [(ngModel)]="orderDraft.notes" rows="3" placeholder="Tissu, coloris, détails de confection…"></textarea></label>
+            <button class="stylist-editor-submit" type="submit" [disabled]="orderSaving || employeeOrderForm.invalid">{{ orderSaving ? 'Enregistrement…' : 'Créer la commande' }} <span>→</span></button>
           </form>
         </section>
         <section class="analytics-panel stylist-records" id="employee-records" *ngIf="employeePage === 'clients'">
-          <div class="analytics-panel-heading"><div><span>Données de l’atelier</span><h2>Mes clientes</h2></div><b>{{ stylistClientRecords.length }} cliente(s)</b></div>
-          <label class="stylist-client-search">Rechercher une cliente<input type="search" name="employeeClientSearch" [(ngModel)]="stylistClientSearch" placeholder="Nom ou téléphone"></label>
+          <div class="analytics-panel-heading"><div><span>Données de l’atelier</span><h2>Mes clients</h2></div><b>{{ stylistClientRecords.length }} client(s)</b></div>
+          <label class="stylist-client-search">Rechercher un client<input type="search" name="employeeClientSearch" [(ngModel)]="stylistClientSearch" placeholder="Nom ou téléphone"></label>
           <details class="stylist-record stylist-client-record" *ngFor="let client of stylistClientRecords">
             <summary><span><strong>{{ client.name }}</strong><small>{{ client.phone }} · {{ client.measurements.length }} fiche(s) de mesures</small></span><i>Ouvrir le dossier</i></summary>
             <div class="stylist-client-record-content">
               <div class="stylist-client-record-actions"><button type="button" (click)="copyPhone(client.phone)">Copier le numéro</button><button type="button" *ngIf="client.measurements[0] as latestMeasurement" (click)="copyMeasurement(latestMeasurement)">Copier les dernières mesures</button></div>
+              <section class="stylist-client-history" *ngFor="let order of client.orders"><h3>{{ order.description }}</h3><p>{{ orderStatusLabel(order.status) }} · {{ order.totalPrice | number:'1.0-0' }} FCFA</p><p *ngIf="order.dueAt">Livraison / retrait : {{ orderDeliveryLabel(order) }} (Dakar)</p></section>
               <section class="stylist-client-history" *ngFor="let measurement of client.measurements"><h3>{{ measurement.modelName || 'Mensurations' }} · {{ formatDate(measurement.updatedAt) }}</h3><div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div><p><span class="measurement-validation" [class.approved]="measurement.validatedAt">{{ measurementValidationLabel(measurement) }}</span></p><p *ngIf="measurement.notes">{{ measurement.notes }}</p></section>
             </div>
           </details>
-          <div class="dashboard-inline-empty dark" *ngIf="!stylistClientRecords.length && !dashboardLoading">{{ stylistClientSearch ? 'Aucune cliente ne correspond à cette recherche.' : 'Aucune fiche cliente dans cet atelier.' }}</div>
+          <div class="dashboard-inline-empty dark" *ngIf="!stylistClientRecords.length && !dashboardLoading">{{ stylistClientSearch ? 'Aucun client ne correspond à cette recherche.' : 'Aucune fiche client dans cet atelier.' }}</div>
+        </section>
+        <section class="analytics-panel employee-workspace-panel" *ngIf="employeePage === 'creation'">
+          <div class="analytics-panel-heading"><div><span>Vitrine de l’atelier</span><h2>Une nouvelle création</h2></div></div>
+          <p>Partagez une pièce et son histoire avec la communauté Sur Mesure.</p>
+          <p role="alert" *ngIf="employeeCreationError">{{ employeeCreationError }}</p>
+          <form #employeeCreationForm="ngForm" (ngSubmit)="employeeCreationForm.valid && saveEmployeeCreation()">
+      <div class="employee-intake-form">
+        <label>Nom de la création<input name="catalogTitle" [(ngModel)]="catalogDraft.title" maxlength="100" required></label>
+        <label>Description<textarea name="catalogDescription" [(ngModel)]="catalogDraft.description" rows="3" maxlength="1000"></textarea></label>
+        <label>Adresse de l’image<input name="catalogImage" type="url" [(ngModel)]="catalogDraft.imageUrl" (ngModelChange)="clearCatalogImage()" placeholder="https://…" [required]="!catalogImageData"></label>
+        <label class="catalog-image-upload"><span>Importer l’image</span><input name="catalogImageFile" type="file" accept="image/*" (change)="onCatalogImageSelected($event)"><small>{{ catalogImageFileName || 'JPG, PNG ou WebP' }}</small></label>
+        <div class="catalog-image-preview" *ngIf="catalogImageData || catalogDraft.imageUrl"><img [src]="catalogImageData || catalogDraft.imageUrl" alt="Aperçu de la création"></div>
+        <p class="catalog-image-error" *ngIf="catalogImageError" role="alert">{{ catalogImageError }}</p>
+        <label>Prix en FCFA<input name="catalogPrice" type="number" min="0" step="1" [(ngModel)]="catalogDraft.price" required></label>
+        <label>Coloris séparés par des virgules<input name="catalogColors" [(ngModel)]="catalogDraft.colors" placeholder="Prune, Ivoire, Or"></label>
+      </div>
+            <button class="stylist-editor-submit" type="submit" [disabled]="editorSaving || employeeCreationForm.invalid">{{ editorSaving ? 'Publication…' : 'Publier la création' }} <span>→</span></button>
+          </form>
+        </section>
+        <section class="customer-profile" *ngIf="employeePage === 'profile'" aria-label="Mon profil employé">
+          <div class="customer-profile-hero"><div class="customer-profile-avatar"><span>{{ userInitials }}</span></div><div class="customer-profile-identity"><span class="customer-profile-kicker">Équipe atelier</span><h2>{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName }}</h2><p>{{ employeeContext?.stylist?.businessName || 'Sur Mesure' }}</p></div><span class="customer-profile-badge">Compte employé</span></div>
+          <div class="customer-profile-content">
+            <section class="customer-profile-details"><div class="customer-profile-section-heading"><span>01 · Votre identité</span><h3>Mes informations</h3></div><dl class="customer-profile-contact"><div class="customer-profile-contact-wide"><dt>Adresse e-mail</dt><dd>{{ authenticatedUser?.email }}</dd></div><div class="customer-profile-contact-wide"><dt>Téléphone</dt><dd>{{ authenticatedUser?.phone }}</dd></div><div class="customer-profile-contact-wide"><dt>Atelier</dt><dd>{{ employeeContext?.stylist?.businessName || 'Chargement…' }}</dd></div></dl></section>
+            <section class="customer-profile-activity"><div class="customer-profile-section-heading"><span>02 · Sécurité</span><h3>Mon mot de passe</h3><p *ngIf="authenticatedUser?.mustChangePassword; else employeePasswordHint">Première connexion ? Nous vous conseillons de remplacer le mot de passe initial remis par votre styliste.</p><ng-template #employeePasswordHint><p>Choisissez un mot de passe personnel pour protéger votre compte.</p></ng-template></div>
+              <form #employeePasswordForm="ngForm" class="employee-security-form" (ngSubmit)="employeePasswordForm.valid && changeEmployeePassword()">
+                <p role="alert" *ngIf="employeePasswordError">{{ employeePasswordError }}</p>
+                <label>Mot de passe actuel<input name="currentPassword" type="password" [(ngModel)]="employeePasswordDraft.current" autocomplete="current-password" maxlength="128" required [disabled]="employeePasswordSaving"></label>
+                <label>Nouveau mot de passe<input name="newPassword" type="password" [(ngModel)]="employeePasswordDraft.next" autocomplete="new-password" minlength="10" maxlength="128" required [disabled]="employeePasswordSaving"><small>10 caractères minimum</small></label>
+                <label>Confirmer le nouveau mot de passe<input name="confirmPassword" type="password" [(ngModel)]="employeePasswordDraft.confirm" autocomplete="new-password" required [disabled]="employeePasswordSaving"></label>
+                <button class="stylist-editor-submit" type="submit" [disabled]="employeePasswordSaving || employeePasswordForm.invalid">{{ employeePasswordSaving ? 'Enregistrement…' : 'Modifier mon mot de passe' }} <span>→</span></button>
+              </form>
+            </section>
+          </div>
+          <div class="customer-profile-footer"><span>Sur Mesure Style · Espace employé</span><button type="button" (click)="logout()" [disabled]="loggingOut">{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</button></div>
         </section>
       </div>
     </div>
@@ -781,6 +816,13 @@
 </div>
 
 <app-admin-dashboard *ngIf="activeView === 'admin'" [user]="authenticatedUser" (homeRequested)="setView('home')" (logoutRequested)="logout()"></app-admin-dashboard>
+
+<nav class="bottom-nav employee-bottom-nav" *ngIf="activeView === 'employee'" aria-label="Navigation mobile employé">
+  <button type="button" [class.active]="employeePage === 'orders'" (click)="setEmployeePage('orders')"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="17" rx="3"/><path d="M8 3h8M8 12h8M12 8v8"/></svg></span><small>Nouvelle commande</small></button>
+  <button type="button" [class.active]="employeePage === 'clients'" (click)="setEmployeePage('clients')"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M17 5a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 5"/></svg></span><small>Mes clients</small></button>
+  <button type="button" [class.active]="employeePage === 'creation'" (click)="setEmployeePage('creation')"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 9 9-9 9-9-9Z"/></svg></span><small>Ajouter une création</small></button>
+  <button type="button" [class.active]="employeePage === 'profile'" (click)="setEmployeePage('profile')"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-1a7 7 0 0 1 14 0v1"/></svg></span><small>Mon profil</small></button>
+</nav>
 
 <nav class="bottom-nav client-dashboard-bottom-nav" *ngIf="authenticatedUser?.role === 'CLIENT' && (activeView === 'client' || activeView === 'measure' || activeView === 'explore')" aria-label="Navigation de l’espace client">
   <button type="button" [class.active]="clientBottomTab === 'home' && activeView === 'client'" (click)="openClientHome()" aria-label="Accueil"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 10.5 12 3.6l8.5 6.9M5.7 9.2v10.2h12.6V9.2M9.6 19.4v-5.7h4.8v5.7"/></svg></span><small>Accueil</small></button>

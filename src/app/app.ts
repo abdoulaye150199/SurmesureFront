@@ -26,7 +26,7 @@ import {
 type Collection = 'Tout' | 'Cérémonie' | 'Boubous' | 'Ensembles';
 type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'employee' | 'admin' | 'signup';
 type StylistPage = 'overview' | 'orders' | 'clients' | 'creations' | 'measurements' | 'contacts' | 'planning' | 'team' | 'settings';
-type EmployeePage = 'intake' | 'clients';
+type EmployeePage = 'orders' | 'clients' | 'creation' | 'profile';
 type ClientPage = 'overview' | 'orders' | 'measurements' | 'appointments' | 'favorites' | 'profile';
 const CLIENT_PAGE_PATHS: Record<ClientPage, string> = {
   overview: 'accueil', orders: 'commandes', measurements: 'mesures', appointments: 'rendez-vous', favorites: 'favoris', profile: 'profil',
@@ -100,7 +100,58 @@ export class App implements AfterViewInit, OnDestroy {
   signupRole: 'client' | 'stylist' = 'client';
   activeView: AppView = 'home';
   stylistPage: StylistPage = 'overview';
-  employeePage: EmployeePage = 'intake';
+  employeePage: EmployeePage = 'orders';
+  employeePasswordDraft = { current: '', next: '', confirm: '' };
+  employeePasswordSaving = false;
+  employeePasswordError = '';
+  employeeCreationError = '';
+
+  get employeePageTitle(): string {
+    return { orders: 'Nouvelle commande', clients: 'Mes clients', creation: 'Ajouter une création', profile: 'Mon profil' }[this.employeePage];
+  }
+
+  async changeEmployeePassword(): Promise<void> {
+    if (this.employeePasswordSaving) return;
+    this.employeePasswordError = '';
+    const draft = this.employeePasswordDraft;
+    if (draft.next.length < 10 || draft.next.length > 128 || draft.next !== draft.confirm) {
+      this.employeePasswordError = 'Utilisez 10 à 128 caractères et confirmez le même mot de passe.';
+      return;
+    }
+    this.employeePasswordSaving = true;
+    try {
+      this.authenticatedUser = await this.auth.changeEmployeePassword(draft.current, draft.next);
+      this.employeePasswordDraft = { current: '', next: '', confirm: '' };
+      this.showToast('Votre mot de passe a été modifié.');
+    } catch (error) {
+      this.employeePasswordError = error instanceof Error ? error.message : 'Modification impossible. Réessayez.';
+    } finally { this.employeePasswordSaving = false; }
+  }
+
+  async saveEmployeeCreation(): Promise<void> {
+    if (this.editorSaving) return;
+    this.employeeCreationError = '';
+    const imageUrl = this.catalogImageData || this.catalogDraft.imageUrl.trim();
+    if (!this.catalogDraft.title.trim() || !imageUrl || this.catalogDraft.price == null || this.catalogDraft.price < 0 || !Number.isFinite(this.catalogDraft.price)) {
+      this.employeeCreationError = 'Renseignez le nom, une image et un prix valide.';
+      return;
+    }
+    this.editorSaving = true;
+    try {
+      const saved = await this.dashboard.createEmployeeCatalog({
+        title: this.catalogDraft.title.trim(), description: this.catalogDraft.description.trim(), imageUrl,
+        price: this.catalogDraft.price, currency: 'XOF',
+        availableColors: this.catalogDraft.colors.split(',').map(value => value.trim()).filter(Boolean),
+      });
+      this.publicCatalogItems = [saved, ...this.publicCatalogItems];
+      this.catalogDraft = { title: '', description: '', imageUrl: '', price: null, colors: '' };
+      this.clearCatalogImage();
+      this.showToast('Création publiée dans la vitrine de votre atelier.');
+    } catch (error) {
+      const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
+      this.employeeCreationError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Publication impossible. Réessayez.';
+    } finally { this.editorSaving = false; }
+  }
   workspaceRole: AppAccountRole = 'stylist';
   installAvailable = false;
   selectedCreations: Creation[] = [];
@@ -426,7 +477,8 @@ export class App implements AfterViewInit, OnDestroy {
       this.orderError = 'Indiquez un prix valide, supérieur ou égal à zéro.';
       return;
     }
-    const stylistId = this.stylistProfile?.id;
+    const employee = this.activeView === 'employee';
+    const stylistId = employee ? this.employeeContext?.stylistId : this.stylistProfile?.id;
     if (!stylistId) {
       this.orderError = 'Le profil de l’atelier est introuvable. Actualisez la page.';
       return;
@@ -436,12 +488,15 @@ export class App implements AfterViewInit, OnDestroy {
       const now = new Date().toISOString();
       const order: DashboardOrder = this.demoMode
         ? { ...input, id: `demo-order-${Date.now()}`, stylistId, clientId: null, currency: 'XOF', status: 'pending', createdAt: now, updatedAt: now }
-        : await this.dashboard.createOrder(stylistId, input);
+        : employee ? await this.dashboard.createEmployeeOrder(input) : await this.dashboard.createOrder(stylistId, input);
       this.stylistOrders = [order, ...this.stylistOrders];
       this.orderEditorOpen = false;
-      this.setStylistPage('orders');
+      if (employee) {
+        this.orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null, notes: '' };
+        this.orderMeasurements = {}; this.orderDurationDays = null; this.orderDueAt = '';
+      } else this.setStylistPage('orders');
       this.showToast('Commande ajoutée à votre atelier.');
-      if (!this.demoMode) void this.loadDashboard('stylist');
+      if (!this.demoMode) void this.loadDashboard(employee ? 'employee' : 'stylist');
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
       this.orderError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible de créer la commande. Réessayez.';
@@ -975,6 +1030,9 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private clearPrivateWorkspaceData(): void {
+    this.employeePasswordDraft = { current: '', next: '', confirm: '' };
+    this.employeePasswordError = '';
+    this.employeePage = 'orders';
     this.clientNotificationsOpen = false;
     this.clientOrders = [];
     this.clientMeasurements = [];
@@ -1119,6 +1177,7 @@ export class App implements AfterViewInit, OnDestroy {
       } else if (this.authenticatedUser && role === 'employee') {
         const snapshot = await this.dashboard.loadEmployeeDashboard();
         this.employeeContext = snapshot.employee;
+        this.stylistOrders = snapshot.orders ?? [];
         this.stylistMeasurements = snapshot.measurements;
         await this.saveOfflineWorkspace({
           userId: this.authenticatedUser.id,
@@ -1126,6 +1185,7 @@ export class App implements AfterViewInit, OnDestroy {
           savedAt: new Date().toISOString(),
           measurements: snapshot.measurements,
           employeeContext: snapshot.employee,
+          orders: snapshot.orders,
         });
       } else if (this.authenticatedUser) {
         const snapshot = await this.dashboard.loadStylistDashboard(this.authenticatedUser.id);
@@ -1160,6 +1220,7 @@ export class App implements AfterViewInit, OnDestroy {
           this.stylistPersonnel = [];
         } else if (role === 'employee') {
           this.employeeContext = cached.employeeContext ?? null;
+          this.stylistOrders = cached.orders ?? [];
         }
         this.dashboardError = `Hors connexion : mesures synchronisées le ${this.formatDate(cached.savedAt)}.`;
       } else {
