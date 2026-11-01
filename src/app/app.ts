@@ -326,6 +326,7 @@ export class App implements AfterViewInit, OnDestroy {
   private publicCatalogLoaded = false;
   stylistOrders: DashboardOrder[] = [];
   stylistMeasurements: DashboardMeasurement[] = [];
+  employeeDetailsId: string | null = null;
   stylistMeasurementSearch = '';
 
   get approvedStylistMeasurementCount(): number {
@@ -1036,6 +1037,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.employeePasswordDraft = { current: '', next: '', confirm: '' };
     this.employeePasswordError = '';
     this.employeePage = 'orders';
+    this.employeeDetailsId = null;
     this.clientNotificationsOpen = false;
     this.clientOrders = [];
     this.clientMeasurements = [];

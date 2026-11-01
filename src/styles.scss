@@ -415,3 +415,50 @@ app-root .atelier-client-directory {
     .atelier-client-open { grid-column: 1; grid-row: auto; text-align: left; }
   }
 }
+
+app-root .atelier-team {
+  padding: clamp(20px, 2.5vw, 32px); background: #fffcfa;
+  .atelier-team-heading { display: flex; align-items: center; justify-content: space-between; gap: 22px; margin-bottom: 24px; }
+  .atelier-team-heading > div > span { color: #a8899c; font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+  .atelier-team-heading h2 { margin: 9px 0; font: 28px Georgia, serif; color: #5d3252; }
+  .atelier-team-heading p { margin: 0; color: #a08798; font-size: 12px; line-height: 1.7; }
+  .atelier-team-create { min-height: 43px; flex-shrink: 0; padding: 0 18px; border: 0; border-radius: 11px; background: #681263; color: white; font-size: 12px; cursor: pointer; }
+  .atelier-team-list { display: grid; gap: 10px; }
+  .atelier-team-row { min-width: 0; border: 1px solid #e9dce5; border-radius: 14px; background: white; overflow: hidden; }
+  .atelier-team-summary { display: grid; grid-template-columns: minmax(200px, 1fr) auto auto; gap: 22px; align-items: center; padding: 17px 18px; }
+  .atelier-team-identity { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .atelier-team-avatar { display: grid; place-items: center; width: 39px; height: 39px; flex-shrink: 0; border-radius: 12px; background: #f3e8f0; color: #89487c; font: 16px Georgia, serif; }
+  .atelier-team-identity h3 { margin: 0 0 5px; font: 19px/1.3 Georgia, serif; color: #68425d; overflow-wrap: anywhere; }
+  .atelier-team-identity > div > span { color: #ac8fa2; font-size: 11px; }
+  .atelier-team-status { width: max-content; padding: 7px 10px; border-radius: 25px; background: #f6f1f4; color: #a28b99; font-size: 10px; }
+  .atelier-team-status.active { background: #edf5ef; color: #63836b; }
+  .atelier-team-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .atelier-team-actions button { min-height: 35px; padding: 8px 11px; border: 1px solid #e5d5e0; border-radius: 9px; background: #fff; color: #966386; font-size: 11px; cursor: pointer; }
+  .atelier-team-actions .atelier-team-details-button { border-color: #e3cede; background: #f8eff5; color: #7b326c; }
+  .atelier-team-details-button > span { margin-left: 8px; }
+  .atelier-team-actions .atelier-team-delete { border-color: #f0dfe3; color: #b17986; }
+  button:disabled { opacity: .55; cursor: default; }
+  .atelier-team-details { padding: 20px 24px; border-top: 1px solid #eee2ea; background: #fdfafb; }
+  .atelier-team-details dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; margin: 0; }
+  .atelier-team-details dt { margin-bottom: 7px; color: #ad91a3; font-size: 10px; }
+  .atelier-team-details dd { margin: 0; color: #7f586f; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+  .atelier-team-details dd button { margin-left: 9px; padding: 3px 7px; border: 1px solid #e8d8e3; border-radius: 6px; background: #fff; color: #9d7090; font-size: 10px; cursor: pointer; }
+  .atelier-team-details > p { margin: 22px 0 0; padding-top: 14px; border-top: 1px solid #eee2ea; color: #aa8fa0; font-size: 11px; line-height: 1.7; }
+  .atelier-team-empty { padding: 40px 20px; border: 1px dashed #dfcbd9; border-radius: 15px; text-align: center; }
+  .atelier-team-empty > span { color: #b38ba6; font-size: 30px; }
+  .atelier-team-empty h3 { margin: 10px 0; font: 24px Georgia, serif; color: #835576; }
+  .atelier-team-empty p { color: #a4899a; font-size: 12px; line-height: 1.7; }
+  @media (max-width: 1200px) {
+    .atelier-team-summary { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; }
+    .atelier-team-actions { grid-column: 1 / -1; }
+  }
+  @media (max-width: 620px) {
+    .atelier-team-heading { flex-direction: column; align-items: stretch; gap: 16px; }
+    .atelier-team-heading h2 { font-size: 25px; }
+    .atelier-team-summary { padding: 16px; gap: 16px 10px; }
+    .atelier-team-identity h3 { font-size: 18px; }
+    .atelier-team-details { padding: 18px; }
+    .atelier-team-details dl { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+    .atelier-team-status { font-size: 9px; padding: 6px 8px; }
+  }
+}

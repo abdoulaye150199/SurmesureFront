@@ -608,16 +608,22 @@
         <div class="dashboard-inline-empty dark" *ngIf="!stylistAppointments.length">Aucun rendez-vous planifié.</div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-employees" *ngIf="stylistPage === 'team'">
-        <div class="analytics-panel-heading"><div><span>Accès à votre atelier</span><h2>Équipe</h2></div><button type="button" (click)="openEmployeeAccountEditor()">Créer un compte ＋</button></div>
-        <p class="employee-access-note">Chaque employé peut enregistrer les clientes et leurs mensurations. Il ne voit que les fiches de cet atelier.</p>
-        <article class="stylist-contact" *ngFor="let employee of stylistPersonnel">
-          <span><strong>{{ employee.firstName }} {{ employee.lastName }}</strong><small>{{ employee.specialization }} · {{ employee.user?.email || employee.email }}</small></span>
-          <button type="button" *ngIf="employee.userId" (click)="toggleEmployeeAccess(employee)">{{ employee.active && employee.user?.active ? 'Désactiver l’accès' : 'Réactiver l’accès' }}</button>
-          <button type="button" class="employee-delete-button" (click)="removeEmployee(employee)" [disabled]="deletingEmployeeId === employee.id">{{ deletingEmployeeId === employee.id ? 'Suppression…' : 'Supprimer' }}</button>
-          <small *ngIf="!employee.userId">Aucun compte associé</small>
-        </article>
-        <div class="dashboard-inline-empty dark" *ngIf="!stylistPersonnel.length">Aucun employé enregistré dans votre atelier.</div>
+      <section class="analytics-panel atelier-team" id="stylist-employees" *ngIf="stylistPage === 'team'">
+        <div class="atelier-team-heading"><div><span>Les talents de votre atelier</span><h2>Votre équipe</h2><p>{{ stylistPersonnel.length }} membre(s) · Gérez les profils et les accès à votre atelier.</p></div><button class="atelier-team-create" type="button" (click)="openEmployeeAccountEditor()">＋ Créer un compte</button></div>
+        <div class="atelier-team-list">
+          <article class="atelier-team-row" *ngFor="let employee of stylistPersonnel">
+            <div class="atelier-team-summary">
+              <div class="atelier-team-identity"><span class="atelier-team-avatar">{{ measurementClientInitials(employee.firstName + ' ' + employee.lastName) }}</span><div><h3>{{ employee.firstName }} {{ employee.lastName }}</h3><span>{{ employee.specialization || 'Membre de l’atelier' }}</span></div></div>
+              <span class="atelier-team-status" [class.active]="employee.userId && employee.active && employee.user?.active">{{ !employee.userId ? 'Sans compte' : employee.active && employee.user?.active ? 'Accès actif' : 'Accès désactivé' }}</span>
+              <div class="atelier-team-actions"><button class="atelier-team-details-button" type="button" [attr.aria-expanded]="employeeDetailsId === employee.id" [attr.aria-controls]="'employee-details-' + employee.id" (click)="employeeDetailsId = employeeDetailsId === employee.id ? null : employee.id">{{ employeeDetailsId === employee.id ? 'Fermer les détails' : 'Détails' }} <span aria-hidden="true">{{ employeeDetailsId === employee.id ? '−' : '＋' }}</span></button><button type="button" *ngIf="employee.userId" (click)="toggleEmployeeAccess(employee)">{{ employee.active && employee.user?.active ? 'Désactiver l’accès' : 'Réactiver l’accès' }}</button><button type="button" class="atelier-team-delete" (click)="removeEmployee(employee)" [disabled]="deletingEmployeeId === employee.id">{{ deletingEmployeeId === employee.id ? 'Suppression…' : 'Supprimer' }}</button></div>
+            </div>
+            <section class="atelier-team-details" *ngIf="employeeDetailsId === employee.id" [id]="'employee-details-' + employee.id" [attr.aria-label]="'Détails de ' + employee.firstName + ' ' + employee.lastName">
+              <dl><div><dt>Nom complet</dt><dd>{{ employee.firstName }} {{ employee.lastName }}</dd></div><div><dt>Fonction / spécialité</dt><dd>{{ employee.specialization || 'Non renseignée' }}</dd></div><div><dt>Adresse e-mail</dt><dd>{{ employee.user?.email || employee.email || 'Non renseignée' }}</dd></div><div><dt>Téléphone</dt><dd>{{ employee.phone || 'Non renseigné' }}<button type="button" *ngIf="employee.phone" (click)="copyPhone(employee.phone)" aria-label="Copier le téléphone de l’employé">Copier</button></dd></div><div><dt>Date d’arrivée</dt><dd>{{ employee.hireDate ? formatDate(employee.hireDate) : 'Non renseignée' }}</dd></div><div><dt>Compte de connexion</dt><dd>{{ employee.userId ? (employee.active && employee.user?.active ? 'Actif' : 'Désactivé') : 'Aucun compte associé' }}</dd></div></dl>
+              <p>Accès aux commandes, aux dossiers clients et à l’ajout de créations de cet atelier.</p>
+            </section>
+          </article>
+        </div>
+        <div class="atelier-team-empty" *ngIf="!stylistPersonnel.length && !dashboardLoading"><span aria-hidden="true">♙</span><h3>Faites grandir votre équipe</h3><p>Créez un premier compte pour accueillir un membre dans votre atelier.</p></div>
       </section>
 
       <app-stylist-settings *ngIf="stylistPage === 'settings'"
