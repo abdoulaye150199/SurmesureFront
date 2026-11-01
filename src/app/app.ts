@@ -326,6 +326,22 @@ export class App implements AfterViewInit, OnDestroy {
   private publicCatalogLoaded = false;
   stylistOrders: DashboardOrder[] = [];
   stylistMeasurements: DashboardMeasurement[] = [];
+  stylistMeasurementSearch = '';
+
+  get approvedStylistMeasurementCount(): number {
+    return this.stylistMeasurements.filter(record => !!record.validatedAt).length;
+  }
+
+  get filteredStylistMeasurements(): DashboardMeasurement[] {
+    const query = this.stylistMeasurementSearch.trim().toLocaleLowerCase('fr');
+    return this.stylistMeasurements.filter(record => !query ||
+      `${record.clientName} ${record.clientPhone} ${record.modelName ?? ''}`.toLocaleLowerCase('fr').includes(query));
+  }
+
+  measurementClientInitials(name: string): string {
+    return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toLocaleUpperCase('fr') || 'CL';
+  }
+
   stylistAppointments: DashboardAppointment[] = [];
   stylistCatalog: DashboardCatalogItem[] = [];
   stylistProfile: DashboardStylist | null = null;

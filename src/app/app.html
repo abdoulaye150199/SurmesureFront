@@ -554,14 +554,32 @@
         </div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-measurements" *ngIf="stylistPage === 'measurements'">
-        <div class="analytics-panel-heading"><div><span>Profils clients</span><h2>Mensurations</h2></div><b>{{ stylistMeasurements.length }} profil(s)</b></div>
-        <details class="stylist-record" *ngFor="let measurement of stylistMeasurements">
-          <summary><span><strong>{{ measurement.clientName }}{{ measurement.modelName ? ' · ' + measurement.modelName : '' }}</strong><small>{{ measurement.clientPhone }} · mis à jour le {{ formatDate(measurement.updatedAt) }}</small></span><i>Voir les mesures</i></summary>
-          <div class="measurement-values"><span *ngFor="let value of measurement.measurements | keyvalue"><b>{{ value.key }}</b>{{ value.value }} cm</span></div>
-          <p><span class="measurement-validation" [class.approved]="measurement.validatedAt">{{ measurementValidationLabel(measurement) }}</span></p><div class="stylist-record-actions"><button *ngIf="!measurement.validatedAt" type="button" (click)="openMeasurementValidation(measurement)">Vérifier et valider pour un modèle</button><button type="button" (click)="editStylistMeasurement(measurement)">Modifier les mesures</button><button type="button" (click)="copyMeasurement(measurement)">Copier les mesures</button><button type="button" (click)="copyPhone(measurement.clientPhone)">Copier le numéro</button></div>
-        </details>
-        <div class="dashboard-inline-empty dark" *ngIf="!stylistMeasurements.length">Aucun profil de mensurations pour le moment.</div>
+      <section class="atelier-measurements" id="stylist-measurements" *ngIf="stylistPage === 'measurements'" aria-label="Mensurations des clients">
+        <div class="atelier-measures-hero">
+          <div class="atelier-measures-intro"><span class="atelier-measures-eyebrow">Le sens du détail</span><h2>Chaque mesure,<br><em>une création à votre image.</em></h2><p>Retrouvez les mensurations de vos clients et vérifiez chaque fiche avant de donner vie à leur modèle.</p></div>
+          <div class="atelier-measures-symbol" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="17" y="31" width="66" height="38" rx="10"/><path d="M29 31v14m11-14v9m10-9v14m11-14v9m11-9v14M29 56h42"/><circle cx="50" cy="50" r="44" stroke-dasharray="2 6"/></svg></div>
+          <div class="atelier-measures-stats"><div><strong>{{ stylistMeasurements.length }}</strong><span>Fiches enregistrées</span></div><div><strong>{{ approvedStylistMeasurementCount }}</strong><span>Validées</span></div><div><strong>{{ stylistMeasurements.length - approvedStylistMeasurementCount }}</strong><span>À vérifier</span></div></div>
+        </div>
+        <div class="atelier-measures-toolbar"><div><span class="atelier-measures-eyebrow">Votre répertoire</span><h3>Les fiches de mesures</h3></div><label class="atelier-measures-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" name="stylistMeasurementSearch" [(ngModel)]="stylistMeasurementSearch" placeholder="Nom, téléphone ou modèle" aria-label="Rechercher une fiche de mesures"></label></div>
+        <div class="atelier-measures-grid">
+          <details class="atelier-measure-card" *ngFor="let measurement of filteredStylistMeasurements">
+            <summary>
+              <div class="atelier-measure-card-top"><span class="atelier-measure-avatar">{{ measurementClientInitials(measurement.clientName) }}</span><span class="atelier-measure-status" [class.approved]="measurement.validatedAt">{{ measurement.validatedAt ? '✓ Validées' : '◷ À vérifier' }}</span></div>
+              <div class="atelier-measure-identity"><h4>{{ measurement.clientName }}</h4><span>{{ measurement.clientPhone }}</span></div>
+              <div class="atelier-measure-model"><span>Modèle</span><strong>{{ measurement.modelName || 'Fiche de mensurations' }}</strong></div>
+              <div class="atelier-measure-preview"><div *ngFor="let value of measurement.measurements | keyvalue | slice:0:3"><span>{{ measurementFieldLabel(value.key) }}</span><strong>{{ value.value }} <small>cm</small></strong></div></div>
+              <div class="atelier-measure-card-bottom"><span>Mis à jour le {{ formatDate(measurement.updatedAt) }}</span><b>Voir la fiche <i aria-hidden="true">↗</i></b></div>
+            </summary>
+            <div class="atelier-measure-expanded">
+              <span class="atelier-measures-eyebrow">Toutes les mensurations</span>
+              <div class="atelier-measure-values"><div *ngFor="let value of measurement.measurements | keyvalue"><span>{{ measurementFieldLabel(value.key) }}</span><strong>{{ value.value }} <small>cm</small></strong></div></div>
+              <p class="atelier-measure-note" *ngIf="measurement.notes">{{ measurement.notes }}</p>
+              <p class="atelier-measure-validation">{{ measurementValidationLabel(measurement) }}{{ measurement.validatedAt ? ' · ' + formatDate(measurement.validatedAt) : '' }}</p>
+              <div class="atelier-measure-actions"><button class="atelier-measure-validate" *ngIf="!measurement.validatedAt" type="button" (click)="openMeasurementValidation(measurement)">Vérifier et valider →</button><button type="button" (click)="editStylistMeasurement(measurement)">Modifier</button><button type="button" (click)="copyMeasurement(measurement)">Copier les mesures</button><button type="button" (click)="copyPhone(measurement.clientPhone)">Copier le numéro</button></div>
+            </div>
+          </details>
+        </div>
+        <div class="atelier-measures-empty" *ngIf="!filteredStylistMeasurements.length && !dashboardLoading"><span aria-hidden="true">⌁</span><h3>{{ stylistMeasurementSearch ? 'Aucune fiche trouvée' : 'Vos premières mesures commencent ici' }}</h3><p>{{ stylistMeasurementSearch ? 'Essayez un autre nom, numéro ou modèle.' : 'Les mensurations enregistrées dans votre atelier apparaîtront ici.' }}</p></div>
       </section>
 
       <section class="analytics-panel stylist-records" id="stylist-planning" *ngIf="stylistPage === 'planning'">
