@@ -77,7 +77,7 @@
         <button class="collection-link" (click)="selectedFilter = 'Tout'">Explorer tout le vestiaire <span>↗</span></button>
       </aside>
       <div class="product-grid">
-        <article class="product-card" *ngFor="let item of visibleCreations; let index = index">
+        <article class="product-card" *ngFor="let item of visibleCreations; trackBy: trackCreation; let index = index">
           <div class="product-image" [class]="['product-image', item.tone]">
             <span class="product-number">0{{ index + 1 }}</span>
             <span class="badge" *ngIf="item.badge">{{ item.badge }}</span>
@@ -119,7 +119,7 @@
       <p>Découvrez leurs univers, leur savoir-faire et choisissez la personne qui donnera vie à votre prochaine pièce.</p>
     </div>
     <div class="stylist-grid">
-      <article class="stylist-card" *ngFor="let stylist of visibleStylists; let index = index" [class.featured]="index === 0">
+      <article class="stylist-card" *ngFor="let stylist of visibleStylists; trackBy: trackStylist; let index = index" [class.featured]="index === 0">
         <div class="portrait"><img [src]="stylist.portrait" [alt]="stylist.name + ', styliste'" loading="lazy"></div>
         <div class="stylist-info"><span class="stylist-index">{{ index + 1 | number:'2.0-0' }}</span><p>{{ stylist.id ? stylist.studio : stylist.location }} · {{ stylist.specialty }}</p><h3>{{ stylist.name }}</h3><button type="button" (click)="openStylist(stylist)">Découvrir son univers <span>↗</span></button></div>
       </article>
@@ -173,7 +173,7 @@
           <span>{{ selectedStylistCreations.length }} pièce{{ selectedStylistCreations.length > 1 ? 's' : '' }}</span>
         </div>
         <div class="stylist-profile-products">
-          <article *ngFor="let item of selectedStylistCreations">
+          <article *ngFor="let item of selectedStylistCreations; trackBy: trackCreation">
             <div><img [src]="item.image" [alt]="item.name"><span *ngIf="item.badge">{{ item.badge }}</span></div>
             <p>{{ item.category }}</p>
             <h4>{{ item.name }}</h4>
@@ -239,7 +239,7 @@
       <button *ngFor="let filter of filters" [class.active]="selectedFilter === filter" (click)="setCreationFilter(filter)">{{ filter }}</button>
     </div>
     <div class="workspace-product-grid">
-      <article class="workspace-product" *ngFor="let item of visibleCreations">
+      <article class="workspace-product" *ngFor="let item of visibleCreations; trackBy: trackCreation">
         <div class="workspace-product-image"><img [src]="item.image" [alt]="item.name" loading="lazy"><span *ngIf="item.badge">{{ item.badge }}</span></div>
         <button class="workspace-creator-link" type="button" (click)="openCreationCreator(item)">{{ item.stylist }} · Créateur</button>
         <div><h3>{{ item.name }}</h3><strong>{{ item.price | number:'1.0-0' }} FCFA</strong></div>
@@ -253,7 +253,7 @@
     <section class="stylists section-shell explore-stylist-list" id="explore-stylist-list">
       <div class="section-heading"><div><p class="eyebrow">Talents de la communauté</p><h2>Rencontrez nos<br><em>stylistes</em></h2></div><p>Découvrez leurs univers et leurs créations.</p></div>
       <div class="stylist-grid">
-        <article class="stylist-card" *ngFor="let stylist of visibleStylists; let index = index" [class.featured]="index === 0">
+        <article class="stylist-card" *ngFor="let stylist of visibleStylists; trackBy: trackStylist; let index = index" [class.featured]="index === 0">
           <div class="portrait"><img [src]="stylist.portrait" [alt]="'Photo de ' + stylist.name" loading="lazy"></div>
           <div class="stylist-info"><span class="stylist-index">{{ index + 1 | number:'2.0-0' }}</span><p>{{ stylist.studio || stylist.location }} · {{ stylist.specialty }}</p><h3>{{ stylist.name }}</h3><button type="button" (click)="openStylist(stylist)">Découvrir son univers <span>↗</span></button></div>
         </article>
@@ -405,7 +405,7 @@
         <section class="client-panel client-inspirations" id="client-inspirations" *ngIf="clientPage === 'overview' || clientPage === 'favorites'">
           <div class="client-panel-heading"><div><span>{{ showFavoritesOnly ? 'Vos pièces enregistrées' : 'Sélectionnée pour vous' }}</span><h2>{{ showFavoritesOnly ? 'Mes favoris' : 'Inspirations du moment' }}</h2></div><div class="client-inspiration-actions"><button type="button" (click)="setClientPage(clientPage === 'favorites' ? 'overview' : 'favorites')">{{ showFavoritesOnly ? 'Toutes les inspirations' : 'Mes favoris (' + favoritesCount + ')' }}</button><button type="button" (click)="setView('explore')">Explorer les pièces ↗</button></div></div>
           <div class="client-inspiration-grid" *ngIf="visibleClientInspirations.length; else noCatalog">
-            <article *ngFor="let item of visibleClientInspirations"><div><img [src]="inspirationImage(item)" [alt]="inspirationName(item)"><button type="button" [class.active]="isFavorite(item)" [attr.aria-pressed]="isFavorite(item)" [attr.aria-label]="isFavorite(item) ? 'Retirer ' + inspirationName(item) + ' des favoris' : 'Ajouter ' + inspirationName(item) + ' aux favoris'" (click)="toggleFavorite(item)">{{ isFavorite(item) ? '♥' : '♡' }}</button></div><button class="client-creator-link" type="button" (click)="openCreationCreator(item)">{{ inspirationStylist(item) }} · Créateur</button><h3>{{ inspirationName(item) }}</h3><p>{{ price(item.price) | number:'1.0-0' }} {{ inspirationCurrency(item) }}</p></article>
+            <article *ngFor="let item of visibleClientInspirations; trackBy: trackInspiration"><div><img [src]="inspirationImage(item)" [alt]="inspirationName(item)"><button type="button" [class.active]="isFavorite(item)" [attr.aria-pressed]="isFavorite(item)" [attr.aria-label]="isFavorite(item) ? 'Retirer ' + inspirationName(item) + ' des favoris' : 'Ajouter ' + inspirationName(item) + ' aux favoris'" (click)="toggleFavorite(item)">{{ isFavorite(item) ? '♥' : '♡' }}</button></div><button class="client-creator-link" type="button" (click)="openCreationCreator(item)">{{ inspirationStylist(item) }} · Créateur</button><h3>{{ inspirationName(item) }}</h3><p>{{ price(item.price) | number:'1.0-0' }} {{ inspirationCurrency(item) }}</p></article>
           </div>
           <ng-template #noCatalog><div class="dashboard-inline-empty">{{ showFavoritesOnly ? 'Aucun favori enregistré parmi ces créations.' : 'Aucune création publiée pour le moment.' }}</div></ng-template>
         </section>

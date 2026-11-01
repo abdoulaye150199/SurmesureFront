@@ -758,6 +758,19 @@ export class App implements AfterViewInit, OnDestroy {
   ];
 
 
+  trackCreation(_index: number, item: Creation): string {
+    return item.id ?? JSON.stringify([item.stylist, item.name]);
+  }
+
+  trackStylist(_index: number, stylist: Stylist): string {
+    return stylist.id ?? JSON.stringify([stylist.studio, stylist.name]);
+  }
+
+  trackInspiration(_index: number, item: Creation | DashboardCatalogItem): string {
+    // Both the catalog entry and its public card can appear in this list.
+    return 'title' in item ? `catalog:${item.id}` : `creation:${item.id ?? JSON.stringify([item.stylist, item.name])}`;
+  }
+
   get visibleCreations(): Creation[] {
     const available = this.publicCatalogLoaded
       ? this.publicCatalogItems.map(item => this.toCreation(item))

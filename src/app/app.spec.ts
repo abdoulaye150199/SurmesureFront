@@ -23,6 +23,55 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
+  it('preserves creation and stylist images during scroll and catalog updates', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    spyOn(app, 'ngAfterViewInit');
+    Object.assign(app, { publicCatalogLoaded: true });
+    app.publicStylistsLoaded = true;
+    app.publicCatalogItems = [{ id: 'look', stylistId: 'atelier', title: 'Tenue', description: '', imageUrl: '/assets/look-1.png', price: 1000, currency: 'XOF', availableColors: [], active: true, createdAt: '', updatedAt: '' }];
+    app.publicStylists = [{ id: 'atelier', userId: 'owner', rating: 5, businessName: 'Atelier Awa', about: '', specialties: [], user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' } }] as App['publicStylists'];
+    fixture.detectChanges();
+    const creationImage = fixture.nativeElement.querySelector('.product-card img');
+    const stylistImage = fixture.nativeElement.querySelector('.stylist-card img');
+    expect(creationImage).toBeTruthy();
+    expect(stylistImage).toBeTruthy();
+    window.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.product-card img')).toBe(creationImage);
+    expect(fixture.nativeElement.querySelector('.stylist-card img')).toBe(stylistImage);
+    app.publicCatalogItems = app.publicCatalogItems.map(item => ({ ...item, imageUrl: '/assets/look-2.png' }));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.product-card img')).toBe(creationImage);
+    expect(creationImage.getAttribute('src')).toBe('/assets/look-2.png');
+    app.selectedStylist = app.visibleStylists[0];
+    fixture.detectChanges();
+    const profileImage = fixture.nativeElement.querySelector('.stylist-profile-creations img');
+    fixture.detectChanges();
+    expect(profileImage).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.stylist-profile-creations img')).toBe(profileImage);
+  });
+
+  it('keeps client inspiration images stable across repeated rendering', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    spyOn(app, 'ngAfterViewInit');
+    app.demoMode = true;
+    app.activeView = 'client';
+    app.clientPage = 'favorites';
+    app.showFavoritesOnly = false;
+    Object.assign(app, { publicCatalogLoaded: true });
+    app.publicCatalogItems = [{ id: 'look', stylistId: 'atelier', title: 'Tenue', description: '', imageUrl: '/assets/look-1.png', price: 1000, currency: 'XOF', availableColors: [], active: true, createdAt: '', updatedAt: '' }];
+    app.clientCatalog = [...app.publicCatalogItems];
+    fixture.detectChanges();
+    const images = [...fixture.nativeElement.querySelectorAll('.client-inspiration-grid img')];
+    expect(images.length).toBe(2);
+    window.dispatchEvent(new Event('scroll'));
+    fixture.detectChanges();
+    const updatedImages = [...fixture.nativeElement.querySelectorAll('.client-inspiration-grid img')];
+    images.forEach((image, index) => expect(updatedImages[index]).toBe(image));
+  });
+
   it('opens the admin login when visiting /admin or /admin/', () => {
     const previousUrl = window.location.pathname + window.location.search;
     try {
