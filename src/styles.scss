@@ -357,3 +357,60 @@ app-root .atelier-orders-panel {
     .atelier-order-footer .atelier-order-advance { flex-basis: 100%; }
   }
 }
+
+app-root .atelier-client-directory {
+  padding: clamp(20px, 2.5vw, 32px); background: #fffcfa;
+  .atelier-clients-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 24px; }
+  .atelier-clients-heading > div > span { color: #aa899e; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+  .atelier-clients-heading h2 { margin: 9px 0; font: 28px Georgia, serif; color: #58304e; }
+  .atelier-clients-heading p { margin: 0; color: #9e8896; font-size: 12px; line-height: 1.7; }
+  .atelier-clients-heading > button { flex-shrink: 0; min-height: 43px; padding: 0 18px; border: 0; border-radius: 11px; background: #681263; color: #fff; font-size: 12px; cursor: pointer; }
+  .atelier-clients-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 18px; padding-top: 20px; border-top: 1px solid #eee3e9; }
+  .atelier-clients-toolbar > span { color: #a38a9b; font-size: 11px; }
+  .atelier-clients-search { display: flex; gap: 10px; align-items: center; width: min(330px, 60%); padding: 0 13px; border: 1px solid #e5d6e0; border-radius: 11px; background: #fff; color: #ac8fa2; }
+  .atelier-clients-search svg { width: 17px; height: 17px; flex-shrink: 0; }
+  .atelier-clients-search input { width: 100%; min-width: 0; height: 42px; border: 0; outline: 0; background: transparent; color: #755369; font: 12px Arial, sans-serif; }
+  .atelier-clients-search:focus-within { outline: 2px solid #9b5b92; outline-offset: 2px; }
+  .atelier-clients-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 14px; }
+  .atelier-client-card { min-width: 0; margin: 0; padding: 0; overflow: hidden; border: 1px solid #e9dce5; border-radius: 15px; background: #fff; transition: border-color .2s, box-shadow .2s; }
+  .atelier-client-card:hover, .atelier-client-card[open] { border-color: #c8a3bf; box-shadow: 0 6px 22px #60264f09; }
+  .atelier-client-card > summary { display: block; padding: 18px; list-style: none; cursor: pointer; }
+  .atelier-client-card > summary::-webkit-details-marker { display: none; }
+  .atelier-client-card > summary:focus-visible { outline: 2px solid #9b5b92; outline-offset: -3px; border-radius: 15px; }
+  .atelier-client-identity { display: flex; align-items: center; gap: 11px; }
+  .atelier-client-initials { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: #f4e9f1; color: #8a467b; font: 16px Georgia, serif; }
+  .atelier-client-identity > div { min-width: 0; flex: 1; }
+  .atelier-client-identity strong { display: block; color: #67415b; font: 18px/1.3 Georgia, serif; overflow-wrap: anywhere; }
+  .atelier-client-identity small { display: block; margin-top: 5px; color: #ae93a4; font-size: 11px; overflow-wrap: anywhere; }
+  .atelier-client-chevron { color: #b294a7; font-size: 16px; transition: transform .2s; }
+  .atelier-client-card[open] .atelier-client-chevron { transform: rotate(90deg); }
+  .atelier-client-counters { display: flex; flex-wrap: wrap; gap: 7px; margin: 18px 0 15px; }
+  .atelier-client-counters > span { padding: 6px 8px; border-radius: 7px; background: #faf6f8; color: #a18498; font-size: 10px; line-height: 1.5; }
+  .atelier-client-counters b { color: #875476; font-weight: 600; margin-right: 3px; }
+  .atelier-client-open { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 13px; border-top: 1px solid #f1e7ee; }
+  .atelier-client-open > span { color: #b39baa; font-size: 9px; }
+  .atelier-client-open > b { color: #955086; font-size: 10px; font-weight: 500; }
+  .stylist-client-record-content { margin: 0; padding: 16px; border-top: 1px solid #ede0e8; }
+  .stylist-client-record-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .stylist-client-record-content button { padding: 9px 11px; border: 1px solid #e7d5e2; border-radius: 9px; background: #faf5f8; color: #8e587d; font-size: 11px; line-height: 1.5; cursor: pointer; }
+  .stylist-client-history { margin-top: 16px; padding-top: 16px; border-top: 1px solid #f0e6ec; }
+  .stylist-client-history h3 { color: #805672; font: 17px/1.4 Georgia, serif; overflow-wrap: anywhere; }
+  .stylist-client-history p { color: #a58a9b; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; }
+  .stylist-client-history > button { margin: 4px 5px 4px 0; }
+  .measurement-values { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .measurement-values > span { min-width: 0; padding: 10px; font-size: 12px; border-radius: 9px; }
+  .measurement-values b { font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+  .atelier-clients-empty { padding: 38px 20px; border: 1px dashed #dfcbd9; border-radius: 15px; text-align: center; }
+  .atelier-clients-empty > span { font-size: 30px; color: #b38ba6; }
+  .atelier-clients-empty h3 { margin: 10px 0; font: 24px Georgia, serif; color: #835576; }
+  .atelier-clients-empty p { color: #a4899a; font-size: 12px; line-height: 1.7; }
+  @media (max-width: 1200px) { .atelier-clients-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 620px) {
+    .atelier-clients-heading { flex-direction: column; align-items: stretch; gap: 18px; }
+    .atelier-clients-heading h2 { font-size: 25px; }
+    .atelier-clients-toolbar { flex-wrap: wrap; gap: 14px; }
+    .atelier-clients-search { width: 100%; box-sizing: border-box; }
+    .atelier-clients-grid { grid-template-columns: minmax(0, 1fr); }
+    .atelier-client-card > summary { padding: 16px; }
+  }
+}
