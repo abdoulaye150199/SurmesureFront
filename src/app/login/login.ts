@@ -47,6 +47,7 @@ export class LoginComponent {
     this.submitting = true;
     try {
       const user = await this.auth.login(this.loginEmail, this.loginPassword, this.accountRole);
+      this.closed.emit();
       this.loggedIn.emit(user);
     } catch (error) {
       this.error = error instanceof Error ? error.message : 'Connexion impossible pour le moment.';
