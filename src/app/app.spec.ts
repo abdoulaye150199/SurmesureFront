@@ -23,6 +23,17 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
+  for (const [role, destination] of [['CLIENT', 'client'], ['STYLIST', 'stylist'], ['EMPLOYEE', 'employee']] as const) {
+    it(`redirects to the detected ${destination} workspace after shared login`, () => {
+      const app = TestBed.createComponent(App).componentInstance;
+      spyOn(app, 'loadDashboard').and.resolveTo();
+      app.loginRole = 'client';
+      app.onLoggedIn({ id: 'user', role, firstName: 'Test' } as NonNullable<App['authenticatedUser']>);
+      expect(app.activeView).toBe(destination);
+      expect(app.workspaceRole).toBe(destination);
+    });
+  }
+
   it('preserves creation and stylist images during scroll and catalog updates', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;

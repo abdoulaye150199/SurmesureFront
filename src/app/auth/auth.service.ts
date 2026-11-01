@@ -62,13 +62,7 @@ export class AuthService {
   }
 
   async login(email: string, password: string, role: AppAccountRole): Promise<AuthUser> {
-    const endpoint = role === 'admin'
-      ? '/auth/admin/login'
-      : role === 'stylist'
-        ? '/auth/stylist/login'
-        : role === 'employee'
-          ? '/auth/employee/login'
-          : '/auth/client/login';
+    const endpoint = role === 'admin' ? '/auth/admin/login' : '/auth/login';
     return this.authenticate(endpoint, { email, password });
   }
 

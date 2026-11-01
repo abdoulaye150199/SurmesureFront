@@ -30,10 +30,6 @@ export class LoginComponent {
 
   constructor(private readonly auth: AuthService) {}
 
-  chooseAccount(role: AccountRole): void {
-    this.accountRole = role;
-  }
-
   requestSignup(): void {
     if (this.accountRole === 'client' || this.accountRole === 'stylist') this.signupRequested.emit(this.accountRole);
   }

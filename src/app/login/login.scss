@@ -42,10 +42,6 @@
 .login-socials button:hover { border-color:#5e0a61; background:#5e0a61; color:#fff; }
 .login-register { margin:27px 0 0; color:#746a6f; text-align:center; font-size:10px; }
 .login-register button { font-weight:700; }
-.login-account-tabs { display:flex; width:fit-content; margin:0 0 25px; padding:4px; border:1px solid #e5dbd7; border-radius:18px; background:#faf4f1; }
-.login-account-tabs button { padding:8px 15px; border:0; border-radius:14px; background:transparent; color:#8b7d84; font-size:10px; cursor:pointer; }
-.login-account-tabs button { padding-right:12px; padding-left:12px; }
-.login-account-tabs button.active { background:#5e0a61; color:#fff; box-shadow:0 4px 10px rgba(94,10,97,.18); }
 .login-admin-note { margin:24px 0 0; color:#8b7d84; text-align:center; font-size:10px; letter-spacing:.03em; }
 .signup-form { gap:0; }
 .signup-fields-row { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
@@ -54,7 +50,6 @@
 .signup-error { margin:0 0 15px; color:#a33f55; font-size:10px; line-height:1.5; }
 .login-submit:disabled { cursor:wait; opacity:.6; transform:none; }
 @media (max-width: 560px) {
-  .login-account-tabs { margin-bottom:17px; }
   .signup-fields-row { gap:12px; }
   .signup-fields-row input { font-size:11px; }
 }
