@@ -1,34 +1,44 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { Router } from '@angular/router';
 import { App } from './app';
+import { routes } from './app.routes';
 import { DashboardOrder, DashboardService } from './dashboard/dashboard.service';
 import { OfflineWorkspaceStore } from './dashboard/offline-workspace.store';
 import { AuthService } from './auth/auth.service';
 
 describe('App', () => {
   beforeEach(async () => {
-    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    window.history.replaceState(null, '', '/');
     localStorage.removeItem('surmesure.selection');
     localStorage.removeItem('surmesure.favorites');
     localStorage.removeItem('surmesure.auth.session');
+    sessionStorage.removeItem('surmesure.auth.session');
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideHttpClient()],
+      providers: [provideHttpClient(), provideRouter(routes)],
     }).compileComponents();
   });
 
   afterEach(() => {
-    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    window.history.replaceState(null, '', '/');
     document.title = 'Sur Mesure Style';
   });
 
-  for (const [role, destination] of [['CLIENT', 'client'], ['STYLIST', 'stylist'], ['EMPLOYEE', 'employee']] as const) {
+  for (const [role, destination] of [
+    ['CLIENT', 'client'],
+    ['STYLIST', 'stylist'],
+    ['EMPLOYEE', 'employee'],
+  ] as const) {
     it(`redirects to the detected ${destination} workspace after shared login`, () => {
       const app = TestBed.createComponent(App).componentInstance;
       spyOn(app, 'loadDashboard').and.resolveTo();
       app.loginRole = 'client';
-      app.onLoggedIn({ id: 'user', role, firstName: 'Test' } as NonNullable<App['authenticatedUser']>);
+      app.onLoggedIn({ id: 'user', role, firstName: 'Test' } as NonNullable<
+        App['authenticatedUser']
+      >);
       expect(app.activeView).toBe(destination);
       expect(app.workspaceRole).toBe(destination);
     });
@@ -40,8 +50,32 @@ describe('App', () => {
     spyOn(app, 'ngAfterViewInit');
     Object.assign(app, { publicCatalogLoaded: true });
     app.publicStylistsLoaded = true;
-    app.publicCatalogItems = [{ id: 'look', stylistId: 'atelier', title: 'Tenue', description: '', imageUrl: '/assets/look-1.png', price: 1000, currency: 'XOF', availableColors: [], active: true, createdAt: '', updatedAt: '' }];
-    app.publicStylists = [{ id: 'atelier', userId: 'owner', rating: 5, businessName: 'Atelier Awa', about: '', specialties: [], user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' } }] as App['publicStylists'];
+    app.publicCatalogItems = [
+      {
+        id: 'look',
+        stylistId: 'atelier',
+        title: 'Tenue',
+        description: '',
+        imageUrl: '/assets/look-1.png',
+        price: 1000,
+        currency: 'XOF',
+        availableColors: [],
+        active: true,
+        createdAt: '',
+        updatedAt: '',
+      },
+    ];
+    app.publicStylists = [
+      {
+        id: 'atelier',
+        userId: 'owner',
+        rating: 5,
+        businessName: 'Atelier Awa',
+        about: '',
+        specialties: [],
+        user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' },
+      },
+    ] as App['publicStylists'];
     fixture.detectChanges();
     const creationImage = fixture.nativeElement.querySelector('.product-card img');
     const stylistImage = fixture.nativeElement.querySelector('.stylist-card img');
@@ -51,7 +85,10 @@ describe('App', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.product-card img')).toBe(creationImage);
     expect(fixture.nativeElement.querySelector('.stylist-card img')).toBe(stylistImage);
-    app.publicCatalogItems = app.publicCatalogItems.map(item => ({ ...item, imageUrl: '/assets/look-2.png' }));
+    app.publicCatalogItems = app.publicCatalogItems.map((item) => ({
+      ...item,
+      imageUrl: '/assets/look-2.png',
+    }));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('.product-card img')).toBe(creationImage);
     expect(creationImage.getAttribute('src')).toBe('/assets/look-2.png');
@@ -60,7 +97,9 @@ describe('App', () => {
     const profileImage = fixture.nativeElement.querySelector('.stylist-profile-creations img');
     fixture.detectChanges();
     expect(profileImage).toBeTruthy();
-    expect(fixture.nativeElement.querySelector('.stylist-profile-creations img')).toBe(profileImage);
+    expect(fixture.nativeElement.querySelector('.stylist-profile-creations img')).toBe(
+      profileImage,
+    );
   });
 
   it('keeps client inspiration images stable across repeated rendering', () => {
@@ -72,34 +111,54 @@ describe('App', () => {
     app.clientPage = 'favorites';
     app.showFavoritesOnly = false;
     Object.assign(app, { publicCatalogLoaded: true });
-    app.publicCatalogItems = [{ id: 'look', stylistId: 'atelier', title: 'Tenue', description: '', imageUrl: '/assets/look-1.png', price: 1000, currency: 'XOF', availableColors: [], active: true, createdAt: '', updatedAt: '' }];
+    app.publicCatalogItems = [
+      {
+        id: 'look',
+        stylistId: 'atelier',
+        title: 'Tenue',
+        description: '',
+        imageUrl: '/assets/look-1.png',
+        price: 1000,
+        currency: 'XOF',
+        availableColors: [],
+        active: true,
+        createdAt: '',
+        updatedAt: '',
+      },
+    ];
     app.clientCatalog = [...app.publicCatalogItems];
     fixture.detectChanges();
     const images = [...fixture.nativeElement.querySelectorAll('.client-inspiration-grid img')];
     expect(images.length).toBe(2);
     window.dispatchEvent(new Event('scroll'));
     fixture.detectChanges();
-    const updatedImages = [...fixture.nativeElement.querySelectorAll('.client-inspiration-grid img')];
+    const updatedImages = [
+      ...fixture.nativeElement.querySelectorAll('.client-inspiration-grid img'),
+    ];
     images.forEach((image, index) => expect(updatedImages[index]).toBe(image));
   });
 
-  it('opens the admin login when visiting /admin or /admin/', () => {
+  it('opens the admin login when visiting /admin or /admin/', async () => {
     const previousUrl = window.location.pathname + window.location.search;
     try {
       for (const path of ['/admin', '/admin/']) {
         window.history.replaceState(null, '', path);
         const fixture = TestBed.createComponent(App);
+        await TestBed.inject(Router).navigateByUrl('/admin');
         expect(fixture.componentInstance.loginOpen).toBeTrue();
         expect(fixture.componentInstance.loginRole).toBe('admin');
         expect(fixture.componentInstance.activeView).toBe('home');
         fixture.componentInstance.closeLogin();
-        expect(window.location.pathname).toBe('/');
+        await TestBed.inject(Router).navigateByUrl('/');
+        expect(TestBed.inject(Router).url).toBe('/');
         fixture.destroy();
       }
-    } finally { window.history.replaceState(null, '', previousUrl); }
+    } finally {
+      window.history.replaceState(null, '', previousUrl);
+    }
   });
 
-  it('keeps a client session from replacing the admin entry form', () => {
+  it('keeps a client session from replacing the admin entry form', async () => {
     const previousUrl = window.location.pathname + window.location.search;
     try {
       const auth = TestBed.inject(AuthService);
@@ -107,18 +166,26 @@ describe('App', () => {
       spyOnProperty(auth, 'appRole', 'get').and.returnValue('client');
       window.history.replaceState(null, '', '/admin');
       const fixture = TestBed.createComponent(App);
+      await TestBed.inject(Router).navigateByUrl('/admin');
       expect(fixture.componentInstance.loginRole).toBe('admin');
       expect(fixture.componentInstance.loginOpen).toBeTrue();
-      const restore = spyOn<any>(fixture.componentInstance, 'restoreAuthenticatedWorkspace');
+      const componentWithRestore = fixture.componentInstance as unknown as {
+        restoreAuthenticatedWorkspace: () => Promise<void>;
+      };
+      const restore = spyOn(componentWithRestore, 'restoreAuthenticatedWorkspace');
       fixture.detectChanges();
       expect(restore).not.toHaveBeenCalled();
       fixture.destroy();
-    } finally { window.history.replaceState(null, '', previousUrl); }
+    } finally {
+      window.history.replaceState(null, '', previousUrl);
+    }
   });
 
   it('requires a client login before opening an appointment request', () => {
     const app = TestBed.createComponent(App).componentInstance;
-    const stylist = { id: 'atelier', name: 'Awa', studio: 'Atelier Awa' } as NonNullable<App['selectedStylist']>;
+    const stylist = { id: 'atelier', name: 'Awa', studio: 'Atelier Awa' } as NonNullable<
+      App['selectedStylist']
+    >;
     app.requestStylistAppointment(stylist);
     expect(app.loginOpen).toBeTrue();
     expect(app.loginRole).toBe('client');
@@ -134,11 +201,25 @@ describe('App', () => {
     spyOnProperty(auth, 'appRole', 'get').and.returnValue('client');
     app.activeView = 'client';
     const startsAt = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
-    app.appointmentStylist = { id: 'chosen-atelier', studio: 'Atelier Awa' } as NonNullable<App['selectedStylist']>;
+    app.appointmentStylist = { id: 'chosen-atelier', studio: 'Atelier Awa' } as NonNullable<
+      App['selectedStylist']
+    >;
     app.appointmentDraft = { service: ' Essayage ', startsAt, notes: ' Ma tenue ' };
-    const create = spyOn(dashboard, 'createAppointment').and.resolveTo({ id: 'request', clientId: 'client', stylistId: 'chosen-atelier', service: 'Essayage', startsAt: startsAt + ':00.000Z', status: 'pending' });
+    const create = spyOn(dashboard, 'createAppointment').and.resolveTo({
+      id: 'request',
+      clientId: 'client',
+      stylistId: 'chosen-atelier',
+      service: 'Essayage',
+      startsAt: startsAt + ':00.000Z',
+      status: 'pending',
+    });
     await app.sendAppointmentRequest();
-    expect(create).toHaveBeenCalledWith({ stylistId: 'chosen-atelier', service: 'Essayage', startsAt: startsAt + ':00.000Z', notes: 'Ma tenue' });
+    expect(create).toHaveBeenCalledWith({
+      stylistId: 'chosen-atelier',
+      service: 'Essayage',
+      startsAt: startsAt + ':00.000Z',
+      notes: 'Ma tenue',
+    });
     expect(app.clientAppointments[0].status).toBe('pending');
     expect(app.appointmentStylist).toBeNull();
     expect(app.clientPage).toBe('appointments');
@@ -149,10 +230,20 @@ describe('App', () => {
     const auth = TestBed.inject(AuthService);
     const dashboard = TestBed.inject(DashboardService);
     spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
-    spyOnProperty(auth, 'user', 'get').and.returnValue({ id: 'owner', role: 'STYLIST' } as NonNullable<App['authenticatedUser']>);
+    spyOnProperty(auth, 'user', 'get').and.returnValue({
+      id: 'owner',
+      role: 'STYLIST',
+    } as NonNullable<App['authenticatedUser']>);
     spyOnProperty(document, 'hidden', 'get').and.returnValue(false);
     app.activeView = 'stylist';
-    const request = { id: 'request', clientId: 'client', stylistId: 'atelier', service: 'Essayage', startsAt: new Date(Date.now() + 86400000).toISOString(), status: 'pending' as const };
+    const request = {
+      id: 'request',
+      clientId: 'client',
+      stylistId: 'atelier',
+      service: 'Essayage',
+      startsAt: new Date(Date.now() + 86400000).toISOString(),
+      status: 'pending' as const,
+    };
     spyOn(dashboard, 'listAppointments').and.resolveTo([request]);
     spyOn(dashboard, 'updateAppointmentStatus').and.resolveTo({ ...request, status: 'confirmed' });
     await app.refreshAppointments();
@@ -171,20 +262,32 @@ describe('App', () => {
       app.activeView = role;
       app.stylistPage = 'clients';
       app.employeePage = 'clients';
-      app.stylistMeasurements = [{
-        id: 'measurement', stylistId: 'atelier', clientId: null, clientName: 'Fatou Ndiaye',
-        clientPhone: '+221770000001', measurements: { taille: 74 }, notes: '',
-        createdAt: '2026-10-31T12:00:00Z', updatedAt: '2026-10-31T12:00:00Z',
-      }];
+      app.stylistMeasurements = [
+        {
+          id: 'measurement',
+          stylistId: 'atelier',
+          clientId: null,
+          clientName: 'Fatou Ndiaye',
+          clientPhone: '+221770000001',
+          measurements: { taille: 74 },
+          notes: '',
+          createdAt: '2026-10-31T12:00:00Z',
+          updatedAt: '2026-10-31T12:00:00Z',
+        },
+      ];
       fixture.detectChanges();
-      const selector = role === 'stylist' ? '#stylist-clients details' : '#employee-records details';
+      const selector =
+        role === 'stylist' ? '#stylist-clients details' : '#employee-records details';
       const dossier = fixture.nativeElement.querySelector(selector) as HTMLDetailsElement;
       dossier.open = true;
       window.dispatchEvent(new Event('scroll'));
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector(selector)).toBe(dossier);
       expect(dossier.open).toBeTrue();
-      app.stylistMeasurements = app.stylistMeasurements.map(record => ({ ...record, clientName: 'Fatou Diop' }));
+      app.stylistMeasurements = app.stylistMeasurements.map((record) => ({
+        ...record,
+        clientName: 'Fatou Diop',
+      }));
       fixture.detectChanges();
       expect(fixture.nativeElement.querySelector(selector)).toBe(dossier);
       expect(dossier.open).toBeTrue();
@@ -199,7 +302,13 @@ describe('App', () => {
     const app = fixture.componentInstance;
     spyOn(app, 'ngAfterViewInit');
     app.activeView = 'employee';
-    app.authenticatedUser = { id: 'employee', role: 'EMPLOYEE', firstName: 'Mame', lastName: 'Sarr', mustChangePassword: true } as NonNullable<App['authenticatedUser']>;
+    app.authenticatedUser = {
+      id: 'employee',
+      role: 'EMPLOYEE',
+      firstName: 'Mame',
+      lastName: 'Sarr',
+      mustChangePassword: true,
+    } as NonNullable<App['authenticatedUser']>;
     fixture.detectChanges();
     const nav = fixture.nativeElement.querySelector('#employee-main-nav');
     expect(nav.querySelectorAll('button').length).toBe(4);
@@ -210,15 +319,25 @@ describe('App', () => {
     app.setEmployeePage('profile');
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#employee-order-form')).toBeNull();
-    expect(fixture.nativeElement.querySelector('.employee-security-form').textContent).toContain('Modifier mon mot de passe');
-    expect(fixture.nativeElement.querySelector('.customer-profile').textContent).toContain('Première connexion');
+    expect(fixture.nativeElement.querySelector('.employee-security-form').textContent).toContain(
+      'Modifier mon mot de passe',
+    );
+    expect(fixture.nativeElement.querySelector('.customer-profile').textContent).toContain(
+      'Première connexion',
+    );
   });
 
   it('rejects different password confirmations and clears secrets after success', async () => {
     const app = TestBed.createComponent(App).componentInstance;
     const auth = TestBed.inject(AuthService);
-    const change = spyOn(auth, 'changeEmployeePassword').and.resolveTo({ mustChangePassword: false } as NonNullable<App['authenticatedUser']>);
-    app.employeePasswordDraft = { current: 'InitialPassword2026', next: 'PersonalPassword2026', confirm: 'DifferentPassword2026' };
+    const change = spyOn(auth, 'changeEmployeePassword').and.resolveTo({
+      mustChangePassword: false,
+    } as NonNullable<App['authenticatedUser']>);
+    app.employeePasswordDraft = {
+      current: 'InitialPassword2026',
+      next: 'PersonalPassword2026',
+      confirm: 'DifferentPassword2026',
+    };
     await app.changeEmployeePassword();
     expect(change).not.toHaveBeenCalled();
     expect(app.employeePasswordError).toBeTruthy();
@@ -229,48 +348,60 @@ describe('App', () => {
     expect(app.authenticatedUser?.mustChangePassword).toBeFalse();
   });
 
-  it('gives client pages distinct URLs and responds to browser history', () => {
+  it('gives client pages distinct router URLs and responds to browser history', async () => {
     const app = TestBed.createComponent(App).componentInstance;
+    const router = TestBed.inject(Router);
     app.demoMode = true;
     app.setClientPage('orders');
-    expect(window.location.hash).toBe('#/client/commandes');
+    await router.navigateByUrl('/client/commandes');
+    expect(router.url).toBe('/client/commandes');
     expect(app.clientPage).toBe('orders');
     app.setClientPage('measurements');
-    expect(window.location.hash).toBe('#/client/mesures');
+    await router.navigateByUrl('/client/mesures');
+    expect(router.url).toBe('/client/mesures');
     expect(app.activeView).toBe('measure');
-    window.history.replaceState(null, '', '#/client/commandes');
-    window.dispatchEvent(new PopStateEvent('popstate'));
+    await router.navigateByUrl('/client/commandes');
     expect(app.activeView).toBe('client');
     expect(app.clientPage).toBe('orders');
     app.setClientPage('profile');
-    expect(window.location.hash).toBe('#/client/profil');
+    await router.navigateByUrl('/client/profil');
+    expect(router.url).toBe('/client/profil');
     expect(app.clientPageTitle).toBe('Mon profil');
     app.setView('home');
-    expect(window.location.hash).toBe('');
+    await router.navigateByUrl('/');
+    expect(router.url).toBe('/');
   });
 
-  it('restores the requested client page after reload with a valid account', () => {
+  it('restores the requested client page after reload with a valid account', async () => {
     const auth = TestBed.inject(AuthService);
     spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
     spyOnProperty(auth, 'appRole', 'get').and.returnValue('client');
-    spyOnProperty(auth, 'user', 'get').and.returnValue({ id: 'client', role: 'CLIENT', firstName: 'Fatou' } as NonNullable<App['authenticatedUser']>);
-    window.history.replaceState(null, '', '#/client/favoris');
+    spyOnProperty(auth, 'user', 'get').and.returnValue({
+      id: 'client',
+      role: 'CLIENT',
+      firstName: 'Fatou',
+    } as NonNullable<App['authenticatedUser']>);
+    window.history.replaceState(null, '', '/client/favoris');
     const fixture = TestBed.createComponent(App);
+    await TestBed.inject(Router).navigateByUrl('/client/favoris');
     expect(fixture.componentInstance.clientPage).toBe('favorites');
     expect(fixture.componentInstance.showFavoritesOnly).toBeTrue();
     expect(fixture.componentInstance.activeView).toBe('client');
   });
 
-  it('requires login on direct client links and keeps the requested page after login', () => {
-    window.history.replaceState(null, '', '#/client/rendez-vous');
+  it('requires login on direct client links and keeps the requested page after login', async () => {
+    window.history.replaceState(null, '', '/client/rendez-vous');
     const app = TestBed.createComponent(App).componentInstance;
+    await TestBed.inject(Router).navigateByUrl('/client/rendez-vous');
     expect(app.activeView).toBe('home');
     expect(app.loginOpen).toBeTrue();
     spyOn(app, 'loadDashboard').and.resolveTo();
-    app.onLoggedIn({ id: 'client', role: 'CLIENT', firstName: 'Fatou' } as NonNullable<App['authenticatedUser']>);
+    app.onLoggedIn({ id: 'client', role: 'CLIENT', firstName: 'Fatou' } as NonNullable<
+      App['authenticatedUser']
+    >);
     expect(app.clientPage).toBe('appointments');
     expect(app.activeView).toBe('client');
-    expect(window.location.hash).toBe('#/client/rendez-vous');
+    expect(TestBed.inject(Router).url).toBe('/client/rendez-vous');
   });
 
   it('should create the app', () => {
@@ -281,11 +412,26 @@ describe('App', () => {
 
   it('lets the stylist approve the selected model and updates its displayed status', async () => {
     const app = TestBed.createComponent(App).componentInstance;
-    const record = { id: 'sheet', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001', modelName: 'Tenue de fête', measurements: { poitrine: 92 }, notes: '', source: 'client' as const, validatedAt: null, createdAt: '', updatedAt: '2026-10-31T12:00:00Z' };
+    const record = {
+      id: 'sheet',
+      stylistId: 'atelier',
+      clientId: 'client',
+      clientName: 'Fatou',
+      clientPhone: '+221770000001',
+      modelName: 'Tenue de fête',
+      measurements: { poitrine: 92 },
+      notes: '',
+      source: 'client' as const,
+      validatedAt: null,
+      createdAt: '',
+      updatedAt: '2026-10-31T12:00:00Z',
+    };
     app.stylistMeasurements = [record];
     app.openMeasurementValidation(record);
     const approved = { ...record, validatedAt: '2026-10-31T13:00:00Z', validatedById: 'stylist' };
-    const approve = spyOn(TestBed.inject(DashboardService), 'validateMeasurement').and.resolveTo(approved);
+    const approve = spyOn(TestBed.inject(DashboardService), 'validateMeasurement').and.resolveTo(
+      approved,
+    );
     await app.confirmMeasurementValidation();
     expect(approve).toHaveBeenCalledWith(record, 'Tenue de fête');
     expect(app.stylistMeasurements[0]).toEqual(approved);
@@ -297,7 +443,19 @@ describe('App', () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.clientOrders = [timedOrder({ description: 'Tenue de fête', status: 'inProgress' })];
     expect(app.orderStepReached(1)).toBeFalse();
-    const record = { id: 'sheet', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '', modelName: 'Autre modèle', measurements: { poitrine: 92 }, notes: '', validatedAt: '2026-10-31T13:00:00Z', createdAt: '', updatedAt: '' };
+    const record = {
+      id: 'sheet',
+      stylistId: 'atelier',
+      clientId: 'client',
+      clientName: 'Fatou',
+      clientPhone: '',
+      modelName: 'Autre modèle',
+      measurements: { poitrine: 92 },
+      notes: '',
+      validatedAt: '2026-10-31T13:00:00Z',
+      createdAt: '',
+      updatedAt: '',
+    };
     app.clientMeasurements = [record];
     expect(app.orderStepReached(1)).toBeFalse();
     app.clientMeasurements = [{ ...record, modelName: 'Tenue de fête' }];
@@ -313,10 +471,29 @@ describe('App', () => {
     app.clientModelName = 'Tenue de cérémonie';
     app.clientModelStylistId = 'atelier';
     app.clientModelValues = { taille: 74, entrejambe: 80 };
-    const created = { id: 'model-sheet', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001', modelName: 'Tenue de cérémonie', measurements: { taille: 74, entrejambe: 80 }, notes: '', createdAt: '', updatedAt: '' };
-    const create = spyOn(TestBed.inject(DashboardService), 'createClientModelMeasurements').and.resolveTo(created);
+    const created = {
+      id: 'model-sheet',
+      stylistId: 'atelier',
+      clientId: 'client',
+      clientName: 'Fatou',
+      clientPhone: '+221770000001',
+      modelName: 'Tenue de cérémonie',
+      measurements: { taille: 74, entrejambe: 80 },
+      notes: '',
+      createdAt: '',
+      updatedAt: '',
+    };
+    const create = spyOn(
+      TestBed.inject(DashboardService),
+      'createClientModelMeasurements',
+    ).and.resolveTo(created);
     await app.saveClientModel();
-    expect(create).toHaveBeenCalledWith(jasmine.objectContaining({ modelName: 'Tenue de cérémonie', measurements: { taille: 74, entrejambe: 80 } }));
+    expect(create).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        modelName: 'Tenue de cérémonie',
+        measurements: { taille: 74, entrejambe: 80 },
+      }),
+    );
     expect(app.clientMeasurements[0]).toEqual(created);
     expect(app.clientModelEditorOpen).toBeFalse();
     expect(app.measurementValue('taille', 'Tenue de cérémonie')).toBe(74);
@@ -340,9 +517,19 @@ describe('App', () => {
   });
 
   const timedOrder = (overrides: Partial<DashboardOrder> = {}): DashboardOrder => ({
-    id: 'timed-order', stylistId: 'atelier', clientId: 'client', clientName: 'Fatou', clientPhone: '+221770000001',
-    description: 'Robe', totalPrice: 45000, currency: 'XOF', status: 'inProgress',
-    createdAt: '2030-01-01T12:00:00Z', updatedAt: '2030-01-01T12:00:00Z', dueAt: '2030-01-03T12:00:00Z', ...overrides,
+    id: 'timed-order',
+    stylistId: 'atelier',
+    clientId: 'client',
+    clientName: 'Fatou',
+    clientPhone: '+221770000001',
+    description: 'Robe',
+    totalPrice: 45000,
+    currency: 'XOF',
+    status: 'inProgress',
+    createdAt: '2030-01-01T12:00:00Z',
+    updatedAt: '2030-01-01T12:00:00Z',
+    dueAt: '2030-01-03T12:00:00Z',
+    ...overrides,
   });
 
   it('updates time progress and triggers the reminder at 24 hours remaining', () => {
@@ -353,7 +540,10 @@ describe('App', () => {
       fixture = TestBed.createComponent(App);
       const app = fixture.componentInstance;
       spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
-      spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.returnValue({ id: 'client', role: 'CLIENT' } as NonNullable<App['authenticatedUser']>);
+      spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.returnValue({
+        id: 'client',
+        role: 'CLIENT',
+      } as NonNullable<App['authenticatedUser']>);
       app.clientOrders = [timedOrder()];
       expect(app.clientDeliveryReminders.length).toBe(0);
       jasmine.clock().tick(60_000);
@@ -370,9 +560,14 @@ describe('App', () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.orderClock.set(new Date('2030-01-02T12:00:00Z').getTime());
     app.clientOrders = [timedOrder({ clientId: 'reminder-client-a' })];
-    app.authenticatedUser = { id: 'reminder-client-a', role: 'CLIENT' } as typeof app.authenticatedUser;
+    app.authenticatedUser = {
+      id: 'reminder-client-a',
+      role: 'CLIENT',
+    } as typeof app.authenticatedUser;
     spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
-    spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.callFake(() => app.authenticatedUser);
+    spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.callFake(
+      () => app.authenticatedUser,
+    );
     localStorage.removeItem('surmesure.delivery-reminders.reminder-client-a');
     localStorage.removeItem('surmesure.delivery-reminders.reminder-client-b');
     expect(app.unreadDeliveryReminders).toBe(1);
@@ -380,9 +575,14 @@ describe('App', () => {
     spyOn(app, 'updateOrderClock');
     app.openClientNotifications();
     expect(app.unreadDeliveryReminders).toBe(0);
-    app.clientOrders = [timedOrder({ clientId: 'reminder-client-a', dueAt: '2030-01-03T11:00:00Z' })];
+    app.clientOrders = [
+      timedOrder({ clientId: 'reminder-client-a', dueAt: '2030-01-03T11:00:00Z' }),
+    ];
     expect(app.unreadDeliveryReminders).toBe(1);
-    app.authenticatedUser = { id: 'reminder-client-b', role: 'CLIENT' } as typeof app.authenticatedUser;
+    app.authenticatedUser = {
+      id: 'reminder-client-b',
+      role: 'CLIENT',
+    } as typeof app.authenticatedUser;
     app.clientOrders = [timedOrder({ clientId: 'reminder-client-b' })];
     expect(app.unreadDeliveryReminders).toBe(1);
     localStorage.removeItem('surmesure.delivery-reminders.reminder-client-a');
@@ -412,8 +612,15 @@ describe('App', () => {
     app.clientOrders = [order];
     expect(app.canTrackOrder(order)).toBeFalse();
     expect(app.clientDeliveryReminders).toEqual([]);
-    const signedIn = spyOnProperty(TestBed.inject(AuthService), 'isAuthenticated', 'get').and.returnValue(true);
-    spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.returnValue({ id: 'client', role: 'CLIENT' } as NonNullable<App['authenticatedUser']>);
+    const signedIn = spyOnProperty(
+      TestBed.inject(AuthService),
+      'isAuthenticated',
+      'get',
+    ).and.returnValue(true);
+    spyOnProperty(TestBed.inject(AuthService), 'user', 'get').and.returnValue({
+      id: 'client',
+      role: 'CLIENT',
+    } as NonNullable<App['authenticatedUser']>);
     expect(app.canTrackOrder(order)).toBeTrue();
     expect(app.canTrackOrder({ ...order, clientId: 'other' })).toBeFalse();
     expect(app.canTrackOrder({ ...order, clientId: null })).toBeFalse();
@@ -434,11 +641,37 @@ describe('App', () => {
     app.orderMeasurements = { poitrine: 92, taille: 74 };
     app.orderDurationDays = 7;
     app.orderDueAt = '2099-12-20T15:30';
-    app.orderDraft = { clientName: ' Fatou Ndiaye ', clientPhone: '+221770000001', description: ' Robe sur mesure ', totalPrice: 45000, notes: '' };
-    const created = { ...app.orderDraft, id: 'order', stylistId: 'atelier', clientId: null, currency: 'XOF', status: 'pending' as const, createdAt: '', updatedAt: '', totalPrice: 45000 };
+    app.orderDraft = {
+      clientName: ' Fatou Ndiaye ',
+      clientPhone: '+221770000001',
+      description: ' Robe sur mesure ',
+      totalPrice: 45000,
+      notes: '',
+    };
+    const created = {
+      ...app.orderDraft,
+      id: 'order',
+      stylistId: 'atelier',
+      clientId: null,
+      currency: 'XOF',
+      status: 'pending' as const,
+      createdAt: '',
+      updatedAt: '',
+      totalPrice: 45000,
+    };
     const create = spyOn(TestBed.inject(DashboardService), 'createOrder').and.resolveTo(created);
     await app.saveOrder();
-    expect(create).toHaveBeenCalledWith('atelier', jasmine.objectContaining({ clientName: 'Fatou Ndiaye', description: 'Robe sur mesure', totalPrice: 45000, measurements: { poitrine: 92, taille: 74 }, durationDays: 7, dueAt: '2099-12-20T15:30:00.000Z' }));
+    expect(create).toHaveBeenCalledWith(
+      'atelier',
+      jasmine.objectContaining({
+        clientName: 'Fatou Ndiaye',
+        description: 'Robe sur mesure',
+        totalPrice: 45000,
+        measurements: { poitrine: 92, taille: 74 },
+        durationDays: 7,
+        dueAt: '2099-12-20T15:30:00.000Z',
+      }),
+    );
     expect(app.stylistOrders).toEqual([created]);
     expect(app.orderEditorOpen).toBeFalse();
     expect(app.stylistPage).toBe('orders');
@@ -451,8 +684,16 @@ describe('App', () => {
     app.orderMeasurements = { poitrine: 92, taille: 74 };
     app.orderDurationDays = 7;
     app.orderDueAt = '2099-12-20T15:30';
-    app.orderDraft = { clientName: 'Fatou Ndiaye', clientPhone: '+221770000001', description: 'Robe', totalPrice: 45000, notes: '' };
-    spyOn(TestBed.inject(DashboardService), 'createOrder').and.rejectWith(new HttpErrorResponse({ status: 400, error: { message: 'Téléphone invalide' } }));
+    app.orderDraft = {
+      clientName: 'Fatou Ndiaye',
+      clientPhone: '+221770000001',
+      description: 'Robe',
+      totalPrice: 45000,
+      notes: '',
+    };
+    spyOn(TestBed.inject(DashboardService), 'createOrder').and.rejectWith(
+      new HttpErrorResponse({ status: 400, error: { message: 'Téléphone invalide' } }),
+    );
     await app.saveOrder();
     expect(app.orderError).toBe('Téléphone invalide');
     expect(app.orderEditorOpen).toBeTrue();
@@ -485,7 +726,11 @@ describe('App', () => {
       expect(app.orderError).toContain('livraison/retrait');
     }
     expect(create).not.toHaveBeenCalled();
-    expect(app.orderDeliveryLabel({ dueAt: '2099-12-20T15:30:00.000Z' } as Parameters<App['orderDeliveryLabel']>[0])).toContain('15:30');
+    expect(
+      app.orderDeliveryLabel({ dueAt: '2099-12-20T15:30:00.000Z' } as Parameters<
+        App['orderDeliveryLabel']
+      >[0]),
+    ).toContain('15:30');
   });
 
   it('opens separate client tabs and keeps navigation available from measurements', () => {
@@ -495,22 +740,38 @@ describe('App', () => {
     app.activeView = 'client';
     fixture.detectChanges();
     const clickTab = (label: string) => {
-      const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('.client-dashboard-sidebar nav button'));
-      (buttons.find(button => button.querySelector('span')?.textContent === label) as HTMLButtonElement).click();
+      const buttons = Array.from(
+        (fixture.nativeElement as HTMLElement).querySelectorAll(
+          '.client-dashboard-sidebar nav button',
+        ),
+      );
+      (
+        buttons.find(
+          (button) => button.querySelector('span')?.textContent === label,
+        ) as HTMLButtonElement
+      ).click();
       fixture.detectChanges();
     };
 
     clickTab('Mes commandes');
-    expect(fixture.nativeElement.querySelector('.client-portal-header h1').textContent).toBe('Mes commandes');
+    expect(fixture.nativeElement.querySelector('.client-portal-header h1').textContent).toBe(
+      'Mes commandes',
+    );
     expect(fixture.nativeElement.querySelector('.client-quick-overview')).toBeNull();
     clickTab('Mes mesures');
     expect(app.activeView).toBe('measure');
     clickTab('Rendez-vous');
-    expect(fixture.nativeElement.querySelector('.client-portal-header h1').textContent).toBe('Rendez-vous');
-    expect(fixture.nativeElement.querySelector('.dashboard-inline-empty').textContent).toContain('Aucun rendez-vous');
+    expect(fixture.nativeElement.querySelector('.client-portal-header h1').textContent).toBe(
+      'Rendez-vous',
+    );
+    expect(fixture.nativeElement.querySelector('.dashboard-inline-empty').textContent).toContain(
+      'Aucun rendez-vous',
+    );
     clickTab('Mes favoris');
     expect(app.showFavoritesOnly).toBeTrue();
-    expect(fixture.nativeElement.querySelector('.client-dashboard-sidebar nav .active span').textContent).toBe('Mes favoris');
+    expect(
+      fixture.nativeElement.querySelector('.client-dashboard-sidebar nav .active span').textContent,
+    ).toBe('Mes favoris');
     clickTab('Vue d’ensemble');
     expect(app.showFavoritesOnly).toBeFalse();
     expect(fixture.nativeElement.querySelector('.client-quick-overview')).not.toBeNull();
@@ -522,17 +783,31 @@ describe('App', () => {
     app.stylistProfile = { id: 'atelier-1' } as typeof app.stylistProfile;
     app.employeeAccountEditorOpen = true;
     app.employeeAccountDraft = {
-      firstName: ' Mame ', lastName: ' Sarr ', email: ' MAME@example.com ',
-      phone: '+221 77 000 00 01', password: 'MotDePasse2026', specialization: ' Couture ',
+      firstName: ' Mame ',
+      lastName: ' Sarr ',
+      email: ' MAME@example.com ',
+      phone: '+221 77 000 00 01',
+      password: 'MotDePasse2026',
+      specialization: ' Couture ',
     };
-    const create = spyOn(TestBed.inject(DashboardService), 'createEmployeeAccount')
-      .and.rejectWith(new HttpErrorResponse({ status: 409, error: { message: 'Cet e-mail ou ce numéro est déjà utilisé par un compte.' } }));
+    const create = spyOn(TestBed.inject(DashboardService), 'createEmployeeAccount').and.rejectWith(
+      new HttpErrorResponse({
+        status: 409,
+        error: { message: 'Cet e-mail ou ce numéro est déjà utilisé par un compte.' },
+      }),
+    );
 
     await app.saveEmployeeAccount();
 
-    expect(create).toHaveBeenCalledWith('atelier-1', jasmine.objectContaining({
-      firstName: 'Mame', lastName: 'Sarr', email: 'mame@example.com', phone: '+221770000001',
-    }));
+    expect(create).toHaveBeenCalledWith(
+      'atelier-1',
+      jasmine.objectContaining({
+        firstName: 'Mame',
+        lastName: 'Sarr',
+        email: 'mame@example.com',
+        phone: '+221770000001',
+      }),
+    );
     expect(app.employeeAccountError).toContain('déjà utilisé');
     expect(app.employeeAccountEditorOpen).toBeTrue();
     expect(app.employeeAccountSaving).toBeFalse();
@@ -541,8 +816,12 @@ describe('App', () => {
   it('does not send an employee account with a short password', async () => {
     const app = TestBed.createComponent(App).componentInstance;
     app.employeeAccountDraft = {
-      firstName: 'Mame', lastName: 'Sarr', email: 'mame@example.com',
-      phone: '+221770000001', password: 'court', specialization: 'Couture',
+      firstName: 'Mame',
+      lastName: 'Sarr',
+      email: 'mame@example.com',
+      phone: '+221770000001',
+      password: 'court',
+      specialization: 'Couture',
     };
     const create = spyOn(TestBed.inject(DashboardService), 'createEmployeeAccount');
     await app.saveEmployeeAccount();
@@ -601,8 +880,10 @@ describe('App', () => {
   it('sends anonymous likes to the API once and updates the creator count', async () => {
     const app = TestBed.createComponent(App).componentInstance;
     const item = { ...app.creations[0], id: 'catalog-1' };
-    const save = spyOn(TestBed.inject(DashboardService), 'setCatalogLike')
-      .and.resolveTo({ liked: true, likesCount: 7 });
+    const save = spyOn(TestBed.inject(DashboardService), 'setCatalogLike').and.resolveTo({
+      liked: true,
+      likesCount: 7,
+    });
     await app.toggleFavorite(item);
     expect(save).toHaveBeenCalledWith('catalog-1', jasmine.any(String), true);
     const visitorId = save.calls.mostRecent().args[1];
@@ -614,20 +895,23 @@ describe('App', () => {
   });
 
   it('restores the authenticated stylist workspace after a reload', () => {
-    localStorage.setItem('surmesure.auth.session', JSON.stringify({
-      token: 'access-token',
-      refreshToken: 'refresh-token',
-      data: {
-        id: 'stylist-1',
-        role: 'STYLIST',
-        firstName: 'Awa',
-        lastName: 'Diop',
-        email: 'awa@example.com',
-        phone: '+221770000001',
-        profileImage: '',
-        isActive: true,
-      },
-    }));
+    sessionStorage.setItem(
+      'surmesure.auth.session',
+      JSON.stringify({
+        token: 'access-token',
+        refreshToken: 'refresh-token',
+        data: {
+          id: 'stylist-1',
+          role: 'STYLIST',
+          firstName: 'Awa',
+          lastName: 'Diop',
+          email: 'awa@example.com',
+          phone: '+221770000001',
+          profileImage: '',
+          isActive: true,
+        },
+      }),
+    );
 
     const fixture = TestBed.createComponent(App);
 
@@ -646,11 +930,14 @@ describe('App', () => {
       profileImage: '',
       isActive: true,
     };
-    localStorage.setItem('surmesure.auth.session', JSON.stringify({
-      token: 'access-token',
-      refreshToken: 'refresh-token',
-      data: client,
-    }));
+    sessionStorage.setItem(
+      'surmesure.auth.session',
+      JSON.stringify({
+        token: 'access-token',
+        refreshToken: 'refresh-token',
+        data: client,
+      }),
+    );
 
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
@@ -660,7 +947,7 @@ describe('App', () => {
     expect(app.activeView).toBe('home');
     expect(app.loginOpen).toBeTrue();
     expect(app.authenticatedUser).toBeNull();
-    expect(localStorage.getItem('surmesure.auth.session')).toBeNull();
+    expect(sessionStorage.getItem('surmesure.auth.session')).toBeNull();
 
     app.onLoggedIn(client);
     expect(app.activeView).toBe('measure');
@@ -682,17 +969,29 @@ describe('App', () => {
       updatedAt: '2026-10-28T12:00:00.000Z',
     };
     app.authenticatedUser = {
-      id: 'stylist-user-1', role: 'STYLIST', firstName: 'Awa', lastName: 'Diop',
-      email: 'awa@example.com', phone: '+221770000002', profileImage: '', isActive: true,
+      id: 'stylist-user-1',
+      role: 'STYLIST',
+      firstName: 'Awa',
+      lastName: 'Diop',
+      email: 'awa@example.com',
+      phone: '+221770000002',
+      profileImage: '',
+      isActive: true,
     };
     spyOn(dashboard, 'loadStylistDashboard').and.rejectWith(new Error('offline'));
     spyOn(dashboard, 'listStylistPersonnel').and.rejectWith(new Error('offline'));
     spyOn(offlineStore, 'load').and.resolveTo({
-      userId: 'stylist-user-1', role: 'stylist', savedAt: '2026-10-28T12:00:00.000Z',
+      userId: 'stylist-user-1',
+      role: 'stylist',
+      savedAt: '2026-10-28T12:00:00.000Z',
       measurements: [measurement],
       stylistProfile: {
-        id: 'atelier-1', userId: 'stylist-user-1', businessName: 'Atelier Awa', about: '',
-        specialties: [], rating: 0,
+        id: 'atelier-1',
+        userId: 'stylist-user-1',
+        businessName: 'Atelier Awa',
+        about: '',
+        specialties: [],
+        rating: 0,
         user: { firstName: 'Awa', lastName: 'Diop', profileImage: '' },
       },
     });
@@ -720,17 +1019,32 @@ describe('App', () => {
       updatedAt: '2026-10-28T12:00:00.000Z',
     };
     app.authenticatedUser = {
-      id: 'employee-user-1', role: 'EMPLOYEE', firstName: 'Mame', lastName: 'Sarr',
-      email: 'mame@example.com', phone: '+221770000004', profileImage: '', isActive: true,
+      id: 'employee-user-1',
+      role: 'EMPLOYEE',
+      firstName: 'Mame',
+      lastName: 'Sarr',
+      email: 'mame@example.com',
+      phone: '+221770000004',
+      profileImage: '',
+      isActive: true,
     };
     spyOn(dashboard, 'loadEmployeeDashboard').and.rejectWith(new Error('offline'));
     spyOn(offlineStore, 'load').and.resolveTo({
-      userId: 'employee-user-1', role: 'employee', savedAt: '2026-10-28T12:00:00.000Z',
+      userId: 'employee-user-1',
+      role: 'employee',
+      savedAt: '2026-10-28T12:00:00.000Z',
       measurements: [measurement],
       employeeContext: {
-        id: 'employee-1', stylistId: 'atelier-1', userId: 'employee-user-1', firstName: 'Mame',
-        lastName: 'Sarr', email: 'mame@example.com', phone: '+221770000004',
-        specialization: 'Couture', active: true, hireDate: '2026-10-01T00:00:00.000Z',
+        id: 'employee-1',
+        stylistId: 'atelier-1',
+        userId: 'employee-user-1',
+        firstName: 'Mame',
+        lastName: 'Sarr',
+        email: 'mame@example.com',
+        phone: '+221770000004',
+        specialization: 'Couture',
+        active: true,
+        hireDate: '2026-10-01T00:00:00.000Z',
         stylist: { id: 'atelier-1', businessName: 'Atelier Awa' },
       },
     });

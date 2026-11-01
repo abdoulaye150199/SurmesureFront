@@ -19,4 +19,18 @@ describe('OfflineWorkspaceStore', () => {
     await store.clear();
     expect(await store.load(snapshot.userId, snapshot.role)).toBeNull();
   });
+
+  it('does not expose offline records after their retention period', async () => {
+    const expiredSnapshot = {
+      userId: 'employee-expired-test',
+      role: 'employee' as const,
+      savedAt: new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString(),
+      measurements: [],
+    };
+
+    await store.save(expiredSnapshot);
+
+    expect(await store.load(expiredSnapshot.userId, expiredSnapshot.role)).toBeNull();
+    await store.clear();
+  });
 });

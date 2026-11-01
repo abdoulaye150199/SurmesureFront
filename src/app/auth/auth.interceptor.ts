@@ -1,27 +1,27 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { catchError, throwError } from 'rxjs';
-import { AUTH_SESSION_KEY, AuthSession } from './auth.service';
+import { clearStoredAuthSession, readAuthSession } from './auth-session.storage';
 
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
-  let session: AuthSession | null = null;
-  try {
-    const raw = localStorage.getItem(AUTH_SESSION_KEY);
-    session = raw ? JSON.parse(raw) as AuthSession : null;
-  } catch {
-    localStorage.removeItem(AUTH_SESSION_KEY);
-  }
+  const session = readAuthSession();
 
   const authenticatedRequest = session?.token
     ? request.clone({ setHeaders: { Authorization: `Bearer ${session.token}` } })
     : request;
 
-  return next(authenticatedRequest).pipe(catchError((error: unknown) => {
-    if (error instanceof HttpErrorResponse && error.status === 401 && !request.url.includes('/auth/')) {
-      localStorage.removeItem(AUTH_SESSION_KEY);
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('surmesure:session-expired'));
+  return next(authenticatedRequest).pipe(
+    catchError((error: unknown) => {
+      if (
+        error instanceof HttpErrorResponse &&
+        error.status === 401 &&
+        !request.url.includes('/auth/')
+      ) {
+        clearStoredAuthSession();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('surmesure:session-expired'));
+        }
       }
-    }
-    return throwError(() => error);
-  }));
+      return throwError(() => error);
+    }),
+  );
 };

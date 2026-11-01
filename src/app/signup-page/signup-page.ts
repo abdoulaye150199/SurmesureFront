@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignupRole } from '../login/login';
 import { AuthService, AuthUser } from '../auth/auth.service';
@@ -9,9 +9,10 @@ import { AuthService, AuthUser } from '../auth/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './signup-page.html',
-  styleUrl: './signup-page.scss'
+  styleUrl: './signup-page.scss',
 })
 export class SignupPageComponent {
+  private readonly auth = inject(AuthService);
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly loginRequested = new EventEmitter<SignupRole>();
   @Output() readonly accountCreated = new EventEmitter<AuthUser>();
@@ -31,8 +32,6 @@ export class SignupPageComponent {
   showPasswordConfirmation = false;
   error = '';
   submitting = false;
-
-  constructor(private readonly auth: AuthService) {}
 
   get isStylist(): boolean {
     return this.accountRole === 'stylist';
@@ -78,15 +77,17 @@ export class SignupPageComponent {
         email: this.email,
         phone: this.phone,
         password: this.password,
-        ...(this.isStylist ? { businessName: this.businessName } : {})
+        ...(this.isStylist ? { businessName: this.businessName } : {}),
       };
       const user = await this.auth.register(this.accountRole, body);
       this.accountCreated.emit(user);
     } catch (error) {
-      this.error = error instanceof Error ? error.message : 'Le serveur est momentanément indisponible. Réessayez.';
+      this.error =
+        error instanceof Error
+          ? error.message
+          : 'Le serveur est momentanément indisponible. Réessayez.';
     } finally {
       this.submitting = false;
     }
   }
-
 }

@@ -1,9 +1,10 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getApiUrl } from '../api-url';
 
-export type DashboardOrderStatus = 'pending' | 'inProgress' | 'completed' | 'delivered' | 'cancelled';
+export type DashboardOrderStatus =
+  'pending' | 'inProgress' | 'completed' | 'delivered' | 'cancelled';
 export interface OrderInput {
   measurements?: Record<string, number>;
   durationDays?: number;
@@ -202,16 +203,24 @@ export interface AdminDashboardSnapshot {
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
-  constructor(private readonly http: HttpClient) {}
+  private readonly http = inject(HttpClient);
 
-  async loadPublicCatalogPage(limit = 12, cursor?: string): Promise<CursorPage<DashboardCatalogItem>> {
+  async loadPublicCatalogPage(
+    limit = 12,
+    cursor?: string,
+  ): Promise<CursorPage<DashboardCatalogItem>> {
     const query = new URLSearchParams({ limit: String(limit + 1) });
     if (cursor) query.set('cursor', cursor);
-    const rows = await firstValueFrom(this.http.get<DashboardCatalogItem[]>(getApiUrl(`/catalog?${query}`)));
+    const rows = await firstValueFrom(
+      this.http.get<DashboardCatalogItem[]>(getApiUrl(`/catalog?${query}`)),
+    );
     const data = rows.slice(0, limit);
     return {
       data,
-      meta: { hasMore: rows.length > limit, nextCursor: rows.length > limit ? data.at(-1)?.id ?? null : null },
+      meta: {
+        hasMore: rows.length > limit,
+        nextCursor: rows.length > limit ? (data.at(-1)?.id ?? null) : null,
+      },
     };
   }
 
@@ -232,27 +241,45 @@ export class DashboardService {
 
   async loadStylistDashboard(userId: string): Promise<StylistDashboardSnapshot> {
     const [orders, measurements, appointments, catalog, stylists] = await Promise.all([
-      firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(getApiUrl(`/stylist/${userId}/orders?limit=100`))),
-      firstValueFrom(this.http.get<CursorPage<DashboardMeasurement>>(getApiUrl(`/stylist/${userId}/measurements?limit=100`))),
-      firstValueFrom(this.http.get<DashboardAppointment[]>(getApiUrl(`/stylist/${userId}/appointments`))),
+      firstValueFrom(
+        this.http.get<CursorPage<DashboardOrder>>(getApiUrl(`/stylist/${userId}/orders?limit=100`)),
+      ),
+      firstValueFrom(
+        this.http.get<CursorPage<DashboardMeasurement>>(
+          getApiUrl(`/stylist/${userId}/measurements?limit=100`),
+        ),
+      ),
+      firstValueFrom(
+        this.http.get<DashboardAppointment[]>(getApiUrl(`/stylist/${userId}/appointments`)),
+      ),
       firstValueFrom(this.http.get<DashboardCatalogItem[]>(getApiUrl('/catalog?limit=100'))),
       firstValueFrom(this.http.get<DashboardStylist[]>(getApiUrl('/stylists?limit=100'))),
     ]);
-    const profile = stylists.find(stylist => stylist.userId === userId) ?? null;
+    const profile = stylists.find((stylist) => stylist.userId === userId) ?? null;
     return {
       orders: orders.data,
       measurements: measurements.data,
       appointments,
-      catalog: profile ? catalog.filter(item => item.stylistId === profile.id) : [],
+      catalog: profile ? catalog.filter((item) => item.stylistId === profile.id) : [],
       profile,
     };
   }
 
-  async loadEmployeeDashboard(): Promise<{ employee: EmployeeWorkspaceContext; measurements: DashboardMeasurement[]; orders: DashboardOrder[] }> {
+  async loadEmployeeDashboard(): Promise<{
+    employee: EmployeeWorkspaceContext;
+    measurements: DashboardMeasurement[];
+    orders: DashboardOrder[];
+  }> {
     const [employee, measurements, orders] = await Promise.all([
       firstValueFrom(this.http.get<EmployeeWorkspaceContext>(getApiUrl('/employee/me'))),
-      firstValueFrom(this.http.get<CursorPage<DashboardMeasurement>>(getApiUrl('/employee/measurements?limit=100'))),
-      firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(getApiUrl('/employee/orders?limit=100'))),
+      firstValueFrom(
+        this.http.get<CursorPage<DashboardMeasurement>>(
+          getApiUrl('/employee/measurements?limit=100'),
+        ),
+      ),
+      firstValueFrom(
+        this.http.get<CursorPage<DashboardOrder>>(getApiUrl('/employee/orders?limit=100')),
+      ),
     ]);
     return { employee, measurements: measurements.data, orders: orders.data };
   }
@@ -262,39 +289,89 @@ export class DashboardService {
   }
 
   createEmployeeCatalog(input: CatalogItemInput): Promise<DashboardCatalogItem> {
-    return firstValueFrom(this.http.post<DashboardCatalogItem>(getApiUrl('/employee/catalog'), input));
+    return firstValueFrom(
+      this.http.post<DashboardCatalogItem>(getApiUrl('/employee/catalog'), input),
+    );
   }
 
   listStylistPersonnel(stylistId: string): Promise<DashboardPersonnel[]> {
-    return firstValueFrom(this.http.get<DashboardPersonnel[]>(getApiUrl(`/stylist/${stylistId}/personnel`)));
+    return firstValueFrom(
+      this.http.get<DashboardPersonnel[]>(getApiUrl(`/stylist/${stylistId}/personnel`)),
+    );
   }
 
-  createEmployeeAccount(stylistId: string, input: EmployeeAccountInput): Promise<DashboardPersonnel> {
-    return firstValueFrom(this.http.post<DashboardPersonnel>(getApiUrl(`/stylist/${stylistId}/personnel/accounts`), input));
+  createEmployeeAccount(
+    stylistId: string,
+    input: EmployeeAccountInput,
+  ): Promise<DashboardPersonnel> {
+    return firstValueFrom(
+      this.http.post<DashboardPersonnel>(
+        getApiUrl(`/stylist/${stylistId}/personnel/accounts`),
+        input,
+      ),
+    );
   }
 
-  setCatalogLike(id: string, visitorId: string, liked: boolean): Promise<{ liked: boolean; likesCount: number }> {
-    return firstValueFrom(this.http.post<{ liked: boolean; likesCount: number }>(getApiUrl(`/catalog/${id}/like`), { visitorId, liked }));
+  setCatalogLike(
+    id: string,
+    visitorId: string,
+    liked: boolean,
+  ): Promise<{ liked: boolean; likesCount: number }> {
+    return firstValueFrom(
+      this.http.post<{ liked: boolean; likesCount: number }>(getApiUrl(`/catalog/${id}/like`), {
+        visitorId,
+        liked,
+      }),
+    );
   }
 
-  setEmployeeAccess(stylistId: string, personnelId: string, active: boolean): Promise<{ success: boolean; active: boolean }> {
-    return firstValueFrom(this.http.patch<{ success: boolean; active: boolean }>(getApiUrl(`/stylist/${stylistId}/personnel/${personnelId}/access`), { active }));
+  setEmployeeAccess(
+    stylistId: string,
+    personnelId: string,
+    active: boolean,
+  ): Promise<{ success: boolean; active: boolean }> {
+    return firstValueFrom(
+      this.http.patch<{ success: boolean; active: boolean }>(
+        getApiUrl(`/stylist/${stylistId}/personnel/${personnelId}/access`),
+        { active },
+      ),
+    );
   }
 
   removeEmployee(stylistId: string, personnelId: string): Promise<{ success: boolean }> {
-    return firstValueFrom(this.http.delete<{ success: boolean }>(getApiUrl(`/stylist/${stylistId}/personnel/${personnelId}`)));
+    return firstValueFrom(
+      this.http.delete<{ success: boolean }>(
+        getApiUrl(`/stylist/${stylistId}/personnel/${personnelId}`),
+      ),
+    );
   }
 
   createEmployeeMeasurement(input: EmployeeMeasurementInput): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.post<DashboardMeasurement>(getApiUrl('/employee/measurements'), input));
+    return firstValueFrom(
+      this.http.post<DashboardMeasurement>(getApiUrl('/employee/measurements'), input),
+    );
   }
 
-  createStylistMeasurement(stylistId: string, input: EmployeeMeasurementInput): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.post<DashboardMeasurement>(getApiUrl(`/stylist/${stylistId}/measurements`), input));
+  createStylistMeasurement(
+    stylistId: string,
+    input: EmployeeMeasurementInput,
+  ): Promise<DashboardMeasurement> {
+    return firstValueFrom(
+      this.http.post<DashboardMeasurement>(getApiUrl(`/stylist/${stylistId}/measurements`), input),
+    );
   }
 
-  updateEmployeeMeasurement(id: string, measurements: Record<string, number>, notes: string): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.put<DashboardMeasurement>(getApiUrl(`/employee/measurements/${id}`), { measurements, notes }));
+  updateEmployeeMeasurement(
+    id: string,
+    measurements: Record<string, number>,
+    notes: string,
+  ): Promise<DashboardMeasurement> {
+    return firstValueFrom(
+      this.http.put<DashboardMeasurement>(getApiUrl(`/employee/measurements/${id}`), {
+        measurements,
+        notes,
+      }),
+    );
   }
 
   updateOrderStatus(id: string, status: DashboardOrderStatus): Promise<DashboardOrder> {
@@ -302,23 +379,48 @@ export class DashboardService {
   }
 
   createOrder(stylistId: string, input: OrderInput): Promise<DashboardOrder> {
-    return firstValueFrom(this.http.post<DashboardOrder>(getApiUrl(`/stylist/${stylistId}/orders`), input));
+    return firstValueFrom(
+      this.http.post<DashboardOrder>(getApiUrl(`/stylist/${stylistId}/orders`), input),
+    );
   }
 
-  createAppointment(input: { stylistId: string; service: string; startsAt: string; notes: string }): Promise<DashboardAppointment> {
+  createAppointment(input: {
+    stylistId: string;
+    service: string;
+    startsAt: string;
+    notes: string;
+  }): Promise<DashboardAppointment> {
     return firstValueFrom(this.http.post<DashboardAppointment>(getApiUrl('/appointments'), input));
   }
 
   listAppointments(role: 'client' | 'stylist', userId: string): Promise<DashboardAppointment[]> {
-    return firstValueFrom(this.http.get<DashboardAppointment[]>(getApiUrl(role === 'stylist' ? `/stylist/${userId}/appointments` : '/appointments')));
+    return firstValueFrom(
+      this.http.get<DashboardAppointment[]>(
+        getApiUrl(role === 'stylist' ? `/stylist/${userId}/appointments` : '/appointments'),
+      ),
+    );
   }
 
-  updateAppointmentStatus(id: string, status: DashboardAppointmentStatus): Promise<DashboardAppointment> {
-    return firstValueFrom(this.http.patch<DashboardAppointment>(getApiUrl(`/appointments/${id}/status`), { status }));
+  updateAppointmentStatus(
+    id: string,
+    status: DashboardAppointmentStatus,
+  ): Promise<DashboardAppointment> {
+    return firstValueFrom(
+      this.http.patch<DashboardAppointment>(getApiUrl(`/appointments/${id}/status`), { status }),
+    );
   }
 
-  updateStylistMeasurement(id: string, measurements: Record<string, number>, notes: string): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.put<DashboardMeasurement>(getApiUrl(`/measurements/${id}`), { measurements, notes }));
+  updateStylistMeasurement(
+    id: string,
+    measurements: Record<string, number>,
+    notes: string,
+  ): Promise<DashboardMeasurement> {
+    return firstValueFrom(
+      this.http.put<DashboardMeasurement>(getApiUrl(`/measurements/${id}`), {
+        measurements,
+        notes,
+      }),
+    );
   }
 
   updateStylistProfile(profile: StylistProfileUpdate): Promise<DashboardStylist> {
@@ -337,16 +439,42 @@ export class DashboardService {
     return firstValueFrom(this.http.delete<{ success: boolean }>(getApiUrl(`/catalog/${id}`)));
   }
 
-  saveClientMeasurements(stylistId: string, measurements: Record<string, number>, measurementId?: string): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.put<DashboardMeasurement>(getApiUrl('/client/measurements'), { stylistId, measurements, ...(measurementId && { measurementId }) }));
+  saveClientMeasurements(
+    stylistId: string,
+    measurements: Record<string, number>,
+    measurementId?: string,
+  ): Promise<DashboardMeasurement> {
+    return firstValueFrom(
+      this.http.put<DashboardMeasurement>(getApiUrl('/client/measurements'), {
+        stylistId,
+        measurements,
+        ...(measurementId && { measurementId }),
+      }),
+    );
   }
 
-  createClientModelMeasurements(input: { stylistId: string; modelName: string; modelType?: string; measurements: Record<string, number>; notes: string }): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.post<DashboardMeasurement>(getApiUrl('/client/measurements'), input));
+  createClientModelMeasurements(input: {
+    stylistId: string;
+    modelName: string;
+    modelType?: string;
+    measurements: Record<string, number>;
+    notes: string;
+  }): Promise<DashboardMeasurement> {
+    return firstValueFrom(
+      this.http.post<DashboardMeasurement>(getApiUrl('/client/measurements'), input),
+    );
   }
 
-  validateMeasurement(record: DashboardMeasurement, modelName: string): Promise<DashboardMeasurement> {
-    return firstValueFrom(this.http.patch<DashboardMeasurement>(getApiUrl(`/measurements/${record.id}/validate`), { modelName, expectedUpdatedAt: record.updatedAt }));
+  validateMeasurement(
+    record: DashboardMeasurement,
+    modelName: string,
+  ): Promise<DashboardMeasurement> {
+    return firstValueFrom(
+      this.http.patch<DashboardMeasurement>(getApiUrl(`/measurements/${record.id}/validate`), {
+        modelName,
+        expectedUpdatedAt: record.updatedAt,
+      }),
+    );
   }
 
   loadAdminDashboard(): Promise<AdminDashboardSnapshot> {
@@ -354,11 +482,14 @@ export class DashboardService {
   }
 
   setAdminUserStatus(id: string, active: boolean): Promise<AdminUser> {
-    return firstValueFrom(this.http.patch<AdminUser>(getApiUrl(`/admin/users/${id}/status`), { active }));
+    return firstValueFrom(
+      this.http.patch<AdminUser>(getApiUrl(`/admin/users/${id}/status`), { active }),
+    );
   }
 
   adminUpdateOrderStatus(id: string, status: DashboardOrderStatus): Promise<DashboardOrder> {
-    return firstValueFrom(this.http.patch<DashboardOrder>(getApiUrl(`/admin/orders/${id}`), { status }));
+    return firstValueFrom(
+      this.http.patch<DashboardOrder>(getApiUrl(`/admin/orders/${id}`), { status }),
+    );
   }
-
 }

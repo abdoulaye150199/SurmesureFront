@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AppAccountRole, AuthService, AuthUser } from '../auth/auth.service';
 
@@ -11,9 +11,10 @@ export type SignupRole = Exclude<AccountRole, 'admin' | 'employee'>;
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './login.html',
-  styleUrl: './login.scss'
+  styleUrl: './login.scss',
 })
 export class LoginComponent {
+  private readonly auth = inject(AuthService);
   @Output() readonly closed = new EventEmitter<void>();
   @Output() readonly signupRequested = new EventEmitter<SignupRole>();
   @Output() readonly loggedIn = new EventEmitter<AuthUser>();
@@ -28,10 +29,9 @@ export class LoginComponent {
   error = '';
   submitting = false;
 
-  constructor(private readonly auth: AuthService) {}
-
   requestSignup(): void {
-    if (this.accountRole === 'client' || this.accountRole === 'stylist') this.signupRequested.emit(this.accountRole);
+    if (this.accountRole === 'client' || this.accountRole === 'stylist')
+      this.signupRequested.emit(this.accountRole);
   }
 
   close(): void {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthUser } from '../auth/auth.service';
 import {
@@ -20,6 +20,7 @@ type AdminSection = 'overview' | 'users' | 'orders' | 'appointments';
   styleUrl: './admin-dashboard.scss',
 })
 export class AdminDashboardComponent implements OnInit {
+  private readonly dashboard = inject(DashboardService);
   @Input() user: AuthUser | null = null;
   @Output() readonly homeRequested = new EventEmitter<void>();
   @Output() readonly logoutRequested = new EventEmitter<void>();
@@ -35,8 +36,6 @@ export class AdminDashboardComponent implements OnInit {
   updatingUserId: string | null = null;
   updatingOrderId: string | null = null;
 
-  constructor(private readonly dashboard: DashboardService) {}
-
   ngOnInit(): void {
     void this.refresh();
   }
@@ -47,15 +46,18 @@ export class AdminDashboardComponent implements OnInit {
 
   get filteredUsers(): AdminUser[] {
     const query = this.userQuery.trim().toLocaleLowerCase('fr');
-    return (this.snapshot?.users ?? []).filter(user => {
+    return (this.snapshot?.users ?? []).filter((user) => {
       const hasRole = this.roleFilter === 'ALL' || user.role === this.roleFilter;
-      const searchable = `${user.firstName} ${user.lastName} ${user.email} ${user.stylist?.businessName ?? ''}`.toLocaleLowerCase('fr');
+      const searchable =
+        `${user.firstName} ${user.lastName} ${user.email} ${user.stylist?.businessName ?? ''}`.toLocaleLowerCase(
+          'fr',
+        );
       return hasRole && (!query || searchable.includes(query));
     });
   }
 
   get activeUserCount(): number {
-    return this.snapshot?.users.filter(user => user.active).length ?? 0;
+    return this.snapshot?.users.filter((user) => user.active).length ?? 0;
   }
 
   get conversionRate(): number {
@@ -70,7 +72,8 @@ export class AdminDashboardComponent implements OnInit {
     try {
       this.snapshot = await this.dashboard.loadAdminDashboard();
     } catch {
-      this.error = 'Le tableau de bord global ne peut pas être chargé. Vérifiez que l’API est disponible.';
+      this.error =
+        'Le tableau de bord global ne peut pas être chargé. Vérifiez que l’API est disponible.';
     } finally {
       this.loading = false;
     }
@@ -78,7 +81,10 @@ export class AdminDashboardComponent implements OnInit {
 
   selectSection(section: AdminSection): void {
     this.activeSection = section;
-    document.getElementById(`admin-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    this.mobileMenuOpen = false;
+    document
+      .getElementById(`admin-${section}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   async toggleUser(user: AdminUser): Promise<void> {
@@ -92,10 +98,12 @@ export class AdminDashboardComponent implements OnInit {
       if (this.snapshot) {
         this.snapshot = {
           ...this.snapshot,
-          users: this.snapshot.users.map(item => item.id === updated.id ? updated : item),
+          users: this.snapshot.users.map((item) => (item.id === updated.id ? updated : item)),
         };
       }
-      this.showToast(updated.active ? 'Compte réactivé.' : 'Compte suspendu et sessions révoquées.');
+      this.showToast(
+        updated.active ? 'Compte réactivé.' : 'Compte suspendu et sessions révoquées.',
+      );
     } catch {
       this.showToast('Le statut de ce compte n’a pas pu être modifié.');
     } finally {
@@ -111,7 +119,11 @@ export class AdminDashboardComponent implements OnInit {
     };
     const next = transitions[order.status];
     if (!next) {
-      this.showToast(order.status === 'cancelled' ? 'Cette commande est annulée.' : 'Cette commande est déjà livrée.');
+      this.showToast(
+        order.status === 'cancelled'
+          ? 'Cette commande est annulée.'
+          : 'Cette commande est déjà livrée.',
+      );
       return;
     }
     this.updatingOrderId = order.id;
@@ -120,7 +132,7 @@ export class AdminDashboardComponent implements OnInit {
       if (this.snapshot) {
         this.snapshot = {
           ...this.snapshot,
-          orders: this.snapshot.orders.map(item => item.id === updated.id ? updated : item),
+          orders: this.snapshot.orders.map((item) => (item.id === updated.id ? updated : item)),
         };
       }
       this.showToast(`Commande passée au statut « ${this.statusLabel(next)} ».`);
@@ -133,19 +145,42 @@ export class AdminDashboardComponent implements OnInit {
 
   showToast(message: string): void {
     this.toast = message;
-    window.setTimeout(() => this.toast = '', 2800);
+    window.setTimeout(() => (this.toast = ''), 2800);
   }
 
   roleLabel(role: AdminUser['role']): string {
-    return ({ CLIENT: 'Client', STYLIST: 'Styliste', EMPLOYEE: 'Employé', ADMIN: 'Administrateur' } as const)[role];
+    return (
+      {
+        CLIENT: 'Client',
+        STYLIST: 'Styliste',
+        EMPLOYEE: 'Employé',
+        ADMIN: 'Administrateur',
+      } as const
+    )[role];
   }
 
   statusLabel(status: DashboardOrderStatus): string {
-    return ({ pending: 'À valider', inProgress: 'En confection', completed: 'Prête', delivered: 'Livrée', cancelled: 'Annulée' } as const)[status];
+    return (
+      {
+        pending: 'À valider',
+        inProgress: 'En confection',
+        completed: 'Prête',
+        delivered: 'Livrée',
+        cancelled: 'Annulée',
+      } as const
+    )[status];
   }
 
   statusClass(status: DashboardOrderStatus): string {
-    return ({ pending: 'waiting', inProgress: 'working', completed: 'ready', delivered: 'delivered', cancelled: 'cancelled' } as const)[status];
+    return (
+      {
+        pending: 'waiting',
+        inProgress: 'working',
+        completed: 'ready',
+        delivered: 'delivered',
+        cancelled: 'cancelled',
+      } as const
+    )[status];
   }
 
   shortId(id: string): string {
@@ -154,9 +189,12 @@ export class AdminDashboardComponent implements OnInit {
 
   formatDate(value?: string, withTime = false): string {
     if (!value) return 'À définir';
-    return new Intl.DateTimeFormat('fr-FR', withTime
-      ? { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
-      : { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(value));
+    return new Intl.DateTimeFormat(
+      'fr-FR',
+      withTime
+        ? { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }
+        : { day: 'numeric', month: 'short', year: 'numeric' },
+    ).format(new Date(value));
   }
 
   number(value: number | string | undefined): number {

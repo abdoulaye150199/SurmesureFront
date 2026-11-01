@@ -1,7 +1,14 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getApiUrl } from '../api-url';
+import {
+  clearStoredAuthSession,
+  isAuthSession,
+  isAuthUser,
+  readAuthSession,
+  writeAuthSession,
+} from './auth-session.storage';
 
 export type AppAccountRole = 'client' | 'stylist' | 'employee' | 'admin';
 export type ApiAccountRole = 'CLIENT' | 'STYLIST' | 'EMPLOYEE' | 'ADMIN';
@@ -33,13 +40,12 @@ export interface RegisterPayload {
   password: string;
 }
 
-export const AUTH_SESSION_KEY = 'surmesure.auth.session';
+export { AUTH_SESSION_KEY } from './auth-session.storage';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
+  private readonly http = inject(HttpClient);
   private session: AuthSession | null = this.readSession();
-
-  constructor(private readonly http: HttpClient) {}
 
   get user(): AuthUser | null {
     return this.session?.data ?? null;
@@ -66,7 +72,10 @@ export class AuthService {
     return this.authenticate(endpoint, { email, password });
   }
 
-  async register(role: Exclude<AppAccountRole, 'admin' | 'employee'>, payload: RegisterPayload): Promise<AuthUser> {
+  async register(
+    role: Exclude<AppAccountRole, 'admin' | 'employee'>,
+    payload: RegisterPayload,
+  ): Promise<AuthUser> {
     const endpoint = role === 'stylist' ? '/auth/stylist/signup' : '/auth/register';
     return this.authenticate(endpoint, payload);
   }
@@ -78,10 +87,14 @@ export class AuthService {
   async validateSession(): Promise<boolean> {
     if (!this.token) return false;
     try {
-      const user = await firstValueFrom(this.http.get<AuthUser>(getApiUrl('/auth/me')));
+      const response: unknown = await firstValueFrom(this.http.get<unknown>(getApiUrl('/auth/me')));
+      if (!isAuthUser(response)) {
+        this.clearSession();
+        return false;
+      }
       if (!this.session) return false;
-      this.session = { ...this.session, data: user };
-      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(this.session));
+      this.session = { ...this.session, data: response };
+      writeAuthSession(this.session);
       return true;
     } catch (error) {
       if (error instanceof HttpErrorResponse && (error.status === 0 || error.status >= 500)) {
@@ -102,32 +115,36 @@ export class AuthService {
 
   clearSession(): void {
     this.session = null;
-    localStorage.removeItem(AUTH_SESSION_KEY);
+    clearStoredAuthSession();
   }
 
   private async authenticate(endpoint: string, body: object): Promise<AuthUser> {
     try {
-      const session = await firstValueFrom(this.http.post<AuthSession>(getApiUrl(endpoint), body));
+      const response: unknown = await firstValueFrom(
+        this.http.post<unknown>(getApiUrl(endpoint), body),
+      );
+      if (!isAuthSession(response)) throw new Error('Réponse d’authentification invalide.');
+      const session = response;
       this.session = session;
-      localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session));
+      writeAuthSession(session);
       return session.data;
     } catch (error) {
       if (error instanceof HttpErrorResponse) {
         const message = error.error?.message;
-        throw new Error(Array.isArray(message) ? message.join(' ') : message || 'Connexion impossible pour le moment.');
+        throw new Error(
+          Array.isArray(message)
+            ? message.join(' ')
+            : message || 'Connexion impossible pour le moment.',
+        );
+      }
+      if (error instanceof Error && error.message === 'Réponse d’authentification invalide.') {
+        throw error;
       }
       throw new Error('Le serveur est momentanément indisponible. Réessayez.');
     }
   }
 
   private readSession(): AuthSession | null {
-    try {
-      const raw = localStorage.getItem(AUTH_SESSION_KEY);
-      return raw ? JSON.parse(raw) as AuthSession : null;
-    } catch {
-      localStorage.removeItem(AUTH_SESSION_KEY);
-      return null;
-    }
+    return readAuthSession();
   }
-
 }

@@ -1,13 +1,23 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { AfterViewInit, Component, HostListener, OnDestroy, signal } from '@angular/core';
+import { AfterViewInit, Component, HostListener, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter, Subscription } from 'rxjs';
 import { LoginComponent } from './login/login';
 import { SignupPageComponent } from './signup-page/signup-page';
 import { AppAccountRole, AuthService, AuthUser } from './auth/auth.service';
 import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard';
 import { StylistSettingsComponent } from './stylist-settings/stylist-settings';
-import { OfflineWorkspaceSnapshot, OfflineWorkspaceStore } from './dashboard/offline-workspace.store';
+import {
+  OfflineWorkspaceSnapshot,
+  OfflineWorkspaceStore,
+} from './dashboard/offline-workspace.store';
+import {
+  ClientPreferencesStore,
+  SavedCreation as Creation,
+} from './dashboard/client-preferences.store';
+import { WorkspaceDashboardFacade } from './dashboard/workspace-dashboard.facade';
 import {
   DashboardAppointment,
   DashboardAppointmentStatus,
@@ -24,33 +34,31 @@ import {
 } from './dashboard/dashboard.service';
 
 type Collection = 'Tout' | 'Cérémonie' | 'Boubous' | 'Ensembles';
-type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'employee' | 'admin' | 'signup';
-type StylistPage = 'overview' | 'orders' | 'clients' | 'creations' | 'measurements' | 'planning' | 'team' | 'settings';
+type AppView =
+  'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'employee' | 'admin' | 'signup';
+type StylistPage =
+  | 'overview'
+  | 'orders'
+  | 'clients'
+  | 'creations'
+  | 'measurements'
+  | 'planning'
+  | 'team'
+  | 'settings';
 type EmployeePage = 'orders' | 'clients' | 'creation' | 'profile';
 type ClientPage = 'overview' | 'orders' | 'measurements' | 'appointments' | 'favorites' | 'profile';
 const CLIENT_PAGE_PATHS: Record<ClientPage, string> = {
-  overview: 'accueil', orders: 'commandes', measurements: 'mesures', appointments: 'rendez-vous', favorites: 'favoris', profile: 'profil',
+  overview: 'accueil',
+  orders: 'commandes',
+  measurements: 'mesures',
+  appointments: 'rendez-vous',
+  favorites: 'favoris',
+  profile: 'profil',
 };
-const CART_STORAGE_KEY = 'surmesure.selection';
-const FAVORITES_STORAGE_KEY = 'surmesure.favorites';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
-}
-
-interface Creation {
-  id?: string;
-  stylistId?: string;
-  name: string;
-  stylist: string;
-  description?: string;
-  currency?: string;
-  price: number;
-  image: string;
-  category: Exclude<Collection, 'Tout'>;
-  tone: string;
-  badge?: string;
 }
 
 interface Stylist {
@@ -84,11 +92,24 @@ type StylistEditor = 'catalog' | 'profile' | null;
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule, LoginComponent, SignupPageComponent, AdminDashboardComponent, StylistSettingsComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    LoginComponent,
+    SignupPageComponent,
+    AdminDashboardComponent,
+    StylistSettingsComponent,
+  ],
   templateUrl: './app.html',
-  styleUrls: ['./app.scss', './stylist-dashboard.scss']
+  styleUrls: ['./app.scss', './stylist-dashboard.scss'],
 })
 export class App implements AfterViewInit, OnDestroy {
+  private readonly auth = inject(AuthService);
+  private readonly dashboard = inject(DashboardService);
+  private readonly offlineWorkspace = inject(OfflineWorkspaceStore);
+  private readonly workspaceDashboard = inject(WorkspaceDashboardFacade);
+  private readonly router = inject(Router);
+  private readonly preferences = inject(ClientPreferencesStore);
   readonly filters: Collection[] = ['Tout', 'Cérémonie', 'Boubous', 'Ensembles'];
   selectedFilter: Collection = 'Tout';
   menuOpen = false;
@@ -107,7 +128,12 @@ export class App implements AfterViewInit, OnDestroy {
   employeeCreationError = '';
 
   get employeePageTitle(): string {
-    return { orders: 'Nouvelle commande', clients: 'Mes clients', creation: 'Ajouter une création', profile: 'Mon profil' }[this.employeePage];
+    return {
+      orders: 'Nouvelle commande',
+      clients: 'Mes clients',
+      creation: 'Ajouter une création',
+      profile: 'Mon profil',
+    }[this.employeePage];
   }
 
   async changeEmployeePassword(): Promise<void> {
@@ -115,7 +141,8 @@ export class App implements AfterViewInit, OnDestroy {
     this.employeePasswordError = '';
     const draft = this.employeePasswordDraft;
     if (draft.next.length < 10 || draft.next.length > 128 || draft.next !== draft.confirm) {
-      this.employeePasswordError = 'Utilisez 10 à 128 caractères et confirmez le même mot de passe.';
+      this.employeePasswordError =
+        'Utilisez 10 à 128 caractères et confirmez le même mot de passe.';
       return;
     }
     this.employeePasswordSaving = true;
@@ -124,24 +151,39 @@ export class App implements AfterViewInit, OnDestroy {
       this.employeePasswordDraft = { current: '', next: '', confirm: '' };
       this.showToast('Votre mot de passe a été modifié.');
     } catch (error) {
-      this.employeePasswordError = error instanceof Error ? error.message : 'Modification impossible. Réessayez.';
-    } finally { this.employeePasswordSaving = false; }
+      this.employeePasswordError =
+        error instanceof Error ? error.message : 'Modification impossible. Réessayez.';
+    } finally {
+      this.employeePasswordSaving = false;
+    }
   }
 
   async saveEmployeeCreation(): Promise<void> {
     if (this.editorSaving) return;
     this.employeeCreationError = '';
     const imageUrl = this.catalogImageData || this.catalogDraft.imageUrl.trim();
-    if (!this.catalogDraft.title.trim() || !imageUrl || this.catalogDraft.price == null || this.catalogDraft.price < 0 || !Number.isFinite(this.catalogDraft.price)) {
+    if (
+      !this.catalogDraft.title.trim() ||
+      !imageUrl ||
+      this.catalogDraft.price == null ||
+      this.catalogDraft.price < 0 ||
+      !Number.isFinite(this.catalogDraft.price)
+    ) {
       this.employeeCreationError = 'Renseignez le nom, une image et un prix valide.';
       return;
     }
     this.editorSaving = true;
     try {
       const saved = await this.dashboard.createEmployeeCatalog({
-        title: this.catalogDraft.title.trim(), description: this.catalogDraft.description.trim(), imageUrl,
-        price: this.catalogDraft.price, currency: 'XOF',
-        availableColors: this.catalogDraft.colors.split(',').map(value => value.trim()).filter(Boolean),
+        title: this.catalogDraft.title.trim(),
+        description: this.catalogDraft.description.trim(),
+        imageUrl,
+        price: this.catalogDraft.price,
+        currency: 'XOF',
+        availableColors: this.catalogDraft.colors
+          .split(',')
+          .map((value) => value.trim())
+          .filter(Boolean),
       });
       this.publicCatalogItems = [saved, ...this.publicCatalogItems];
       this.catalogDraft = { title: '', description: '', imageUrl: '', price: null, colors: '' };
@@ -149,8 +191,14 @@ export class App implements AfterViewInit, OnDestroy {
       this.showToast('Création publiée dans la vitrine de votre atelier.');
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
-      this.employeeCreationError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Publication impossible. Réessayez.';
-    } finally { this.editorSaving = false; }
+      this.employeeCreationError = Array.isArray(detail)
+        ? detail.join(' ')
+        : typeof detail === 'string'
+          ? detail
+          : 'Publication impossible. Réessayez.';
+    } finally {
+      this.editorSaving = false;
+    }
   }
   workspaceRole: AppAccountRole = 'stylist';
   installAvailable = false;
@@ -169,21 +217,30 @@ export class App implements AfterViewInit, OnDestroy {
   appointmentError = '';
   stylistNotificationsOpen = false;
   private appointmentsRefreshing = false;
-  private readonly appointmentPollTimer = setInterval(() => void this.refreshAppointments(), 30_000);
+  private readonly appointmentPollTimer = setInterval(
+    () => void this.refreshAppointments(),
+    30_000,
+  );
 
   get pendingStylistAppointments(): DashboardAppointment[] {
-    return this.stylistAppointments.filter(item => item.status === 'pending');
+    return this.stylistAppointments.filter((item) => item.status === 'pending');
   }
 
   requestStylistAppointment(stylist: Stylist): void {
-    if (!stylist.id) { this.showToast('Cet atelier ne prend pas encore de rendez-vous en ligne.'); return; }
+    if (!stylist.id) {
+      this.showToast('Cet atelier ne prend pas encore de rendez-vous en ligne.');
+      return;
+    }
     if (!this.auth.isAuthenticated) {
       this.pendingAppointmentStylist = stylist;
       this.closeStylist();
       this.openLogin('client');
       return;
     }
-    if (this.auth.user?.role !== 'CLIENT' || this.demoMode) { this.showToast('Connectez-vous à un compte client pour demander un rendez-vous.'); return; }
+    if (this.auth.user?.role !== 'CLIENT' || this.demoMode) {
+      this.showToast('Connectez-vous à un compte client pour demander un rendez-vous.');
+      return;
+    }
     this.closeStylist();
     this.appointmentDraft = { service: '', startsAt: '', notes: '' };
     this.appointmentError = '';
@@ -200,39 +257,81 @@ export class App implements AfterViewInit, OnDestroy {
     if (this.appointmentSaving || !this.appointmentStylist?.id) return;
     this.appointmentError = '';
     const draft = this.appointmentDraft;
-    const startsAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(draft.startsAt) ? new Date(`${draft.startsAt}:00Z`) : null;
-    if (draft.service.trim().length < 2 || !startsAt || !Number.isFinite(startsAt.getTime()) || startsAt.getTime() <= Date.now()) {
-      this.appointmentError = 'Indiquez le motif et une date avec une heure dans le futur (heure de Dakar).'; return;
+    const startsAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(draft.startsAt)
+      ? new Date(`${draft.startsAt}:00Z`)
+      : null;
+    if (
+      draft.service.trim().length < 2 ||
+      !startsAt ||
+      !Number.isFinite(startsAt.getTime()) ||
+      startsAt.getTime() <= Date.now()
+    ) {
+      this.appointmentError =
+        'Indiquez le motif et une date avec une heure dans le futur (heure de Dakar).';
+      return;
     }
     this.appointmentSaving = true;
     try {
-      const saved = await this.dashboard.createAppointment({ stylistId: this.appointmentStylist.id, service: draft.service.trim(), startsAt: startsAt.toISOString(), notes: draft.notes.trim() });
-      this.clientAppointments = [...this.clientAppointments, saved].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+      const saved = await this.dashboard.createAppointment({
+        stylistId: this.appointmentStylist.id,
+        service: draft.service.trim(),
+        startsAt: startsAt.toISOString(),
+        notes: draft.notes.trim(),
+      });
+      this.clientAppointments = [...this.clientAppointments, saved].sort((a, b) =>
+        a.startsAt.localeCompare(b.startsAt),
+      );
       this.appointmentStylist = null;
       this.setClientPage('appointments');
-      this.showToast('Demande envoyée au styliste. Vous retrouverez sa confirmation dans vos rendez-vous.');
+      this.showToast(
+        'Demande envoyée au styliste. Vous retrouverez sa confirmation dans vos rendez-vous.',
+      );
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
-      this.appointmentError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible d’envoyer la demande. Réessayez.';
-    } finally { this.appointmentSaving = false; }
+      this.appointmentError = Array.isArray(detail)
+        ? detail.join(' ')
+        : typeof detail === 'string'
+          ? detail
+          : 'Impossible d’envoyer la demande. Réessayez.';
+    } finally {
+      this.appointmentSaving = false;
+    }
   }
 
   async refreshAppointments(): Promise<void> {
-    if (this.appointmentsRefreshing || this.demoMode || document.hidden || !this.auth.isAuthenticated) return;
+    if (
+      this.appointmentsRefreshing ||
+      this.demoMode ||
+      document.hidden ||
+      !this.auth.isAuthenticated
+    )
+      return;
     const user = this.auth.user;
     const role = user?.role === 'STYLIST' ? 'stylist' : user?.role === 'CLIENT' ? 'client' : null;
-    if (!user || !role || (this.activeView !== role && !(role === 'client' && this.activeView === 'measure'))) return;
+    if (
+      !user ||
+      !role ||
+      (this.activeView !== role && !(role === 'client' && this.activeView === 'measure'))
+    )
+      return;
     this.appointmentsRefreshing = true;
     try {
       const appointments = await this.dashboard.listAppointments(role, user.id);
       if (this.auth.user?.id !== user.id || !this.auth.isAuthenticated) return;
       if (role === 'stylist') {
-        const newRequest = appointments.some(item => item.status === 'pending' && !this.stylistAppointments.some(existing => existing.id === item.id));
+        const newRequest = appointments.some(
+          (item) =>
+            item.status === 'pending' &&
+            !this.stylistAppointments.some((existing) => existing.id === item.id),
+        );
         this.stylistAppointments = appointments;
         if (newRequest) this.showToast('Nouvelle demande de rendez-vous à valider.');
       } else this.clientAppointments = appointments;
-    } catch { /* La prochaine actualisation réessaiera sans interrompre la navigation. */ }
-    finally { this.appointmentsRefreshing = false; }
+    } catch {
+      /* La prochaine actualisation réessaiera sans interrompre la navigation. */
+    } finally {
+      this.appointmentsRefreshing = false;
+    }
   }
 
   authenticatedUser: AuthUser | null;
@@ -246,7 +345,10 @@ export class App implements AfterViewInit, OnDestroy {
   private readonly orderClockTimer = setInterval(() => this.orderClock.set(Date.now()), 60_000);
 
   @HostListener('window:focus')
-  updateOrderClock(): void { this.orderClock.set(Date.now()); void this.refreshAppointments(); }
+  updateOrderClock(): void {
+    this.orderClock.set(Date.now());
+    void this.refreshAppointments();
+  }
 
   private orderRemainingMs(order: DashboardOrder): number | null {
     const due = order.dueAt ? new Date(order.dueAt).getTime() : NaN;
@@ -264,9 +366,18 @@ export class App implements AfterViewInit, OnDestroy {
   orderTimeProgress(order: DashboardOrder): number | null {
     const due = order.dueAt ? new Date(order.dueAt).getTime() : NaN;
     const created = new Date(order.createdAt).getTime();
-    if (!Number.isFinite(due) || !Number.isFinite(created) || due <= created || order.status === 'cancelled') return null;
+    if (
+      !Number.isFinite(due) ||
+      !Number.isFinite(created) ||
+      due <= created ||
+      order.status === 'cancelled'
+    )
+      return null;
     if (order.status === 'delivered') return 100;
-    return Math.max(0, Math.min(100, Math.floor((this.orderClock() - created) / (due - created) * 100)));
+    return Math.max(
+      0,
+      Math.min(100, Math.floor(((this.orderClock() - created) / (due - created)) * 100)),
+    );
   }
 
   orderTimeRemainingLabel(order: DashboardOrder): string {
@@ -277,28 +388,40 @@ export class App implements AfterViewInit, OnDestroy {
     if (remaining <= 0) return 'Échéance atteinte — contactez votre atelier';
     const minutes = Math.ceil(remaining / 60_000);
     const days = Math.floor(minutes / 1440);
-    const hours = Math.floor(minutes % 1440 / 60);
+    const hours = Math.floor((minutes % 1440) / 60);
     const rest = minutes % 60;
     return `Temps restant : ${days ? days + ' j ' : ''}${hours ? hours + ' h ' : ''}${rest || (!days && !hours) ? rest + ' min' : ''}`.trim();
   }
 
   get clientDeliveryReminders(): DashboardOrder[] {
-    return this.clientOrders.filter(order => {
-      if (!this.canTrackOrder(order)) return false;
-      const remaining = this.orderRemainingMs(order);
-      return order.status !== 'cancelled' && order.status !== 'delivered' && remaining !== null && remaining > 0 && remaining <= 86_400_000;
-    }).sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime());
+    return this.clientOrders
+      .filter((order) => {
+        if (!this.canTrackOrder(order)) return false;
+        const remaining = this.orderRemainingMs(order);
+        return (
+          order.status !== 'cancelled' &&
+          order.status !== 'delivered' &&
+          remaining !== null &&
+          remaining > 0 &&
+          remaining <= 86_400_000
+        );
+      })
+      .sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime());
   }
 
-  private get deliveryReminderStorageKey(): string {
-    return `surmesure.delivery-reminders.${this.auth.user?.id ?? 'visitor'}`;
+  private get deliveryReminderUserId(): string {
+    return this.auth.user?.id ?? 'visitor';
   }
 
-  private deliveryReminderKey(order: DashboardOrder): string { return `${order.id}:${order.dueAt}`; }
+  private deliveryReminderKey(order: DashboardOrder): string {
+    return `${order.id}:${order.dueAt}`;
+  }
 
   get unreadDeliveryReminders(): number {
-    const read = this.readStoredArray<string>(this.deliveryReminderStorageKey);
-    return this.clientDeliveryReminders.filter(order => !read.includes(this.deliveryReminderKey(order))).length;
+    const read = this.preferences.loadReadDeliveryReminderKeys(this.deliveryReminderUserId);
+    return this.clientDeliveryReminders.filter(
+      (order) => !read.includes(this.deliveryReminderKey(order)),
+    ).length;
   }
 
   openClientNotifications(): void {
@@ -311,14 +434,26 @@ export class App implements AfterViewInit, OnDestroy {
     this.updateOrderClock();
     this.clientNotificationsOpen = !this.clientNotificationsOpen;
     if (this.clientNotificationsOpen) {
-      const read = this.readStoredArray<string>(this.deliveryReminderStorageKey);
-      this.writeStoredArray(this.deliveryReminderStorageKey, [...new Set([...read, ...this.clientDeliveryReminders.map(order => this.deliveryReminderKey(order))])].slice(-500));
+      const read = this.preferences.loadReadDeliveryReminderKeys(this.deliveryReminderUserId);
+      this.preferences.saveReadDeliveryReminderKeys(this.deliveryReminderUserId, [
+        ...new Set([
+          ...read,
+          ...this.clientDeliveryReminders.map((order) => this.deliveryReminderKey(order)),
+        ]),
+      ]);
     }
   }
   clientPage: ClientPage = 'overview';
 
   get clientPageTitle(): string {
-    return { overview: `Bonjour, ${this.userFirstName}`, orders: 'Mes commandes', measurements: 'Mes mesures', appointments: 'Rendez-vous', favorites: 'Mes favoris', profile: 'Mon profil' }[this.clientPage];
+    return {
+      overview: `Bonjour, ${this.userFirstName}`,
+      orders: 'Mes commandes',
+      measurements: 'Mes mesures',
+      appointments: 'Rendez-vous',
+      favorites: 'Mes favoris',
+      profile: 'Mon profil',
+    }[this.clientPage];
   }
 
   get clientPageDescription(): string {
@@ -334,7 +469,12 @@ export class App implements AfterViewInit, OnDestroy {
 
   setClientPage(page: ClientPage): void {
     this.writeClientPageUrl(page);
-    if (this.demoMode || (this.auth.isAuthenticated && this.auth.appRole === 'client' && (this.activeView === 'client' || this.activeView === 'measure'))) {
+    if (
+      this.demoMode ||
+      (this.auth.isAuthenticated &&
+        this.auth.appRole === 'client' &&
+        (this.activeView === 'client' || this.activeView === 'measure'))
+    ) {
       this.applyClientPage(page);
       return;
     }
@@ -342,14 +482,35 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private clientPageFromUrl(): ClientPage | null {
-    const path = window.location.hash.replace(/^#\/client\//, '');
-    if (!window.location.hash.startsWith('#/client/')) return null;
-    return (Object.keys(CLIENT_PAGE_PATHS) as ClientPage[]).find(page => CLIENT_PAGE_PATHS[page] === path) ?? null;
+    const path = this.currentBrowserUrl().split(/[?#]/, 1)[0];
+    if (!path.startsWith('/client/')) return null;
+    const pagePath = path.slice('/client/'.length);
+    return (
+      (Object.keys(CLIENT_PAGE_PATHS) as ClientPage[]).find(
+        (page) => CLIENT_PAGE_PATHS[page] === pagePath,
+      ) ?? null
+    );
+  }
+
+  private legacyClientPageFromHash(): ClientPage | null {
+    const pagePath = window.location.hash.match(/^#\/client\/([^/?#]+)/)?.[1];
+    return (
+      (Object.keys(CLIENT_PAGE_PATHS) as ClientPage[]).find(
+        (page) => CLIENT_PAGE_PATHS[page] === pagePath,
+      ) ?? null
+    );
+  }
+
+  private currentBrowserUrl(): string {
+    if (this.router.url === '/' && window.location.pathname !== '/') {
+      return `${window.location.pathname}${window.location.search}`;
+    }
+    return this.router.url;
   }
 
   private writeClientPageUrl(page: ClientPage): void {
-    const hash = `#/client/${CLIENT_PAGE_PATHS[page]}`;
-    if (window.location.hash !== hash) window.history.pushState(null, '', hash);
+    const path = `/client/${CLIENT_PAGE_PATHS[page]}`;
+    if (this.router.url !== path) void this.router.navigateByUrl(path);
   }
 
   private applyClientPage(page: ClientPage): void {
@@ -357,7 +518,14 @@ export class App implements AfterViewInit, OnDestroy {
     this.showFavoritesOnly = page === 'favorites';
     this.workspaceRole = 'client';
     this.activeView = page === 'measurements' ? 'measure' : 'client';
-    this.clientBottomTab = page === 'measurements' ? 'measure' : page === 'profile' ? 'profile' : page === 'favorites' ? 'selection' : 'home';
+    this.clientBottomTab =
+      page === 'measurements'
+        ? 'measure'
+        : page === 'profile'
+          ? 'profile'
+          : page === 'favorites'
+            ? 'selection'
+            : 'home';
     this.mobileDashboardMenuOpen = false;
     this.menuOpen = false;
     document.title = `${this.clientPageTitle} · Sur Mesure Style`;
@@ -365,7 +533,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   get isAdminEntryUrl(): boolean {
-    return /^\/admin\/?$/.test(window.location.pathname);
+    return /^\/admin\/?(?:[?#].*)?$/.test(this.currentBrowserUrl());
   }
 
   private openAdminEntry(): void {
@@ -380,11 +548,18 @@ export class App implements AfterViewInit, OnDestroy {
     document.title = 'Administration · Sur Mesure Style';
   }
 
-  @HostListener('window:popstate')
-  @HostListener('window:hashchange')
-  onClientPageHistory(): void {
-    if (this.isAdminEntryUrl) { this.openAdminEntry(); return; }
-    const page = this.clientPageFromUrl();
+  private syncViewFromUrl(url: string): void {
+    const path = url.split(/[?#]/, 1)[0];
+    if (path === '/admin') {
+      this.openAdminEntry();
+      return;
+    }
+
+    const pagePath = path.startsWith('/client/') ? path.slice('/client/'.length) : '';
+    const page =
+      (Object.keys(CLIENT_PAGE_PATHS) as ClientPage[]).find(
+        (candidate) => CLIENT_PAGE_PATHS[candidate] === pagePath,
+      ) ?? null;
     if (page) {
       if (this.demoMode || (this.auth.isAuthenticated && this.auth.appRole === 'client')) {
         this.applyClientPage(page);
@@ -392,14 +567,35 @@ export class App implements AfterViewInit, OnDestroy {
         this.activeView = 'home';
         this.openLogin('client');
       }
-    } else if (this.activeView === 'client' || this.activeView === 'measure') {
-      this.activeView = 'home';
-      document.title = 'Sur Mesure Style';
+      return;
     }
+    if (path.startsWith('/client/')) {
+      void this.router.navigateByUrl('/');
+      return;
+    }
+
+    const workspaceRole =
+      path === '/stylist' ? 'stylist' : path === '/employee' ? 'employee' : null;
+    if (workspaceRole) {
+      if (this.auth.isAuthenticated && this.auth.appRole === workspaceRole) {
+        this.activeView = workspaceRole;
+        this.workspaceRole = workspaceRole;
+      } else {
+        this.activeView = 'home';
+        this.openLogin(workspaceRole);
+      }
+      return;
+    }
+
+    if (path === '/explore') this.activeView = 'explore';
+    else if (path === '/measure') this.activeView = 'measure';
+    else if (path === '/signup') this.activeView = 'signup';
+    else if (path === '/' && !this.auth.isAuthenticated) this.activeView = 'home';
+    if (!['/client', '/measure'].includes(path)) document.title = 'Sur Mesure Style';
   }
 
   private leaveClientPage(): void {
-    if (this.clientPageFromUrl()) window.history.pushState(null, '', window.location.pathname + window.location.search);
+    if (this.clientPageFromUrl()) void this.router.navigateByUrl('/');
     document.title = 'Sur Mesure Style';
   }
   clientMeasurements: DashboardMeasurement[] = [];
@@ -420,17 +616,31 @@ export class App implements AfterViewInit, OnDestroy {
   stylistMeasurementSearch = '';
 
   get approvedStylistMeasurementCount(): number {
-    return this.stylistMeasurements.filter(record => !!record.validatedAt).length;
+    return this.stylistMeasurements.filter((record) => !!record.validatedAt).length;
   }
 
   get filteredStylistMeasurements(): DashboardMeasurement[] {
     const query = this.stylistMeasurementSearch.trim().toLocaleLowerCase('fr');
-    return this.stylistMeasurements.filter(record => !query ||
-      `${record.clientName} ${record.clientPhone} ${record.modelName ?? ''}`.toLocaleLowerCase('fr').includes(query));
+    return this.stylistMeasurements.filter(
+      (record) =>
+        !query ||
+        `${record.clientName} ${record.clientPhone} ${record.modelName ?? ''}`
+          .toLocaleLowerCase('fr')
+          .includes(query),
+    );
   }
 
   measurementClientInitials(name: string): string {
-    return name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toLocaleUpperCase('fr') || 'CL';
+    return (
+      name
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0])
+        .join('')
+        .toLocaleUpperCase('fr') || 'CL'
+    );
   }
 
   stylistAppointments: DashboardAppointment[] = [];
@@ -443,7 +653,14 @@ export class App implements AfterViewInit, OnDestroy {
   employeeAccountSaving = false;
   employeeAccountError = '';
   employeePasswordVisible = false;
-  employeeAccountDraft = { firstName: '', lastName: '', email: '', phone: '', password: '', specialization: 'Couture' };
+  employeeAccountDraft = {
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    specialization: 'Couture',
+  };
   employeeClientName = '';
   employeeClientPhone = '';
   employeeMeasurementNotes = '';
@@ -499,19 +716,36 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.clientModelSaving = true;
     try {
-      const input = { stylistId: this.clientModelStylistId, modelName: this.clientModelName.trim(), measurements, notes: this.clientModelNotes.trim() };
+      const input = {
+        stylistId: this.clientModelStylistId,
+        modelName: this.clientModelName.trim(),
+        measurements,
+        notes: this.clientModelNotes.trim(),
+      };
       const now = new Date().toISOString();
-      const saved = this.demoMode ? {
-        ...input, id: `demo-model-${Date.now()}`, clientId: this.authenticatedUser?.id ?? null,
-        clientName: `${this.authenticatedUser?.firstName ?? ''} ${this.authenticatedUser?.lastName ?? ''}`,
-        clientPhone: this.authenticatedUser?.phone ?? '', createdAt: now, updatedAt: now,
-      } : await this.dashboard.createClientModelMeasurements(input);
+      const saved = this.demoMode
+        ? {
+            ...input,
+            id: `demo-model-${Date.now()}`,
+            clientId: this.authenticatedUser?.id ?? null,
+            clientName: `${this.authenticatedUser?.firstName ?? ''} ${this.authenticatedUser?.lastName ?? ''}`,
+            clientPhone: this.authenticatedUser?.phone ?? '',
+            createdAt: now,
+            updatedAt: now,
+          }
+        : await this.dashboard.createClientModelMeasurements(input);
       this.clientMeasurements = [saved, ...this.clientMeasurements];
       this.clientModelEditorOpen = false;
-      this.showToast(`Les mesures du modèle « ${input.modelName} » ont été envoyées au styliste pour validation.`);
+      this.showToast(
+        `Les mesures du modèle « ${input.modelName} » ont été envoyées au styliste pour validation.`,
+      );
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
-      this.clientModelError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible d’enregistrer ce modèle. Réessayez.';
+      this.clientModelError = Array.isArray(detail)
+        ? detail.join(' ')
+        : typeof detail === 'string'
+          ? detail
+          : 'Impossible d’enregistrer ce modèle. Réessayez.';
     } finally {
       this.clientModelSaving = false;
     }
@@ -527,14 +761,26 @@ export class App implements AfterViewInit, OnDestroy {
   orderMeasurements: Record<string, number | null> = {};
   orderDurationDays: number | null = null;
   orderDueAt = '';
-  orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null as number | null, notes: '' };
+  orderDraft = {
+    clientName: '',
+    clientPhone: '',
+    description: '',
+    totalPrice: null as number | null,
+    notes: '',
+  };
 
   openOrderEditor(): void {
     this.setStylistPage('orders');
     this.orderMeasurements = {};
     this.orderDurationDays = null;
     this.orderDueAt = '';
-    this.orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null, notes: '' };
+    this.orderDraft = {
+      clientName: '',
+      clientPhone: '',
+      description: '',
+      totalPrice: null,
+      notes: '',
+    };
     this.orderError = '';
     this.orderEditorOpen = true;
   }
@@ -556,20 +802,31 @@ export class App implements AfterViewInit, OnDestroy {
       this.orderError = 'Renseignez au moins une mesure pour cette commande.';
       return;
     }
-    if (this.orderDurationDays == null || !Number.isInteger(this.orderDurationDays) || this.orderDurationDays < 1 || this.orderDurationDays > 3650) {
+    if (
+      this.orderDurationDays == null ||
+      !Number.isInteger(this.orderDurationDays) ||
+      this.orderDurationDays < 1 ||
+      this.orderDurationDays > 3650
+    ) {
       this.orderError = 'Indiquez la durée de confection en jours (de 1 à 3650).';
       return;
     }
     const dueAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(this.orderDueAt)
-      ? new Date(`${this.orderDueAt}:00Z`) : null;
+      ? new Date(`${this.orderDueAt}:00Z`)
+      : null;
     if (!dueAt || !Number.isFinite(dueAt.getTime()) || dueAt.getTime() <= Date.now()) {
-      this.orderError = 'Indiquez une date et une heure de livraison/retrait dans le futur (heure de Dakar).';
+      this.orderError =
+        'Indiquez une date et une heure de livraison/retrait dans le futur (heure de Dakar).';
       return;
     }
     const input = {
-      clientName: draft.clientName.trim(), clientPhone: draft.clientPhone.trim(),
-      description: draft.description.trim(), totalPrice: Number(draft.totalPrice), notes: draft.notes.trim(),
-      measurements, durationDays: this.orderDurationDays,
+      clientName: draft.clientName.trim(),
+      clientPhone: draft.clientPhone.trim(),
+      description: draft.description.trim(),
+      totalPrice: Number(draft.totalPrice),
+      notes: draft.notes.trim(),
+      measurements,
+      durationDays: this.orderDurationDays,
       dueAt: dueAt.toISOString(),
     };
     if (input.clientName.length < 2 || input.description.length < 2) {
@@ -577,7 +834,8 @@ export class App implements AfterViewInit, OnDestroy {
       return;
     }
     if (!/^\+[1-9]\d{7,14}$/.test(input.clientPhone.replace(/[\s().-]/g, ''))) {
-      this.orderError = 'Indiquez un téléphone avec son indicatif pays, par exemple +221 77 000 00 00.';
+      this.orderError =
+        'Indiquez un téléphone avec son indicatif pays, par exemple +221 77 000 00 00.';
       return;
     }
     if (draft.totalPrice === null || !Number.isFinite(input.totalPrice) || input.totalPrice < 0) {
@@ -594,36 +852,69 @@ export class App implements AfterViewInit, OnDestroy {
     try {
       const now = new Date().toISOString();
       const order: DashboardOrder = this.demoMode
-        ? { ...input, id: `demo-order-${Date.now()}`, stylistId, clientId: null, currency: 'XOF', status: 'pending', createdAt: now, updatedAt: now }
-        : employee ? await this.dashboard.createEmployeeOrder(input) : await this.dashboard.createOrder(stylistId, input);
+        ? {
+            ...input,
+            id: `demo-order-${Date.now()}`,
+            stylistId,
+            clientId: null,
+            currency: 'XOF',
+            status: 'pending',
+            createdAt: now,
+            updatedAt: now,
+          }
+        : employee
+          ? await this.dashboard.createEmployeeOrder(input)
+          : await this.dashboard.createOrder(stylistId, input);
       this.stylistOrders = [order, ...this.stylistOrders];
       this.orderEditorOpen = false;
       if (employee) {
-        this.orderDraft = { clientName: '', clientPhone: '', description: '', totalPrice: null, notes: '' };
-        this.orderMeasurements = {}; this.orderDurationDays = null; this.orderDueAt = '';
+        this.orderDraft = {
+          clientName: '',
+          clientPhone: '',
+          description: '',
+          totalPrice: null,
+          notes: '',
+        };
+        this.orderMeasurements = {};
+        this.orderDurationDays = null;
+        this.orderDueAt = '';
       } else this.setStylistPage('orders');
       this.showToast('Commande ajoutée à votre atelier.');
       if (!this.demoMode) void this.loadDashboard(employee ? 'employee' : 'stylist');
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
-      this.orderError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible de créer la commande. Réessayez.';
+      this.orderError = Array.isArray(detail)
+        ? detail.join(' ')
+        : typeof detail === 'string'
+          ? detail
+          : 'Impossible de créer la commande. Réessayez.';
     } finally {
       this.orderSaving = false;
     }
   }
 
   orderMeasurementSummary(order: DashboardOrder): string {
-    return Object.entries(order.measurements ?? {}).map(([key, value]) =>
-      `${this.measurementDefinitions.find(definition => definition.key === key)?.label ?? key} : ${value} cm`
-    ).join(' · ');
+    return Object.entries(order.measurements ?? {})
+      .map(
+        ([key, value]) =>
+          `${this.measurementDefinitions.find((definition) => definition.key === key)?.label ?? key} : ${value} cm`,
+      )
+      .join(' · ');
   }
 
   orderDeliveryLabel(order: DashboardOrder): string {
     if (!order.dueAt) return '';
     const date = new Date(order.dueAt);
-    return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat('fr-FR', {
-      timeZone: 'Africa/Dakar', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    }).format(date) : '';
+    return Number.isFinite(date.getTime())
+      ? new Intl.DateTimeFormat('fr-FR', {
+          timeZone: 'Africa/Dakar',
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).format(date)
+      : '';
   }
   stylistEditor: StylistEditor = null;
   editingCatalogId: string | null = null;
@@ -641,7 +932,11 @@ export class App implements AfterViewInit, OnDestroy {
   measurementValidationError = '';
 
   measurementValidationLabel(record: DashboardMeasurement): string {
-    return record.validatedAt ? 'Validées par le styliste' : record.source === 'client' ? 'En attente de validation du styliste' : 'Validation à confirmer';
+    return record.validatedAt
+      ? 'Validées par le styliste'
+      : record.source === 'client'
+        ? 'En attente de validation du styliste'
+        : 'Validation à confirmer';
   }
 
   openMeasurementValidation(record: DashboardMeasurement): void {
@@ -662,19 +957,35 @@ export class App implements AfterViewInit, OnDestroy {
     this.measurementValidationError = '';
     try {
       const saved: DashboardMeasurement = this.demoMode
-        ? { ...record, modelName, validatedAt: new Date().toISOString(), validatedById: this.authenticatedUser?.id }
+        ? {
+            ...record,
+            modelName,
+            validatedAt: new Date().toISOString(),
+            validatedById: this.authenticatedUser?.id,
+          }
         : await this.dashboard.validateMeasurement(record, modelName);
-      this.stylistMeasurements = this.stylistMeasurements.map(item => item.id === saved.id ? saved : item);
+      this.stylistMeasurements = this.stylistMeasurements.map((item) =>
+        item.id === saved.id ? saved : item,
+      );
       this.measurementValidationRecord = null;
       this.showToast(`Mesures validées pour « ${modelName} ».`);
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
-      this.measurementValidationError = typeof detail === 'string' ? detail : 'La validation a échoué. Actualisez la fiche et réessayez.';
+      this.measurementValidationError =
+        typeof detail === 'string'
+          ? detail
+          : 'La validation a échoué. Actualisez la fiche et réessayez.';
     } finally {
       this.measurementValidationSaving = false;
     }
   }
-  catalogDraft = { title: '', description: '', imageUrl: '', price: null as number | null, colors: '' };
+  catalogDraft = {
+    title: '',
+    description: '',
+    imageUrl: '',
+    price: null as number | null,
+    colors: '',
+  };
   profileDraft = { businessName: '', about: '', specialties: '', profileImage: '' };
   profileImageFileName = '';
   profileImageError = '';
@@ -682,33 +993,83 @@ export class App implements AfterViewInit, OnDestroy {
   private scrollStopTimer?: ReturnType<typeof setTimeout>;
   private installPrompt?: BeforeInstallPromptEvent;
   private pendingAuthView: 'measure' | null = null;
+  private readonly routeSubscription: Subscription;
 
-  constructor(
-    private readonly auth: AuthService,
-    private readonly dashboard: DashboardService,
-    private readonly offlineWorkspace: OfflineWorkspaceStore,
-  ) {
-    this.selectedCreations = this.readStoredArray<Creation>(CART_STORAGE_KEY)
-      .filter((item): item is Creation => !!item && typeof item.name === 'string' && typeof item.stylist === 'string');
-    this.favoriteKeys = this.readStoredArray<string>(FAVORITES_STORAGE_KEY)
-      .filter((key): key is string => typeof key === 'string');
+  constructor() {
+    this.selectedCreations = this.preferences.loadCreations();
+    this.favoriteKeys = this.preferences.loadFavoriteKeys();
     this.authenticatedUser = this.auth.user;
     const appRole = this.auth.appRole;
     if (appRole && this.auth.isAuthenticated) {
       this.workspaceRole = appRole;
       this.activeView = appRole;
     }
-    if (this.isAdminEntryUrl) this.openAdminEntry();
-    else if (this.clientPageFromUrl()) this.onClientPageHistory();
+    this.routeSubscription = this.router.events
+      .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
+      .subscribe((event) => this.syncViewFromUrl(event.urlAfterRedirects));
+
+    const legacyPage = this.legacyClientPageFromHash();
+    if (legacyPage) {
+      this.syncViewFromUrl(`/client/${CLIENT_PAGE_PATHS[legacyPage]}`);
+      this.writeClientPageUrl(legacyPage);
+    } else {
+      const initialUrl = this.currentBrowserUrl();
+      this.syncViewFromUrl(initialUrl);
+      if (initialUrl !== this.router.url) void this.router.navigateByUrl(initialUrl);
+    }
   }
 
   readonly creations: Creation[] = [
-    { name: 'Robe Ndar', stylist: 'Atelier Awa', price: 89000, image: '/assets/look-2.png', category: 'Cérémonie', tone: 'lilac', badge: 'Nouveau' },
-    { name: 'Boubou Alizé', stylist: 'Maison Diarra', price: 115000, image: '/assets/look-1.png', category: 'Boubous', tone: 'sand' },
-    { name: 'Ensemble Kër', stylist: 'Seynabou Studio', price: 74000, image: '/assets/look-3.png', category: 'Ensembles', tone: 'rose', badge: 'Favori' },
-    { name: 'Robe Sine', stylist: 'Atelier Awa', price: 97000, image: '/assets/look-1.png', category: 'Cérémonie', tone: 'plum' },
-    { name: 'Boubou Héritage', stylist: 'Seynabou Studio', price: 128000, image: '/assets/look-3.png', category: 'Boubous', tone: 'cream' },
-    { name: 'Ensemble Dakar', stylist: 'Maison Diarra', price: 82000, image: '/assets/look-2.png', category: 'Ensembles', tone: 'gold' }
+    {
+      name: 'Robe Ndar',
+      stylist: 'Atelier Awa',
+      price: 89000,
+      image: '/assets/look-2.png',
+      category: 'Cérémonie',
+      tone: 'lilac',
+      badge: 'Nouveau',
+    },
+    {
+      name: 'Boubou Alizé',
+      stylist: 'Maison Diarra',
+      price: 115000,
+      image: '/assets/look-1.png',
+      category: 'Boubous',
+      tone: 'sand',
+    },
+    {
+      name: 'Ensemble Kër',
+      stylist: 'Seynabou Studio',
+      price: 74000,
+      image: '/assets/look-3.png',
+      category: 'Ensembles',
+      tone: 'rose',
+      badge: 'Favori',
+    },
+    {
+      name: 'Robe Sine',
+      stylist: 'Atelier Awa',
+      price: 97000,
+      image: '/assets/look-1.png',
+      category: 'Cérémonie',
+      tone: 'plum',
+    },
+    {
+      name: 'Boubou Héritage',
+      stylist: 'Seynabou Studio',
+      price: 128000,
+      image: '/assets/look-3.png',
+      category: 'Boubous',
+      tone: 'cream',
+    },
+    {
+      name: 'Ensemble Dakar',
+      stylist: 'Maison Diarra',
+      price: 82000,
+      image: '/assets/look-2.png',
+      category: 'Ensembles',
+      tone: 'gold',
+    },
   ];
 
   readonly stylists: Stylist[] = [
@@ -720,7 +1081,7 @@ export class App implements AfterViewInit, OnDestroy {
       portrait: '/assets/stylist-awa.png',
       bio: 'Awa imagine des silhouettes de cérémonie élégantes, avec des volumes fluides et des détails qui racontent chaque histoire.',
       email: 'awa@surmesure.sn',
-      phone: '+221770000001'
+      phone: '+221770000001',
     },
     {
       name: 'Mame Sarr',
@@ -730,7 +1091,7 @@ export class App implements AfterViewInit, OnDestroy {
       portrait: '/assets/stylist-mame.png',
       bio: 'Mame mêle lignes contemporaines, matières fortes et finitions précises pour créer un vestiaire moderne et personnel.',
       email: 'mame@surmesure.sn',
-      phone: '+221770000002'
+      phone: '+221770000002',
     },
     {
       name: 'Fatou Diallo',
@@ -740,8 +1101,8 @@ export class App implements AfterViewInit, OnDestroy {
       portrait: '/assets/stylist-fatou.png',
       bio: 'Fatou revisite les savoir-faire traditionnels avec une approche sensible, actuelle et profondément ancrée dans le savoir-faire local.',
       email: 'fatou@surmesure.sn',
-      phone: '+221770000003'
-    }
+      phone: '+221770000003',
+    },
   ];
 
   readonly measurementDefinitions: MeasurementDefinition[] = [
@@ -757,7 +1118,6 @@ export class App implements AfterViewInit, OnDestroy {
     { key: 'longueurManche', label: 'Longueur manche', group: 'upper' },
   ];
 
-
   trackCreation(_index: number, item: Creation): string {
     return item.id ?? JSON.stringify([item.stylist, item.name]);
   }
@@ -768,16 +1128,18 @@ export class App implements AfterViewInit, OnDestroy {
 
   trackInspiration(_index: number, item: Creation | DashboardCatalogItem): string {
     // Both the catalog entry and its public card can appear in this list.
-    return 'title' in item ? `catalog:${item.id}` : `creation:${item.id ?? JSON.stringify([item.stylist, item.name])}`;
+    return 'title' in item
+      ? `catalog:${item.id}`
+      : `creation:${item.id ?? JSON.stringify([item.stylist, item.name])}`;
   }
 
   get visibleCreations(): Creation[] {
     const available = this.publicCatalogLoaded
-      ? this.publicCatalogItems.map(item => this.toCreation(item))
+      ? this.publicCatalogItems.map((item) => this.toCreation(item))
       : this.creations;
     return this.selectedFilter === 'Tout'
       ? available
-      : available.filter(item => item.category === this.selectedFilter);
+      : available.filter((item) => item.category === this.selectedFilter);
   }
 
   get visibleStylists(): Stylist[] {
@@ -794,10 +1156,18 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.publicCatalogLoading = true;
     try {
-      const page = await this.dashboard.loadPublicCatalogPage(12, this.publicCatalogCursor ?? undefined);
+      const page = await this.dashboard.loadPublicCatalogPage(
+        12,
+        this.publicCatalogCursor ?? undefined,
+      );
       this.publicCatalogItems = reset
         ? page.data
-        : [...this.publicCatalogItems, ...page.data.filter(item => !this.publicCatalogItems.some(existing => existing.id === item.id))];
+        : [
+            ...this.publicCatalogItems,
+            ...page.data.filter(
+              (item) => !this.publicCatalogItems.some((existing) => existing.id === item.id),
+            ),
+          ];
       this.publicCatalogCursor = page.meta.nextCursor;
       this.publicCatalogHasMore = page.meta.hasMore;
       this.publicCatalogLoaded = true;
@@ -823,11 +1193,13 @@ export class App implements AfterViewInit, OnDestroy {
 
   async setCreationFilter(filter: Collection): Promise<void> {
     this.selectedFilter = filter;
-    while (filter !== 'Tout'
-      && this.publicCatalogItems.length
-      && !this.visibleCreations.length
-      && this.publicCatalogHasMore
-      && !this.publicCatalogLoading) {
+    while (
+      filter !== 'Tout' &&
+      this.publicCatalogItems.length &&
+      !this.visibleCreations.length &&
+      this.publicCatalogHasMore &&
+      !this.publicCatalogLoading
+    ) {
       await this.loadPublicCatalog();
     }
   }
@@ -836,7 +1208,9 @@ export class App implements AfterViewInit, OnDestroy {
     const description = `${item.title} ${item.description}`.toLowerCase();
     const category: Exclude<Collection, 'Tout'> = description.includes('boubou')
       ? 'Boubous'
-      : description.includes('ensemble') ? 'Ensembles' : 'Cérémonie';
+      : description.includes('ensemble')
+        ? 'Ensembles'
+        : 'Cérémonie';
     return {
       id: item.id,
       stylistId: item.stylistId,
@@ -861,7 +1235,9 @@ export class App implements AfterViewInit, OnDestroy {
 
   get visibleClientInspirations(): Array<Creation | DashboardCatalogItem> {
     const available = [...this.visibleCreations, ...this.clientCatalog];
-    const items = this.showFavoritesOnly ? available.filter(item => this.isFavorite(item)) : available;
+    const items = this.showFavoritesOnly
+      ? available.filter((item) => this.isFavorite(item))
+      : available;
     return this.showFavoritesOnly ? items : items.slice(0, 3);
   }
 
@@ -887,7 +1263,11 @@ export class App implements AfterViewInit, OnDestroy {
 
   get userInitials(): string {
     const user = this.authenticatedUser;
-    return `${user?.firstName?.trim().charAt(0) ?? ''}${user?.lastName?.trim().charAt(0) ?? ''}`.toLocaleUpperCase('fr-FR') || '?';
+    return (
+      `${user?.firstName?.trim().charAt(0) ?? ''}${user?.lastName?.trim().charAt(0) ?? ''}`.toLocaleUpperCase(
+        'fr-FR',
+      ) || '?'
+    );
   }
 
   get stylistPhotoUrl(): string {
@@ -904,17 +1284,19 @@ export class App implements AfterViewInit, OnDestroy {
     if (!this.selectedStylist) return [];
     if (this.selectedStylist.id) {
       return this.publicCatalogItems
-        .filter(item => item.stylistId === this.selectedStylist?.id)
-        .map(item => this.toCreation(item));
+        .filter((item) => item.stylistId === this.selectedStylist?.id)
+        .map((item) => this.toCreation(item));
     }
-    return this.creations.filter(item => item.stylist === this.selectedStylist?.studio);
+    return this.creations.filter((item) => item.stylist === this.selectedStylist?.studio);
   }
 
   get currentClientOrder(): DashboardOrder | null {
-    return this.clientOrders.find(order => order.status === 'inProgress')
-      ?? this.clientOrders.find(order => order.status === 'pending')
-      ?? this.clientOrders[0]
-      ?? null;
+    return (
+      this.clientOrders.find((order) => order.status === 'inProgress') ??
+      this.clientOrders.find((order) => order.status === 'pending') ??
+      this.clientOrders[0] ??
+      null
+    );
   }
 
   get latestClientMeasurement(): DashboardMeasurement | null {
@@ -922,23 +1304,32 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   measurementFieldLabel(key: string): string {
-    return this.measurementDefinitions.find(definition => definition.key === key)?.label ?? key;
+    return this.measurementDefinitions.find((definition) => definition.key === key)?.label ?? key;
   }
 
   measurementAtelierName(record: DashboardMeasurement): string {
-    return this.clientStylists.find(stylist => stylist.id === record.stylistId)?.businessName ?? 'Atelier partenaire';
+    return (
+      this.clientStylists.find((stylist) => stylist.id === record.stylistId)?.businessName ??
+      'Atelier partenaire'
+    );
   }
 
   get nextClientAppointment(): DashboardAppointment | null {
     const now = Date.now();
-    return this.clientAppointments.find(item => item.status !== 'cancelled' && new Date(item.startsAt).getTime() >= now)
-      ?? this.clientAppointments.find(item => item.status !== 'cancelled')
-      ?? null;
+    return (
+      this.clientAppointments.find(
+        (item) => item.status !== 'cancelled' && new Date(item.startsAt).getTime() >= now,
+      ) ??
+      this.clientAppointments.find((item) => item.status !== 'cancelled') ??
+      null
+    );
   }
 
   get measurementCompletion(): number {
     const values = this.latestClientMeasurement?.measurements ?? {};
-    const completed = this.measurementDefinitions.filter(item => Number.isFinite(Number(values[item.key]))).length;
+    const completed = this.measurementDefinitions.filter((item) =>
+      Number.isFinite(Number(values[item.key])),
+    ).length;
     return Math.round((completed / this.measurementDefinitions.length) * 100);
   }
 
@@ -947,31 +1338,35 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   get missingMeasurements(): MeasurementDefinition[] {
-    return this.measurementDefinitions.filter(item => this.measurementValue(item.key) == null);
+    return this.measurementDefinitions.filter((item) => this.measurementValue(item.key) == null);
   }
 
   get upperMeasurements(): MeasurementDefinition[] {
-    return this.measurementDefinitions.filter(item => item.group === 'upper');
+    return this.measurementDefinitions.filter((item) => item.group === 'upper');
   }
 
   get lowerMeasurements(): MeasurementDefinition[] {
-    return this.measurementDefinitions.filter(item => item.group === 'lower');
+    return this.measurementDefinitions.filter((item) => item.group === 'lower');
   }
 
   get upperCompletedCount(): number {
-    return this.upperMeasurements.filter(item => this.measurementValue(item.key) != null).length;
+    return this.upperMeasurements.filter((item) => this.measurementValue(item.key) != null).length;
   }
 
   get lowerCompletedCount(): number {
-    return this.lowerMeasurements.filter(item => this.measurementValue(item.key) != null).length;
+    return this.lowerMeasurements.filter((item) => this.measurementValue(item.key) != null).length;
   }
 
   get clientActiveOrderCount(): number {
-    return this.clientOrders.filter(order => order.status === 'pending' || order.status === 'inProgress').length;
+    return this.clientOrders.filter(
+      (order) => order.status === 'pending' || order.status === 'inProgress',
+    ).length;
   }
 
   get stylistActiveOrderCount(): number {
-    return this.stylistOrders.filter(order => order.status === 'pending' || order.status === 'inProgress').length;
+    return this.stylistOrders.filter(
+      (order) => order.status === 'pending' || order.status === 'inProgress',
+    ).length;
   }
 
   get visibleStylistOrders(): DashboardOrder[] {
@@ -1003,24 +1398,54 @@ export class App implements AfterViewInit, OnDestroy {
       if (!key) return null;
       const existing = records.get(key);
       if (existing) return existing;
-      const record: StylistClientRecord = { key, name, phone, measurements: [], orders: [], appointments: [] };
+      const record: StylistClientRecord = {
+        key,
+        name,
+        phone,
+        measurements: [],
+        orders: [],
+        appointments: [],
+      };
       records.set(key, record);
       return record;
     };
-    this.stylistMeasurements.forEach(item => getRecord(item.clientName, item.clientPhone)?.measurements.push(item));
-    this.stylistOrders.forEach(item => getRecord(item.clientName, item.clientPhone)?.orders.push(item));
-    this.stylistAppointments.forEach(item => {
+    this.stylistMeasurements.forEach((item) =>
+      getRecord(item.clientName, item.clientPhone)?.measurements.push(item),
+    );
+    this.stylistOrders.forEach((item) =>
+      getRecord(item.clientName, item.clientPhone)?.orders.push(item),
+    );
+    this.stylistAppointments.forEach((item) => {
       const client = item.client;
-      if (client?.phone) getRecord(`${client.firstName} ${client.lastName}`, client.phone)?.appointments.push(item);
+      if (client?.phone)
+        getRecord(`${client.firstName} ${client.lastName}`, client.phone)?.appointments.push(item);
     });
     return [...records.values()]
-      .filter(record => {
+      .filter((record) => {
         const query = this.stylistClientSearch.trim().toLocaleLowerCase('fr');
-        return !query || record.name.toLocaleLowerCase('fr').includes(query) || record.phone.includes(query);
+        return (
+          !query ||
+          record.name.toLocaleLowerCase('fr').includes(query) ||
+          record.phone.includes(query)
+        );
       })
       .sort((left, right) => {
-        const leftDate = Math.max(...[...left.measurements.map(item => item.updatedAt), ...left.orders.map(item => item.updatedAt), ...left.appointments.map(item => item.startsAt)].map(value => new Date(value).getTime()), 0);
-        const rightDate = Math.max(...[...right.measurements.map(item => item.updatedAt), ...right.orders.map(item => item.updatedAt), ...right.appointments.map(item => item.startsAt)].map(value => new Date(value).getTime()), 0);
+        const leftDate = Math.max(
+          ...[
+            ...left.measurements.map((item) => item.updatedAt),
+            ...left.orders.map((item) => item.updatedAt),
+            ...left.appointments.map((item) => item.startsAt),
+          ].map((value) => new Date(value).getTime()),
+          0,
+        );
+        const rightDate = Math.max(
+          ...[
+            ...right.measurements.map((item) => item.updatedAt),
+            ...right.orders.map((item) => item.updatedAt),
+            ...right.appointments.map((item) => item.startsAt),
+          ].map((value) => new Date(value).getTime()),
+          0,
+        );
         return rightDate - leftDate;
       });
   }
@@ -1029,9 +1454,11 @@ export class App implements AfterViewInit, OnDestroy {
     const now = new Date();
     return Array.from({ length: 6 }, (_, index) => {
       const month = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1);
-      const count = this.stylistOrders.filter(order => {
+      const count = this.stylistOrders.filter((order) => {
         const created = new Date(order.createdAt);
-        return created.getFullYear() === month.getFullYear() && created.getMonth() === month.getMonth();
+        return (
+          created.getFullYear() === month.getFullYear() && created.getMonth() === month.getMonth()
+        );
       }).length;
       return { label: new Intl.DateTimeFormat('fr-FR', { month: 'short' }).format(month), count };
     });
@@ -1042,11 +1469,13 @@ export class App implements AfterViewInit, OnDestroy {
     return Array.from({ length: 6 }, (_, index) => {
       const month = new Date(now.getFullYear(), now.getMonth() - 5 + index, 1);
       const amount = this.stylistOrders
-        .filter(order => {
+        .filter((order) => {
           const created = new Date(order.createdAt);
-          return created.getFullYear() === month.getFullYear()
-            && created.getMonth() === month.getMonth()
-            && order.status !== 'cancelled';
+          return (
+            created.getFullYear() === month.getFullYear() &&
+            created.getMonth() === month.getMonth() &&
+            order.status !== 'cancelled'
+          );
         })
         .reduce((total, order) => total + Number(order.totalPrice), 0);
       return { label: new Intl.DateTimeFormat('fr-FR', { month: 'short' }).format(month), amount };
@@ -1054,18 +1483,22 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   revenueActivityHeight(amount: number): number {
-    const max = Math.max(1, ...this.stylistRevenueActivity.map(item => item.amount));
-    return Math.max(4, Math.round(amount / max * 100));
+    const max = Math.max(1, ...this.stylistRevenueActivity.map((item) => item.amount));
+    return Math.max(4, Math.round((amount / max) * 100));
   }
 
   get stylistRevenue(): number {
     return this.stylistOrders
-      .filter(order => order.status !== 'cancelled')
+      .filter((order) => order.status !== 'cancelled')
       .reduce((total, order) => total + Number(order.totalPrice), 0);
   }
 
   get stylistActiveClientCount(): number {
-    return new Set(this.stylistOrders.filter(order => order.status !== 'cancelled').map(order => order.clientId)).size;
+    return new Set(
+      this.stylistOrders
+        .filter((order) => order.status !== 'cancelled')
+        .map((order) => order.clientId),
+    ).size;
   }
 
   get dashboardMonth(): string {
@@ -1076,27 +1509,35 @@ export class App implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     window.setTimeout(() => void this.loadPublicCatalog(true), 0);
     window.setTimeout(() => void this.loadPublicStylists(), 0);
-    if (this.auth.isAuthenticated && this.auth.appRole && (!this.isAdminEntryUrl || this.auth.appRole === 'admin')) {
+    if (
+      this.auth.isAuthenticated &&
+      this.auth.appRole &&
+      (!this.isAdminEntryUrl || this.auth.appRole === 'admin')
+    ) {
       void this.restoreAuthenticatedWorkspace();
     }
     const elements = document.querySelectorAll<HTMLElement>(
-      'main > section:not(.hero), footer, .values article, .product-card, .stylist-card, .journey-steps article'
+      'main > section:not(.hero), footer, .values article, .product-card, .stylist-card, .journey-steps article',
     );
 
-    elements.forEach(element => element.classList.add('reveal-ready'));
+    elements.forEach((element) => element.classList.add('reveal-ready'));
 
-    this.revealObserver = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add('is-visible');
-        this.revealObserver?.unobserve(entry.target);
-      });
-    }, { threshold: 0.12, rootMargin: '0px 0px -45px' });
+    this.revealObserver = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-visible');
+          this.revealObserver?.unobserve(entry.target);
+        });
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -45px' },
+    );
 
-    elements.forEach(element => this.revealObserver?.observe(element));
+    elements.forEach((element) => this.revealObserver?.observe(element));
   }
 
   ngOnDestroy(): void {
+    this.routeSubscription.unsubscribe();
     clearInterval(this.orderClockTimer);
     clearInterval(this.appointmentPollTimer);
     this.revealObserver?.disconnect();
@@ -1107,7 +1548,7 @@ export class App implements AfterViewInit, OnDestroy {
     const role = this.auth.appRole;
     if (!role || !this.auth.isAuthenticated) return;
 
-    if (!await this.auth.validateSession()) {
+    if (!(await this.auth.validateSession())) {
       this.authenticatedUser = null;
       this.clearPrivateWorkspaceData();
       await this.offlineWorkspace.clear().catch(() => undefined);
@@ -1124,7 +1565,10 @@ export class App implements AfterViewInit, OnDestroy {
       const page = this.clientPageFromUrl() ?? 'overview';
       this.writeClientPageUrl(page);
       this.applyClientPage(page);
-    } else this.leaveClientPage();
+    } else {
+      this.leaveClientPage();
+      void this.router.navigateByUrl(`/${role}`);
+    }
     if (role !== 'admin') void this.loadDashboard(role);
   }
 
@@ -1137,6 +1581,7 @@ export class App implements AfterViewInit, OnDestroy {
     void this.offlineWorkspace.clear().catch(() => undefined);
     this.authenticatedUser = null;
     this.activeView = 'home';
+    void this.router.navigateByUrl('/');
     this.workspaceRole = role;
     this.openLogin(role);
     this.showToast('Votre session a expiré. Reconnectez-vous.');
@@ -1175,7 +1620,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.installAvailable = false;
     this.installPrompt = undefined;
     this.toast = 'Sur Mesure Style est maintenant installé';
-    window.setTimeout(() => this.toast = '', 2600);
+    window.setTimeout(() => (this.toast = ''), 2600);
   }
 
   @HostListener('window:scroll')
@@ -1189,9 +1634,11 @@ export class App implements AfterViewInit, OnDestroy {
     }, 180);
 
     const loadMarker = document.querySelector<HTMLElement>('.catalog-load-sentinel');
-    if ((this.activeView === 'home' || this.activeView === 'explore')
-      && loadMarker
-      && loadMarker.getBoundingClientRect().top < window.innerHeight + 500) {
+    if (
+      (this.activeView === 'home' || this.activeView === 'explore') &&
+      loadMarker &&
+      loadMarker.getBoundingClientRect().top < window.innerHeight + 500
+    ) {
       void this.loadPublicCatalog();
     }
   }
@@ -1207,12 +1654,15 @@ export class App implements AfterViewInit, OnDestroy {
   private toStylistProfile(profile: DashboardStylist, index = 0): Stylist {
     return {
       id: profile.id,
-      name: [profile.user.firstName, profile.user.lastName].filter(Boolean).join(' ') || profile.businessName,
+      name:
+        [profile.user.firstName, profile.user.lastName].filter(Boolean).join(' ') ||
+        profile.businessName,
       studio: profile.businessName,
       location: '',
       specialty: profile.specialties.join(' · ') || 'Styliste partenaire',
       portrait: profile.user.profileImage || this.stylists[index % this.stylists.length].portrait,
-      bio: profile.about || `Découvrez les créations et le savoir-faire de ${profile.businessName}.`,
+      bio:
+        profile.about || `Découvrez les créations et le savoir-faire de ${profile.businessName}.`,
       email: '',
       phone: '',
     };
@@ -1221,13 +1671,15 @@ export class App implements AfterViewInit, OnDestroy {
   openCreationCreator(item: Creation | DashboardCatalogItem): void {
     const stylistId = item.stylistId;
     const profile = stylistId
-      ? this.publicStylists.find(stylist => stylist.id === stylistId)
-        ?? this.clientStylists.find(stylist => stylist.id === stylistId)
+      ? (this.publicStylists.find((stylist) => stylist.id === stylistId) ??
+        this.clientStylists.find((stylist) => stylist.id === stylistId))
       : undefined;
     const studio = 'title' in item ? this.catalogStylistName(item) : item.stylist;
     const stylist = profile
       ? this.toStylistProfile(profile)
-      : this.visibleStylists.find(candidate => candidate.studio === studio || candidate.name === studio);
+      : this.visibleStylists.find(
+          (candidate) => candidate.studio === studio || candidate.name === studio,
+        );
     if (stylist) this.openStylist(stylist);
     else this.showToast(`Le profil de ${studio} sera bientôt disponible.`);
   }
@@ -1241,7 +1693,9 @@ export class App implements AfterViewInit, OnDestroy {
     this.selectedStylist = null;
   }
 
-  openClientHome(): void { this.setClientPage('overview'); }
+  openClientHome(): void {
+    this.setClientPage('overview');
+  }
 
   openClientExplore(): void {
     this.clientBottomTab = 'explore';
@@ -1249,11 +1703,17 @@ export class App implements AfterViewInit, OnDestroy {
     this.setView('explore');
   }
 
-  openClientMeasurements(): void { this.setClientPage('measurements'); }
+  openClientMeasurements(): void {
+    this.setClientPage('measurements');
+  }
 
-  openClientProfile(): void { this.setClientPage('profile'); }
+  openClientProfile(): void {
+    this.setClientPage('profile');
+  }
 
-  openClientSelection(): void { this.setClientPage('favorites'); }
+  openClientSelection(): void {
+    this.setClientPage('favorites');
+  }
 
   scrollWorkspaceTo(id: string): void {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1262,17 +1722,19 @@ export class App implements AfterViewInit, OnDestroy {
   setStylistPage(page: StylistPage): void {
     this.stylistPage = page;
     this.showAllStylistOrders = page === 'orders';
+    this.mobileDashboardMenuOpen = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   setEmployeePage(page: EmployeePage): void {
     this.employeePage = page;
+    this.mobileDashboardMenuOpen = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   showToast(message: string): void {
     this.toast = message;
-    window.setTimeout(() => this.toast = '', 2600);
+    window.setTimeout(() => (this.toast = ''), 2600);
   }
 
   async loadDashboard(role: 'client' | 'stylist' | 'employee'): Promise<void> {
@@ -1284,109 +1746,89 @@ export class App implements AfterViewInit, OnDestroy {
     this.dashboardLoading = true;
     this.dashboardError = '';
     try {
-      if (role === 'client') {
-        const snapshot = await this.dashboard.loadClientDashboard();
+      const result = await this.workspaceDashboard.load(role, this.authenticatedUser?.id ?? null);
+      if (result.kind === 'client') {
+        const snapshot = result.snapshot;
         this.clientOrders = snapshot.orders;
         this.clientMeasurements = snapshot.measurements;
         this.clientAppointments = snapshot.appointments;
         this.clientCatalog = snapshot.catalog;
         this.clientStylists = snapshot.stylists;
-      } else if (this.authenticatedUser && role === 'employee') {
-        const snapshot = await this.dashboard.loadEmployeeDashboard();
+      } else if (result.kind === 'employee') {
+        const snapshot = result;
         this.employeeContext = snapshot.employee;
-        this.stylistOrders = snapshot.orders ?? [];
+        this.stylistOrders = snapshot.orders;
         this.stylistMeasurements = snapshot.measurements;
-        await this.saveOfflineWorkspace({
-          userId: this.authenticatedUser.id,
-          role,
-          savedAt: new Date().toISOString(),
-          measurements: snapshot.measurements,
-          employeeContext: snapshot.employee,
-          orders: snapshot.orders,
-        });
-      } else if (this.authenticatedUser) {
-        const snapshot = await this.dashboard.loadStylistDashboard(this.authenticatedUser.id);
+      } else if (result.kind === 'stylist') {
+        const snapshot = result.snapshot;
         this.stylistOrders = snapshot.orders;
         this.stylistMeasurements = snapshot.measurements;
         this.stylistAppointments = snapshot.appointments;
         this.stylistCatalog = snapshot.catalog;
         this.stylistProfile = snapshot.profile;
         this.employeeContext = null;
-        await this.saveOfflineWorkspace({
-          userId: this.authenticatedUser.id,
-          role,
-          savedAt: new Date().toISOString(),
-          measurements: snapshot.measurements,
-          stylistProfile: snapshot.profile,
-        });
-        this.stylistPersonnel = snapshot.profile
-          ? await this.dashboard.listStylistPersonnel(snapshot.profile.id)
-          : [];
+        this.stylistPersonnel = result.personnel;
+      } else {
+        this.applyOfflineDashboard(result.snapshot);
       }
     } catch {
-      const cached = this.authenticatedUser && role !== 'client'
-        ? await this.loadOfflineWorkspace(this.authenticatedUser.id, role)
-        : null;
-      if (cached) {
-        this.stylistMeasurements = cached.measurements;
-        if (role === 'stylist') {
-          this.stylistProfile = cached.stylistProfile ?? null;
-          this.stylistOrders = [];
-          this.stylistAppointments = [];
-          this.stylistCatalog = [];
-          this.stylistPersonnel = [];
-        } else if (role === 'employee') {
-          this.employeeContext = cached.employeeContext ?? null;
-          this.stylistOrders = cached.orders ?? [];
-        }
-        this.dashboardError = `Hors connexion : mesures synchronisées le ${this.formatDate(cached.savedAt)}.`;
-      } else {
-        this.dashboardError = 'Impossible de charger les données. Vérifiez votre connexion Internet.';
-      }
+      this.dashboardError = 'Impossible de charger les données. Vérifiez votre connexion Internet.';
     } finally {
       this.dashboardLoading = false;
     }
   }
 
-  private async saveOfflineWorkspace(snapshot: OfflineWorkspaceSnapshot): Promise<void> {
-    try {
-      await this.offlineWorkspace.save(snapshot);
-    } catch {
-      // La synchronisation du tableau de bord reste utilisable si IndexedDB est indisponible.
+  private applyOfflineDashboard(snapshot: OfflineWorkspaceSnapshot): void {
+    this.stylistMeasurements = snapshot.measurements;
+    if (snapshot.role === 'stylist') {
+      this.stylistProfile = snapshot.stylistProfile ?? null;
+      this.stylistOrders = [];
+      this.stylistAppointments = [];
+      this.stylistCatalog = [];
+      this.stylistPersonnel = [];
+      this.employeeContext = null;
+    } else {
+      this.employeeContext = snapshot.employeeContext ?? null;
+      this.stylistOrders = snapshot.orders ?? [];
     }
-  }
-
-  private async loadOfflineWorkspace(userId: string, role: 'stylist' | 'employee'):
-    Promise<OfflineWorkspaceSnapshot | null> {
-    try {
-      return await this.offlineWorkspace.load(userId, role);
-    } catch {
-      return null;
-    }
+    this.dashboardError = `Hors connexion : mesures synchronisées le ${this.formatDate(snapshot.savedAt)}.`;
   }
 
   refreshDashboard(): void {
-    const role = this.activeView === 'stylist' ? 'stylist' : this.activeView === 'employee' ? 'employee' : 'client';
+    const role =
+      this.activeView === 'stylist'
+        ? 'stylist'
+        : this.activeView === 'employee'
+          ? 'employee'
+          : 'client';
     void this.loadDashboard(role);
   }
 
   measurementValue(key: string, modelName?: string): number | null {
-    const record = modelName ? this.clientMeasurements.find(item => (item.modelType === modelName || item.modelName === modelName))
-      ?? this.clientMeasurements.find(item => !item.modelName) : this.latestClientMeasurement;
+    const record = modelName
+      ? (this.clientMeasurements.find(
+          (item) => item.modelType === modelName || item.modelName === modelName,
+        ) ?? this.clientMeasurements.find((item) => !item.modelName))
+      : this.latestClientMeasurement;
     const value = record?.measurements[key];
     return value == null || !Number.isFinite(Number(value)) ? null : Number(value);
   }
 
   editMeasurement(definition: MeasurementDefinition, modelName?: string): void {
-    this.editingMeasurementRecord = modelName ? this.clientMeasurements.find(item => (item.modelType === modelName || item.modelName === modelName))
-      ?? this.clientMeasurements.find(item => !item.modelName) ?? null : this.latestClientMeasurement;
+    this.editingMeasurementRecord = modelName
+      ? (this.clientMeasurements.find(
+          (item) => item.modelType === modelName || item.modelName === modelName,
+        ) ??
+        this.clientMeasurements.find((item) => !item.modelName) ??
+        null)
+      : this.latestClientMeasurement;
     this.editingMeasurement = definition;
     const value = this.editingMeasurementRecord?.measurements[definition.key];
     this.measurementDraft = value == null ? null : Number(value);
   }
 
   editMeasurementByKey(key: string): void {
-    const definition = this.measurementDefinitions.find(item => item.key === key);
+    const definition = this.measurementDefinitions.find((item) => item.key === key);
     if (definition) this.editMeasurement(definition);
   }
 
@@ -1420,7 +1862,8 @@ export class App implements AfterViewInit, OnDestroy {
       const saved = this.demoMode
         ? {
             id: record?.id ?? 'demo-measurement-client',
-            modelName: record?.modelName, modelType: record?.modelType,
+            modelName: record?.modelName,
+            modelType: record?.modelType,
             stylistId,
             clientId: this.authenticatedUser?.id ?? 'demo-client-id',
             clientName: `${this.authenticatedUser?.firstName ?? 'Fatou'} ${this.authenticatedUser?.lastName ?? 'Ndiaye'}`,
@@ -1431,7 +1874,10 @@ export class App implements AfterViewInit, OnDestroy {
             updatedAt: new Date().toISOString(),
           }
         : await this.dashboard.saveClientMeasurements(stylistId, values, record?.id);
-      this.clientMeasurements = [saved, ...this.clientMeasurements.filter(item => item.id !== saved.id)];
+      this.clientMeasurements = [
+        saved,
+        ...this.clientMeasurements.filter((item) => item.id !== saved.id),
+      ];
       this.showToast(`${this.editingMeasurement.label} mise à jour`);
       this.closeMeasurementEditor();
     } catch {
@@ -1449,7 +1895,11 @@ export class App implements AfterViewInit, OnDestroy {
     };
     const nextStatus = transitions[order.status];
     if (!nextStatus) {
-      this.showToast(order.status === 'cancelled' ? 'Cette commande est annulée' : 'Cette commande est déjà livrée');
+      this.showToast(
+        order.status === 'cancelled'
+          ? 'Cette commande est annulée'
+          : 'Cette commande est déjà livrée',
+      );
       return;
     }
     this.updatingOrderId = order.id;
@@ -1457,7 +1907,9 @@ export class App implements AfterViewInit, OnDestroy {
       const updated = this.demoMode
         ? { ...order, status: nextStatus, updatedAt: new Date().toISOString() }
         : await this.dashboard.updateOrderStatus(order.id, nextStatus);
-      this.stylistOrders = this.stylistOrders.map(item => item.id === updated.id ? updated : item);
+      this.stylistOrders = this.stylistOrders.map((item) =>
+        item.id === updated.id ? updated : item,
+      );
       this.showToast(`Commande passée au statut « ${this.orderStatusLabel(nextStatus)} »`);
     } catch {
       this.showToast('Le statut de la commande n’a pas pu être modifié');
@@ -1467,11 +1919,27 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   orderStatusLabel(status: DashboardOrderStatus): string {
-    return ({ pending: 'À valider', inProgress: 'En confection', completed: 'Prête', delivered: 'Livrée', cancelled: 'Annulée' } as const)[status];
+    return (
+      {
+        pending: 'À valider',
+        inProgress: 'En confection',
+        completed: 'Prête',
+        delivered: 'Livrée',
+        cancelled: 'Annulée',
+      } as const
+    )[status];
   }
 
   orderStatusClass(status: DashboardOrderStatus): string {
-    return ({ pending: 'waiting', inProgress: 'working', completed: 'ready', delivered: 'ready', cancelled: 'cancelled' } as const)[status];
+    return (
+      {
+        pending: 'waiting',
+        inProgress: 'working',
+        completed: 'ready',
+        delivered: 'ready',
+        cancelled: 'cancelled',
+      } as const
+    )[status];
   }
 
   orderShortId(order: DashboardOrder): string {
@@ -1479,13 +1947,15 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   orderImage(order: DashboardOrder, index = 0): string {
-    return this.clientCatalog.find(item => item.title === order.description)?.imageUrl
-      ?? this.stylistCatalog.find(item => item.title === order.description)?.imageUrl
-      ?? this.creations[index % this.creations.length].image;
+    return (
+      this.clientCatalog.find((item) => item.title === order.description)?.imageUrl ??
+      this.stylistCatalog.find((item) => item.title === order.description)?.imageUrl ??
+      this.creations[index % this.creations.length].image
+    );
   }
 
   orderActivityHeight(count: number): number {
-    const max = Math.max(1, ...this.stylistOrderActivity.map(item => item.count));
+    const max = Math.max(1, ...this.stylistOrderActivity.map((item) => item.count));
     return Math.max(8, Math.round((count / max) * 100));
   }
 
@@ -1514,7 +1984,8 @@ export class App implements AfterViewInit, OnDestroy {
       this.catalogImageData = await this.compressImage(file);
       this.catalogImageFileName = file.name;
     } catch (error) {
-      this.catalogImageError = error instanceof Error ? error.message : 'Import de l’image impossible.';
+      this.catalogImageError =
+        error instanceof Error ? error.message : 'Import de l’image impossible.';
     }
   }
 
@@ -1536,7 +2007,8 @@ export class App implements AfterViewInit, OnDestroy {
       this.profileDraft.profileImage = await this.compressImage(file);
       this.profileImageFileName = file.name;
     } catch (error) {
-      this.profileImageError = error instanceof Error ? error.message : 'Import de la photo impossible.';
+      this.profileImageError =
+        error instanceof Error ? error.message : 'Import de la photo impossible.';
     }
   }
 
@@ -1554,12 +2026,14 @@ export class App implements AfterViewInit, OnDestroy {
       let blob: Blob | null = null;
       for (let resize = 0; resize < 7 && !blob; resize++) {
         canvas.width = width;
-        canvas.height = Math.max(1, Math.round(bitmap.height * width / bitmap.width));
+        canvas.height = Math.max(1, Math.round((bitmap.height * width) / bitmap.width));
         const context = canvas.getContext('2d');
         if (!context) throw new Error('Traitement d’image indisponible.');
         context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         for (const quality of [0.82, 0.72, 0.62, 0.52, 0.42]) {
-          const candidate = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+          const candidate = await new Promise<Blob | null>((resolve) =>
+            canvas.toBlob(resolve, 'image/jpeg', quality),
+          );
           if (candidate && candidate.size <= 55 * 1024) {
             blob = candidate;
             break;
@@ -1567,10 +2041,16 @@ export class App implements AfterViewInit, OnDestroy {
         }
         if (!blob) width = Math.max(240, Math.floor(width * 0.75));
       }
-      if (!blob) throw new Error('Cette image ne peut pas être réduite suffisamment. Choisissez une autre image.');
+      if (!blob)
+        throw new Error(
+          'Cette image ne peut pas être réduite suffisamment. Choisissez une autre image.',
+        );
       return await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Lecture de l’image impossible.'));
+        reader.onload = () =>
+          typeof reader.result === 'string'
+            ? resolve(reader.result)
+            : reject(new Error('Lecture de l’image impossible.'));
         reader.onerror = () => reject(new Error('Lecture de l’image impossible.'));
         reader.readAsDataURL(blob!);
       });
@@ -1589,7 +2069,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.catalogDraft = {
         title: item?.title ?? '',
         description: item?.description ?? '',
-        imageUrl: this.catalogImageData ? '' : item?.imageUrl ?? '',
+        imageUrl: this.catalogImageData ? '' : (item?.imageUrl ?? ''),
         price: item ? this.price(item.price) : null,
         colors: item?.availableColors.join(', ') ?? '',
       };
@@ -1620,7 +2100,10 @@ export class App implements AfterViewInit, OnDestroy {
           imageUrl: this.catalogImageData || this.catalogDraft.imageUrl.trim(),
           price: Number(this.catalogDraft.price),
           currency: 'XOF',
-          availableColors: this.catalogDraft.colors.split(',').map(color => color.trim()).filter(Boolean),
+          availableColors: this.catalogDraft.colors
+            .split(',')
+            .map((color) => color.trim())
+            .filter(Boolean),
         };
         const saved = this.demoMode
           ? {
@@ -1635,28 +2118,39 @@ export class App implements AfterViewInit, OnDestroy {
             ? await this.dashboard.updateCatalogItem(this.editingCatalogId, item)
             : await this.dashboard.createCatalogItem(item);
         this.stylistCatalog = this.editingCatalogId
-          ? this.stylistCatalog.map(existing => existing.id === saved.id ? saved : existing)
+          ? this.stylistCatalog.map((existing) => (existing.id === saved.id ? saved : existing))
           : [saved, ...this.stylistCatalog];
         this.publicCatalogItems = this.editingCatalogId
-          ? this.publicCatalogItems.map(existing => existing.id === saved.id ? saved : existing)
-          : [saved, ...this.publicCatalogItems.filter(existing => existing.id !== saved.id)];
-        this.showToast(this.editingCatalogId ? 'Création mise à jour' : 'Création publiée dans votre vitrine');
+          ? this.publicCatalogItems.map((existing) => (existing.id === saved.id ? saved : existing))
+          : [saved, ...this.publicCatalogItems.filter((existing) => existing.id !== saved.id)];
+        this.showToast(
+          this.editingCatalogId ? 'Création mise à jour' : 'Création publiée dans votre vitrine',
+        );
       } else {
         const profile: StylistProfileUpdate = {
           businessName: this.profileDraft.businessName.trim(),
           about: this.profileDraft.about.trim(),
-          specialties: this.profileDraft.specialties.split(',').map(value => value.trim()).filter(Boolean),
+          specialties: this.profileDraft.specialties
+            .split(',')
+            .map((value) => value.trim())
+            .filter(Boolean),
           profileImage: this.profileDraft.profileImage,
         };
         const saved = this.demoMode
-          ? { ...(this.stylistProfile as DashboardStylist), ...profile, user: { ...this.stylistProfile!.user, profileImage: profile.profileImage } }
+          ? {
+              ...(this.stylistProfile as DashboardStylist),
+              ...profile,
+              user: { ...this.stylistProfile!.user, profileImage: profile.profileImage },
+            }
           : await this.dashboard.updateStylistProfile(profile);
         this.syncStylistProfile(saved);
         this.showToast('Profil de l’atelier mis à jour');
       }
       this.stylistEditor = null;
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Enregistrement impossible. Réessayez.');
+      this.showToast(
+        error instanceof Error ? error.message : 'Enregistrement impossible. Réessayez.',
+      );
     } finally {
       this.editorSaving = false;
     }
@@ -1666,31 +2160,44 @@ export class App implements AfterViewInit, OnDestroy {
     if (!window.confirm(`Retirer « ${item.title} » de votre vitrine ?`)) return;
     try {
       if (!this.demoMode) await this.dashboard.deactivateCatalogItem(item.id);
-      this.stylistCatalog = this.stylistCatalog.filter(existing => existing.id !== item.id);
-      this.publicCatalogItems = this.publicCatalogItems.filter(existing => existing.id !== item.id);
+      this.stylistCatalog = this.stylistCatalog.filter((existing) => existing.id !== item.id);
+      this.publicCatalogItems = this.publicCatalogItems.filter(
+        (existing) => existing.id !== item.id,
+      );
       this.showToast('Création retirée de votre vitrine');
     } catch (error) {
       this.showToast(error instanceof Error ? error.message : 'Suppression impossible. Réessayez.');
     }
   }
 
-  async changeAppointmentStatus(appointment: DashboardAppointment, status: DashboardAppointmentStatus): Promise<void> {
+  async changeAppointmentStatus(
+    appointment: DashboardAppointment,
+    status: DashboardAppointmentStatus,
+  ): Promise<void> {
     this.updatingAppointmentId = appointment.id;
     try {
       const updated = this.demoMode
         ? { ...appointment, status }
         : await this.dashboard.updateAppointmentStatus(appointment.id, status);
-      this.stylistAppointments = this.stylistAppointments.map(item => item.id === updated.id ? updated : item);
-      this.showToast(`Rendez-vous ${status === 'confirmed' ? 'confirmé' : status === 'cancelled' ? 'annulé' : 'terminé'}`);
+      this.stylistAppointments = this.stylistAppointments.map((item) =>
+        item.id === updated.id ? updated : item,
+      );
+      this.showToast(
+        `Rendez-vous ${status === 'confirmed' ? 'confirmé' : status === 'cancelled' ? 'annulé' : 'terminé'}`,
+      );
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Mise à jour du rendez-vous impossible');
+      this.showToast(
+        error instanceof Error ? error.message : 'Mise à jour du rendez-vous impossible',
+      );
     } finally {
       this.updatingAppointmentId = null;
     }
   }
 
   async copyMeasurement(measurement: DashboardMeasurement): Promise<void> {
-    const summary = Object.entries(measurement.measurements).map(([key, value]) => `${key}: ${value} cm`).join('\n');
+    const summary = Object.entries(measurement.measurements)
+      .map(([key, value]) => `${key}: ${value} cm`)
+      .join('\n');
     try {
       await navigator.clipboard.writeText(`${measurement.clientName}\n${summary}`);
       this.showToast('Mensurations copiées');
@@ -1714,7 +2221,14 @@ export class App implements AfterViewInit, OnDestroy {
       this.showToast('Créez les comptes employés depuis un atelier connecté.');
       return;
     }
-    this.employeeAccountDraft = { firstName: '', lastName: '', email: '', phone: '', password: '', specialization: 'Couture' };
+    this.employeeAccountDraft = {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      password: '',
+      specialization: 'Couture',
+    };
     this.employeePasswordVisible = false;
     this.employeeAccountEditorOpen = true;
   }
@@ -1725,12 +2239,15 @@ export class App implements AfterViewInit, OnDestroy {
     const draft = this.employeeAccountDraft;
     const input = {
       ...draft,
-      firstName: draft.firstName.trim(), lastName: draft.lastName.trim(),
-      email: draft.email.trim().toLowerCase(), phone: draft.phone.trim().replace(/[\s().-]/g, ''),
+      firstName: draft.firstName.trim(),
+      lastName: draft.lastName.trim(),
+      email: draft.email.trim().toLowerCase(),
+      phone: draft.phone.trim().replace(/[\s().-]/g, ''),
       specialization: draft.specialization.trim(),
     };
-    if ([input.firstName, input.lastName, input.specialization].some(value => value.length < 2)) {
-      this.employeeAccountError = 'Le prénom, le nom et la fonction doivent contenir au moins 2 caractères.';
+    if ([input.firstName, input.lastName, input.specialization].some((value) => value.length < 2)) {
+      this.employeeAccountError =
+        'Le prénom, le nom et la fonction doivent contenir au moins 2 caractères.';
       return;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.email)) {
@@ -1738,7 +2255,8 @@ export class App implements AfterViewInit, OnDestroy {
       return;
     }
     if (!/^\+[1-9]\d{7,14}$/.test(input.phone)) {
-      this.employeeAccountError = 'Indiquez le téléphone avec son indicatif pays, par exemple +221 77 000 00 00.';
+      this.employeeAccountError =
+        'Indiquez le téléphone avec son indicatif pays, par exemple +221 77 000 00 00.';
       return;
     }
     if (input.password.length < 10) {
@@ -1758,10 +2276,15 @@ export class App implements AfterViewInit, OnDestroy {
       this.showToast('Compte créé. Remettez les identifiants à votre employé en privé.');
     } catch (error) {
       const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
-      this.employeeAccountError = Array.isArray(detail) ? detail.join(' ') :
-        typeof detail === 'string' ? detail :
-        error instanceof HttpErrorResponse && error.status === 0 ? 'Le serveur est inaccessible. Vérifiez votre connexion et réessayez.' :
-        error instanceof Error ? error.message : 'Création du compte impossible.';
+      this.employeeAccountError = Array.isArray(detail)
+        ? detail.join(' ')
+        : typeof detail === 'string'
+          ? detail
+          : error instanceof HttpErrorResponse && error.status === 0
+            ? 'Le serveur est inaccessible. Vérifiez votre connexion et réessayez.'
+            : error instanceof Error
+              ? error.message
+              : 'Création du compte impossible.';
     } finally {
       this.employeeAccountSaving = false;
     }
@@ -1774,13 +2297,25 @@ export class App implements AfterViewInit, OnDestroy {
       return;
     }
     try {
-      const result = await this.dashboard.setEmployeeAccess(stylistId, employee.id, !employee.active);
-      this.stylistPersonnel = this.stylistPersonnel.map(item => item.id === employee.id
-        ? { ...item, active: result.active, user: item.user ? { ...item.user, active: result.active } : item.user }
-        : item);
+      const result = await this.dashboard.setEmployeeAccess(
+        stylistId,
+        employee.id,
+        !employee.active,
+      );
+      this.stylistPersonnel = this.stylistPersonnel.map((item) =>
+        item.id === employee.id
+          ? {
+              ...item,
+              active: result.active,
+              user: item.user ? { ...item.user, active: result.active } : item.user,
+            }
+          : item,
+      );
       this.showToast(result.active ? 'Accès employé réactivé' : 'Accès employé désactivé');
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Modification de l’accès impossible.');
+      this.showToast(
+        error instanceof Error ? error.message : 'Modification de l’accès impossible.',
+      );
     }
   }
 
@@ -1790,27 +2325,41 @@ export class App implements AfterViewInit, OnDestroy {
       this.showToast('Le profil de l’atelier est introuvable. Actualisez la page.');
       return;
     }
-    if (!window.confirm(`Supprimer ${employee.firstName} ${employee.lastName} de votre équipe ? Son accès sera coupé.`)) return;
+    if (
+      !window.confirm(
+        `Supprimer ${employee.firstName} ${employee.lastName} de votre équipe ? Son accès sera coupé.`,
+      )
+    )
+      return;
     this.deletingEmployeeId = employee.id;
     try {
       await this.dashboard.removeEmployee(stylistId, employee.id);
-      this.stylistPersonnel = this.stylistPersonnel.filter(item => item.id !== employee.id);
+      this.stylistPersonnel = this.stylistPersonnel.filter((item) => item.id !== employee.id);
       this.showToast(`${employee.firstName} a été supprimé de l’équipe et son accès coupé.`);
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Suppression de l’employé impossible.');
+      this.showToast(
+        error instanceof Error ? error.message : 'Suppression de l’employé impossible.',
+      );
     } finally {
       this.deletingEmployeeId = null;
     }
   }
 
   addEmployeeCustomMeasurement(): void {
-    this.employeeCustomMeasurements = [...this.employeeCustomMeasurements, {
-      id: this.nextEmployeeCustomMeasurementId++, label: '', value: null,
-    }];
+    this.employeeCustomMeasurements = [
+      ...this.employeeCustomMeasurements,
+      {
+        id: this.nextEmployeeCustomMeasurementId++,
+        label: '',
+        value: null,
+      },
+    ];
   }
 
   removeEmployeeCustomMeasurement(id: number): void {
-    this.employeeCustomMeasurements = this.employeeCustomMeasurements.filter(field => field.id !== id);
+    this.employeeCustomMeasurements = this.employeeCustomMeasurements.filter(
+      (field) => field.id !== id,
+    );
   }
 
   async saveEmployeeMeasurement(): Promise<void> {
@@ -1820,26 +2369,37 @@ export class App implements AfterViewInit, OnDestroy {
       const label = field.label.trim();
       const value = Number(field.value);
       if (!label || field.value == null || !Number.isFinite(value) || value <= 0 || value > 300) {
-        this.showToast('Complétez chaque champ personnalisé avec un nom et une mesure entre 0 et 300 cm.');
+        this.showToast(
+          'Complétez chaque champ personnalisé avec un nom et une mesure entre 0 et 300 cm.',
+        );
         return;
       }
       const normalizedName = label.toLocaleLowerCase();
-      if (customNames.has(normalizedName) || Object.keys(measurements).some(key => key.toLocaleLowerCase() === normalizedName)) {
+      if (
+        customNames.has(normalizedName) ||
+        Object.keys(measurements).some((key) => key.toLocaleLowerCase() === normalizedName)
+      ) {
         this.showToast('Chaque mesure doit avoir un nom unique.');
         return;
       }
       customNames.add(normalizedName);
       measurements[label] = value;
     }
-    if (this.employeeClientName.trim().length < 2 || !this.employeeClientPhone.trim() || !Object.keys(measurements).length) {
+    if (
+      this.employeeClientName.trim().length < 2 ||
+      !this.employeeClientPhone.trim() ||
+      !Object.keys(measurements).length
+    ) {
       this.showToast('Indiquez le nom, le téléphone et au moins une mensuration.');
       return;
     }
     this.employeeMeasurementSaving = true;
     try {
       const record = await this.dashboard.createEmployeeMeasurement({
-        clientName: this.employeeClientName.trim(), clientPhone: this.employeeClientPhone.trim(),
-        measurements, notes: this.employeeMeasurementNotes.trim(),
+        clientName: this.employeeClientName.trim(),
+        clientPhone: this.employeeClientPhone.trim(),
+        measurements,
+        notes: this.employeeMeasurementNotes.trim(),
       });
       this.stylistMeasurements = [record, ...this.stylistMeasurements];
       this.employeeClientName = '';
@@ -1849,7 +2409,11 @@ export class App implements AfterViewInit, OnDestroy {
       this.employeeCustomMeasurements = [];
       this.showToast('Fiche cliente et mensurations enregistrées.');
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Enregistrement impossible. Vérifiez le numéro de téléphone.');
+      this.showToast(
+        error instanceof Error
+          ? error.message
+          : 'Enregistrement impossible. Vérifiez le numéro de téléphone.',
+      );
     } finally {
       this.employeeMeasurementSaving = false;
     }
@@ -1858,7 +2422,12 @@ export class App implements AfterViewInit, OnDestroy {
   async saveStylistClientRecord(): Promise<void> {
     const stylistId = this.stylistProfile?.id;
     const measurements = this.measurementDraftValues(this.employeeMeasurementDraft);
-    if (!stylistId || this.employeeClientName.trim().length < 2 || !this.employeeClientPhone.trim() || !Object.keys(measurements).length) {
+    if (
+      !stylistId ||
+      this.employeeClientName.trim().length < 2 ||
+      !this.employeeClientPhone.trim() ||
+      !Object.keys(measurements).length
+    ) {
       this.showToast('Indiquez le nom, le téléphone et au moins une mensuration.');
       return;
     }
@@ -1867,12 +2436,21 @@ export class App implements AfterViewInit, OnDestroy {
       const now = new Date().toISOString();
       const record = this.demoMode
         ? {
-            id: `demo-measurement-${Date.now()}`, stylistId, clientId: null, clientName: this.employeeClientName.trim(),
-            clientPhone: this.employeeClientPhone.trim(), measurements, notes: this.employeeMeasurementNotes.trim(), createdAt: now, updatedAt: now,
+            id: `demo-measurement-${Date.now()}`,
+            stylistId,
+            clientId: null,
+            clientName: this.employeeClientName.trim(),
+            clientPhone: this.employeeClientPhone.trim(),
+            measurements,
+            notes: this.employeeMeasurementNotes.trim(),
+            createdAt: now,
+            updatedAt: now,
           }
         : await this.dashboard.createStylistMeasurement(stylistId, {
-            clientName: this.employeeClientName.trim(), clientPhone: this.employeeClientPhone.trim(),
-            measurements, notes: this.employeeMeasurementNotes.trim(),
+            clientName: this.employeeClientName.trim(),
+            clientPhone: this.employeeClientPhone.trim(),
+            measurements,
+            notes: this.employeeMeasurementNotes.trim(),
           });
       this.stylistMeasurements = [record, ...this.stylistMeasurements];
       this.employeeClientName = '';
@@ -1882,7 +2460,11 @@ export class App implements AfterViewInit, OnDestroy {
       this.showStylistClientForm = false;
       this.showToast('Cliente et mensurations enregistrées.');
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Enregistrement impossible. Vérifiez le numéro de téléphone.');
+      this.showToast(
+        error instanceof Error
+          ? error.message
+          : 'Enregistrement impossible. Vérifiez le numéro de téléphone.',
+      );
     } finally {
       this.employeeMeasurementSaving = false;
     }
@@ -1891,7 +2473,10 @@ export class App implements AfterViewInit, OnDestroy {
   private measurementDraftValues(draft: Record<string, number | null>): Record<string, number> {
     return Object.fromEntries(
       Object.entries(draft)
-        .filter((entry): entry is [string, number] => entry[1] !== null && Number.isFinite(Number(entry[1])) && Number(entry[1]) > 0)
+        .filter(
+          (entry): entry is [string, number] =>
+            entry[1] !== null && Number.isFinite(Number(entry[1])) && Number(entry[1]) > 0,
+        )
         .map(([key, value]) => [key, Number(value)]),
     );
   }
@@ -1909,7 +2494,9 @@ export class App implements AfterViewInit, OnDestroy {
   async saveStylistMeasurement(): Promise<void> {
     const current = this.stylistMeasurementEditor;
     if (!current) return;
-    const validValues = Object.values(this.stylistMeasurementDraft).every(value => Number.isFinite(Number(value)) && Number(value) > 0);
+    const validValues = Object.values(this.stylistMeasurementDraft).every(
+      (value) => Number.isFinite(Number(value)) && Number(value) > 0,
+    );
     if (!validValues) {
       this.showToast('Toutes les mesures doivent être des nombres positifs');
       return;
@@ -1917,13 +2504,26 @@ export class App implements AfterViewInit, OnDestroy {
     this.stylistMeasurementSaving = true;
     try {
       const updated = this.demoMode
-        ? { ...current, measurements: { ...this.stylistMeasurementDraft }, notes: this.stylistMeasurementNotes, updatedAt: new Date().toISOString() }
-        : await this.dashboard.updateStylistMeasurement(current.id, this.stylistMeasurementDraft, this.stylistMeasurementNotes);
-      this.stylistMeasurements = this.stylistMeasurements.map(item => item.id === updated.id ? updated : item);
+        ? {
+            ...current,
+            measurements: { ...this.stylistMeasurementDraft },
+            notes: this.stylistMeasurementNotes,
+            updatedAt: new Date().toISOString(),
+          }
+        : await this.dashboard.updateStylistMeasurement(
+            current.id,
+            this.stylistMeasurementDraft,
+            this.stylistMeasurementNotes,
+          );
+      this.stylistMeasurements = this.stylistMeasurements.map((item) =>
+        item.id === updated.id ? updated : item,
+      );
       this.stylistMeasurementEditor = null;
       this.showToast('Mensurations mises à jour');
     } catch (error) {
-      this.showToast(error instanceof Error ? error.message : 'Enregistrement des mesures impossible');
+      this.showToast(
+        error instanceof Error ? error.message : 'Enregistrement des mesures impossible',
+      );
     } finally {
       this.stylistMeasurementSaving = false;
     }
@@ -1932,13 +2532,20 @@ export class App implements AfterViewInit, OnDestroy {
   orderStepReached(step: number): boolean {
     const order = this.currentClientOrder;
     if (!order) return false;
-    const current = ({ pending: 0, inProgress: 2, completed: 3, delivered: 4, cancelled: -1 } as const)[order.status];
+    const current = (
+      { pending: 0, inProgress: 2, completed: 3, delivered: 4, cancelled: -1 } as const
+    )[order.status];
     if (step === 1) {
       if (order.status === 'cancelled') return false;
       // Order measurements are captured by the stylist when creating the order.
       if (Object.keys(order.measurements ?? {}).length) return true;
-      return this.clientMeasurements.some(record => !!record.validatedAt && record.stylistId === order.stylistId
-        && record.modelName?.trim().toLocaleLowerCase() === order.description.trim().toLocaleLowerCase());
+      return this.clientMeasurements.some(
+        (record) =>
+          !!record.validatedAt &&
+          record.stylistId === order.stylistId &&
+          record.modelName?.trim().toLocaleLowerCase() ===
+            order.description.trim().toLocaleLowerCase(),
+      );
     }
     return current >= step;
   }
@@ -1947,7 +2554,10 @@ export class App implements AfterViewInit, OnDestroy {
     return Number(value) || 0;
   }
 
-  formatDate(value?: string, format: 'short' | 'day' | 'month' | 'weekday' | 'time' = 'short'): string {
+  formatDate(
+    value?: string,
+    format: 'short' | 'day' | 'month' | 'weekday' | 'time' = 'short',
+  ): string {
     if (!value) return 'À définir';
     const date = new Date(value);
     const options: Record<typeof format, Intl.DateTimeFormatOptions> = {
@@ -1961,32 +2571,39 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   catalogStylistName(item: DashboardCatalogItem): string {
-    return this.publicStylists.find(stylist => stylist.id === item.stylistId)?.businessName
-      ?? this.clientStylists.find(stylist => stylist.id === item.stylistId)?.businessName
-      ?? 'Atelier partenaire';
+    return (
+      this.publicStylists.find((stylist) => stylist.id === item.stylistId)?.businessName ??
+      this.clientStylists.find((stylist) => stylist.id === item.stylistId)?.businessName ??
+      'Atelier partenaire'
+    );
   }
 
   private syncStylistProfile(updated: DashboardStylist): void {
     const previousBusinessName = this.stylistProfile?.businessName;
     const replaceProfile = (profiles: DashboardStylist[]) => {
-      const found = profiles.some(profile => profile.id === updated.id);
+      const found = profiles.some((profile) => profile.id === updated.id);
       return found
-        ? profiles.map(profile => profile.id === updated.id ? updated : profile)
+        ? profiles.map((profile) => (profile.id === updated.id ? updated : profile))
         : [...profiles, updated];
     };
 
     this.publicStylists = replaceProfile(this.publicStylists);
     this.clientStylists = replaceProfile(this.clientStylists);
     this.stylistProfile = updated;
-    this.stylistOrders = this.stylistOrders.map(order => order.stylistId === updated.id
-      ? { ...order, stylist: { businessName: updated.businessName } }
-      : order
+    this.stylistOrders = this.stylistOrders.map((order) =>
+      order.stylistId === updated.id
+        ? { ...order, stylist: { businessName: updated.businessName } }
+        : order,
     );
-    this.stylistAppointments = this.stylistAppointments.map(appointment => appointment.stylistId === updated.id
-      ? { ...appointment, stylist: appointment.stylist
-          ? { ...appointment.stylist, businessName: updated.businessName }
-          : appointment.stylist }
-      : appointment
+    this.stylistAppointments = this.stylistAppointments.map((appointment) =>
+      appointment.stylistId === updated.id
+        ? {
+            ...appointment,
+            stylist: appointment.stylist
+              ? { ...appointment.stylist, businessName: updated.businessName }
+              : appointment.stylist,
+          }
+        : appointment,
     );
 
     if (this.selectedStylist?.id === updated.id) {
@@ -1994,12 +2611,12 @@ export class App implements AfterViewInit, OnDestroy {
     }
 
     if (previousBusinessName && previousBusinessName !== updated.businessName) {
-      this.selectedCreations = this.selectedCreations.map(creation =>
+      this.selectedCreations = this.selectedCreations.map((creation) =>
         creation.stylistId === updated.id || creation.stylist === previousBusinessName
           ? { ...creation, stylist: updated.businessName }
-          : creation
+          : creation,
       );
-      this.writeStoredArray(CART_STORAGE_KEY, this.selectedCreations);
+      this.saveSelectedCreations();
     }
   }
 
@@ -2055,16 +2672,20 @@ export class App implements AfterViewInit, OnDestroy {
       }
     }
     this.favoriteKeys = alreadyFavorite
-      ? this.favoriteKeys.filter(favorite => favorite !== key)
+      ? this.favoriteKeys.filter((favorite) => favorite !== key)
       : [...this.favoriteKeys, key];
-    this.writeStoredArray(FAVORITES_STORAGE_KEY, this.favoriteKeys);
+    if (!this.preferences.saveFavoriteKeys(this.favoriteKeys))
+      this.showToast('Le stockage local est indisponible sur cet appareil');
     const name = 'title' in item ? item.title : item.name;
-    this.showToast(alreadyFavorite ? `${name} retirée de vos favoris` : `${name} ajoutée à vos favoris`);
+    this.showToast(
+      alreadyFavorite ? `${name} retirée de vos favoris` : `${name} ajoutée à vos favoris`,
+    );
   }
 
   scrollTo(id: string): void {
     this.leaveClientPage();
     this.activeView = 'home';
+    void this.router.navigateByUrl('/');
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
     this.menuOpen = false;
   }
@@ -2081,6 +2702,9 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.leaveClientPage();
     this.activeView = view;
+    if (view === 'home' || view === 'explore' || view === 'signup') {
+      void this.router.navigateByUrl(view === 'home' ? '/' : `/${view}`);
+    }
     this.menuOpen = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -2093,18 +2717,28 @@ export class App implements AfterViewInit, OnDestroy {
         const page = this.clientPageFromUrl() ?? 'overview';
         this.writeClientPageUrl(page);
         this.applyClientPage(page);
-      } else this.leaveClientPage();
+      } else {
+        this.leaveClientPage();
+        void this.router.navigateByUrl(`/${role}`);
+      }
       this.menuOpen = false;
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     if (!this.auth.isAuthenticated || this.auth.appRole !== role) {
       this.openLogin(role);
-      const label = role === 'admin' ? 'Super Admin' : role === 'stylist' ? 'styliste' : role === 'employee' ? 'employé' : 'client';
+      const label =
+        role === 'admin'
+          ? 'Super Admin'
+          : role === 'stylist'
+            ? 'styliste'
+            : role === 'employee'
+              ? 'employé'
+              : 'client';
       this.showToast(`Connectez-vous avec votre compte ${label}`);
       return;
     }
-    if (!await this.auth.validateSession()) {
+    if (!(await this.auth.validateSession())) {
       this.authenticatedUser = null;
       this.clearPrivateWorkspaceData();
       await this.offlineWorkspace.clear().catch(() => undefined);
@@ -2119,7 +2753,10 @@ export class App implements AfterViewInit, OnDestroy {
       const page = this.clientPageFromUrl() ?? 'overview';
       this.writeClientPageUrl(page);
       this.applyClientPage(page);
-    } else this.leaveClientPage();
+    } else {
+      this.leaveClientPage();
+      void this.router.navigateByUrl(`/${role}`);
+    }
     this.menuOpen = false;
     if (role !== 'admin') void this.loadDashboard(role);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2132,7 +2769,7 @@ export class App implements AfterViewInit, OnDestroy {
   async installPwa(): Promise<void> {
     if (!this.installPrompt) {
       this.toast = 'L’installation directe n’est pas disponible sur ce navigateur.';
-      window.setTimeout(() => this.toast = '', 3200);
+      window.setTimeout(() => (this.toast = ''), 3200);
       return;
     }
 
@@ -2151,7 +2788,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   closeLogin(): void {
     if (this.isAdminEntryUrl) {
-      window.history.replaceState(null, '', '/' + window.location.search);
+      void this.router.navigateByUrl('/');
       document.title = 'Sur Mesure Style';
     }
     this.pendingAppointmentStylist = null;
@@ -2163,6 +2800,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.signupRole = role;
     this.loginOpen = false;
     this.activeView = 'signup';
+    void this.router.navigateByUrl('/signup');
     this.menuOpen = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -2177,7 +2815,14 @@ export class App implements AfterViewInit, OnDestroy {
       this.clearPrivateWorkspaceData();
       void this.offlineWorkspace.clear().catch(() => undefined);
     }
-    const role: AppAccountRole = user.role === 'ADMIN' ? 'admin' : user.role === 'STYLIST' ? 'stylist' : user.role === 'EMPLOYEE' ? 'employee' : 'client';
+    const role: AppAccountRole =
+      user.role === 'ADMIN'
+        ? 'admin'
+        : user.role === 'STYLIST'
+          ? 'stylist'
+          : user.role === 'EMPLOYEE'
+            ? 'employee'
+            : 'client';
     const destination = role === 'client' ? this.pendingAuthView : null;
     this.pendingAuthView = null;
     this.authenticatedUser = user;
@@ -2185,10 +2830,14 @@ export class App implements AfterViewInit, OnDestroy {
     this.workspaceRole = role;
     this.activeView = destination ?? role;
     if (role === 'client') {
-      const page = this.clientPageFromUrl() ?? (destination === 'measure' ? 'measurements' : 'overview');
+      const page =
+        this.clientPageFromUrl() ?? (destination === 'measure' ? 'measurements' : 'overview');
       this.writeClientPageUrl(page);
       this.applyClientPage(page);
-    } else this.leaveClientPage();
+    } else {
+      this.leaveClientPage();
+      void this.router.navigateByUrl(`/${role}`);
+    }
     if (role !== 'admin') void this.loadDashboard(role);
     this.showToast(`Bienvenue ${user.firstName}, votre espace est prêt.`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -2209,15 +2858,20 @@ export class App implements AfterViewInit, OnDestroy {
     this.workspaceRole = role;
     this.activeView = destination ?? role;
     if (role === 'client') {
-      const page = this.clientPageFromUrl() ?? (destination === 'measure' ? 'measurements' : 'overview');
+      const page =
+        this.clientPageFromUrl() ?? (destination === 'measure' ? 'measurements' : 'overview');
       this.writeClientPageUrl(page);
       this.applyClientPage(page);
-    } else this.leaveClientPage();
+    } else {
+      this.leaveClientPage();
+      void this.router.navigateByUrl(`/${role}`);
+    }
     void this.loadDashboard(role);
-    this.toast = role === 'stylist'
-      ? 'Votre compte styliste est créé. Bienvenue dans votre atelier.'
-      : 'Votre compte client est créé. Bienvenue chez vous.';
-    window.setTimeout(() => this.toast = '', 3200);
+    this.toast =
+      role === 'stylist'
+        ? 'Votre compte styliste est créé. Bienvenue dans votre atelier.'
+        : 'Votre compte client est créé. Bienvenue chez vous.';
+    window.setTimeout(() => (this.toast = ''), 3200);
     this.resumeAppointmentRequest(user);
   }
 
@@ -2237,6 +2891,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.pendingAuthView = null;
       this.clearPrivateWorkspaceData();
       this.activeView = 'home';
+      void this.router.navigateByUrl('/');
       this.loggingOut = false;
       this.leaveClientPage();
       this.showToast('Vous êtes déconnecté.');
@@ -2246,51 +2901,153 @@ export class App implements AfterViewInit, OnDestroy {
 
   startDemo(role: 'client' | 'stylist'): void {
     const now = new Date();
-    const iso = (daysFromNow: number): string => new Date(now.getTime() + daysFromNow * 86_400_000).toISOString();
+    const iso = (daysFromNow: number): string =>
+      new Date(now.getTime() + daysFromNow * 86_400_000).toISOString();
     const clientId = 'demo-client-fatou';
     const stylistId = 'demo-stylist-awa';
     const clientUser: AuthUser = {
-      id: clientId, role: 'CLIENT', firstName: 'Fatou', lastName: 'Ndiaye',
-      email: 'fatou.demo@surmesure.sn', phone: '+221 77 000 00 01',
-      profileImage: '/assets/stylist-awa.png', isActive: true,
+      id: clientId,
+      role: 'CLIENT',
+      firstName: 'Fatou',
+      lastName: 'Ndiaye',
+      email: 'fatou.demo@surmesure.sn',
+      phone: '+221 77 000 00 01',
+      profileImage: '/assets/stylist-awa.png',
+      isActive: true,
     };
     const stylistUser: AuthUser = {
-      id: stylistId, role: 'STYLIST', firstName: 'Awa', lastName: 'Diop',
-      email: 'awa.demo@surmesure.sn', phone: '+221 77 000 00 02',
-      profileImage: '/assets/stylist-awa.png', isActive: true,
+      id: stylistId,
+      role: 'STYLIST',
+      firstName: 'Awa',
+      lastName: 'Diop',
+      email: 'awa.demo@surmesure.sn',
+      phone: '+221 77 000 00 02',
+      profileImage: '/assets/stylist-awa.png',
+      isActive: true,
     };
     const demoStylist: DashboardStylist = {
-      id: stylistId, userId: stylistId, businessName: 'Atelier Awa',
+      id: stylistId,
+      userId: stylistId,
+      businessName: 'Atelier Awa',
       about: 'Créations de cérémonie et savoir-faire traditionnel revisité.',
-      specialties: ['Cérémonie', 'Traditionnel'], rating: 4.9,
+      specialties: ['Cérémonie', 'Traditionnel'],
+      rating: 4.9,
       user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' },
     };
     const demoCatalog: DashboardCatalogItem[] = [
-      { id: 'demo-piece-robe', stylistId, title: 'Robe Ndar', description: 'Robe de cérémonie sur mesure', imageUrl: '/assets/look-2.png', price: 89000, currency: 'FCFA', availableColors: ['Prune', 'Ivoire'], active: true, createdAt: iso(-14), updatedAt: iso(-2) },
-      { id: 'demo-piece-boubou', stylistId, title: 'Boubou Héritage', description: 'Boubou traditionnel revisité', imageUrl: '/assets/look-1.png', price: 115000, currency: 'FCFA', availableColors: ['Sable', 'Or'], active: true, createdAt: iso(-10), updatedAt: iso(-1) },
-      { id: 'demo-piece-ensemble', stylistId, title: 'Ensemble Kër', description: 'Ensemble deux pièces', imageUrl: '/assets/look-3.png', price: 74000, currency: 'FCFA', availableColors: ['Rose', 'Noir'], active: true, createdAt: iso(-6), updatedAt: iso(-1) },
+      {
+        id: 'demo-piece-robe',
+        stylistId,
+        title: 'Robe Ndar',
+        description: 'Robe de cérémonie sur mesure',
+        imageUrl: '/assets/look-2.png',
+        price: 89000,
+        currency: 'FCFA',
+        availableColors: ['Prune', 'Ivoire'],
+        active: true,
+        createdAt: iso(-14),
+        updatedAt: iso(-2),
+      },
+      {
+        id: 'demo-piece-boubou',
+        stylistId,
+        title: 'Boubou Héritage',
+        description: 'Boubou traditionnel revisité',
+        imageUrl: '/assets/look-1.png',
+        price: 115000,
+        currency: 'FCFA',
+        availableColors: ['Sable', 'Or'],
+        active: true,
+        createdAt: iso(-10),
+        updatedAt: iso(-1),
+      },
+      {
+        id: 'demo-piece-ensemble',
+        stylistId,
+        title: 'Ensemble Kër',
+        description: 'Ensemble deux pièces',
+        imageUrl: '/assets/look-3.png',
+        price: 74000,
+        currency: 'FCFA',
+        availableColors: ['Rose', 'Noir'],
+        active: true,
+        createdAt: iso(-6),
+        updatedAt: iso(-1),
+      },
     ];
     const demoMeasurement: DashboardMeasurement = {
-      id: 'demo-measurement-fatou', stylistId, clientId,
-      clientName: 'Fatou Ndiaye', clientPhone: clientUser.phone,
-      measurements: { poitrine: 92, epaules: 38, cou: 34, tourBras: 29, taille: 74, hanches: 101, longueurRobe: 142, entrejambe: 78, hauteur: 168, longueurManche: 59 },
-      notes: 'Mesures prises à l’atelier · profil démo', createdAt: iso(-18), updatedAt: iso(-2),
+      id: 'demo-measurement-fatou',
+      stylistId,
+      clientId,
+      clientName: 'Fatou Ndiaye',
+      clientPhone: clientUser.phone,
+      measurements: {
+        poitrine: 92,
+        epaules: 38,
+        cou: 34,
+        tourBras: 29,
+        taille: 74,
+        hanches: 101,
+        longueurRobe: 142,
+        entrejambe: 78,
+        hauteur: 168,
+        longueurManche: 59,
+      },
+      notes: 'Mesures prises à l’atelier · profil démo',
+      createdAt: iso(-18),
+      updatedAt: iso(-2),
     };
     const demoOrder: DashboardOrder = {
-      id: 'demo-order-fatou-001', stylistId, clientId, clientName: 'Fatou Ndiaye', clientPhone: clientUser.phone,
-      description: 'Robe Ndar', status: 'inProgress', totalPrice: 89000, currency: 'FCFA',
-      notes: 'Essayage prévu après la finition des manches.', createdAt: iso(-8), updatedAt: iso(-1),
+      id: 'demo-order-fatou-001',
+      stylistId,
+      clientId,
+      clientName: 'Fatou Ndiaye',
+      clientPhone: clientUser.phone,
+      description: 'Robe Ndar',
+      status: 'inProgress',
+      totalPrice: 89000,
+      currency: 'FCFA',
+      notes: 'Essayage prévu après la finition des manches.',
+      createdAt: iso(-8),
+      updatedAt: iso(-1),
       stylist: { businessName: 'Atelier Awa' },
     };
     const stylistOrders: DashboardOrder[] = [
       demoOrder,
-      { id: 'demo-order-awa-002', stylistId, clientId: 'demo-client-mariama', clientName: 'Mariama Fall', clientPhone: '+221 77 000 00 03', description: 'Boubou Héritage', status: 'pending', totalPrice: 115000, currency: 'FCFA', notes: 'Tissu fourni par la cliente.', createdAt: iso(-2), updatedAt: iso(-1), stylist: { businessName: 'Atelier Awa' } },
+      {
+        id: 'demo-order-awa-002',
+        stylistId,
+        clientId: 'demo-client-mariama',
+        clientName: 'Mariama Fall',
+        clientPhone: '+221 77 000 00 03',
+        description: 'Boubou Héritage',
+        status: 'pending',
+        totalPrice: 115000,
+        currency: 'FCFA',
+        notes: 'Tissu fourni par la cliente.',
+        createdAt: iso(-2),
+        updatedAt: iso(-1),
+        stylist: { businessName: 'Atelier Awa' },
+      },
     ];
     const demoAppointment: DashboardAppointment = {
-      id: 'demo-appointment-001', clientId, stylistId, service: 'Essayage · Robe Ndar', startsAt: iso(3), status: 'confirmed',
+      id: 'demo-appointment-001',
+      clientId,
+      stylistId,
+      service: 'Essayage · Robe Ndar',
+      startsAt: iso(3),
+      status: 'confirmed',
       notes: 'Premier essayage à l’atelier.',
-      stylist: { businessName: 'Atelier Awa', user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' } },
-      client: { firstName: 'Fatou', lastName: 'Ndiaye', phone: clientUser.phone, profileImage: clientUser.profileImage },
+      stylist: {
+        businessName: 'Atelier Awa',
+        user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' },
+      },
+      client: {
+        firstName: 'Fatou',
+        lastName: 'Ndiaye',
+        phone: clientUser.phone,
+        profileImage: clientUser.profileImage,
+      },
     };
 
     this.auth.clearSession();
@@ -2312,60 +3069,55 @@ export class App implements AfterViewInit, OnDestroy {
     this.stylistProfile = demoStylist;
     this.activeView = role;
     this.menuOpen = false;
-    this.showToast(`Mode démo ${role === 'client' ? 'client' : 'styliste'} : les modifications restent locales.`);
+    this.showToast(
+      `Mode démo ${role === 'client' ? 'client' : 'styliste'} : les modifications restent locales.`,
+    );
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   addToCart(item: Creation): void {
     if (!this.requireAccountForSelection()) return;
-    if (this.selectedCreations.some(creation => creation.name === item.name)) {
+    if (this.selectedCreations.some((creation) => creation.name === item.name)) {
       this.toast = `${item.name} est déjà dans votre sélection`;
     } else {
       this.selectedCreations = [...this.selectedCreations, item];
-      this.writeStoredArray(CART_STORAGE_KEY, this.selectedCreations);
+      this.saveSelectedCreations();
       this.toast = `${item.name} ajouté à votre sélection`;
     }
-    window.setTimeout(() => this.toast = '', 2600);
+    window.setTimeout(() => (this.toast = ''), 2600);
   }
 
   removeFromCart(item: Creation): void {
-    this.selectedCreations = this.selectedCreations.filter(creation => creation.name !== item.name);
-    this.writeStoredArray(CART_STORAGE_KEY, this.selectedCreations);
+    this.selectedCreations = this.selectedCreations.filter(
+      (creation) => creation.name !== item.name,
+    );
+    this.saveSelectedCreations();
     this.toast = `${item.name} retiré de votre sélection`;
-    window.setTimeout(() => this.toast = '', 2600);
+    window.setTimeout(() => (this.toast = ''), 2600);
   }
 
   private requireAccountForSelection(): boolean {
     if (this.auth.isAuthenticated) return true;
     this.openLogin('client');
-    this.showToast('Connectez-vous ou créez un compte pour ajouter une création à votre sélection.');
+    this.showToast(
+      'Connectez-vous ou créez un compte pour ajouter une création à votre sélection.',
+    );
     return false;
   }
 
   subscribe(): void {
     if (!this.email.includes('@')) {
       this.toast = 'Saisissez une adresse e-mail valide';
-      window.setTimeout(() => this.toast = '', 2600);
+      window.setTimeout(() => (this.toast = ''), 2600);
       return;
     }
     this.toast = 'Bienvenue dans le cercle Sur Mesure';
     this.email = '';
-    window.setTimeout(() => this.toast = '', 2600);
+    window.setTimeout(() => (this.toast = ''), 2600);
   }
 
-  private readStoredArray<T>(key: string): T[] {
-    try {
-      const value: unknown = JSON.parse(localStorage.getItem(key) ?? '[]');
-      return Array.isArray(value) ? value as T[] : [];
-    } catch {
-      return [];
-    }
-  }
-
-  private writeStoredArray<T>(key: string, value: T[]): void {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch {
+  private saveSelectedCreations(): void {
+    if (!this.preferences.saveCreations(this.selectedCreations)) {
       this.showToast('Le stockage local est indisponible sur cet appareil');
     }
   }
