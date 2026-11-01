@@ -364,9 +364,26 @@ export class App implements AfterViewInit, OnDestroy {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  get isAdminEntryUrl(): boolean {
+    return /^\/admin\/?$/.test(window.location.pathname);
+  }
+
+  private openAdminEntry(): void {
+    this.workspaceRole = 'admin';
+    if (this.auth.isAuthenticated && this.auth.appRole === 'admin') {
+      this.activeView = 'admin';
+      this.loginOpen = false;
+    } else {
+      this.activeView = 'home';
+      this.openLogin('admin');
+    }
+    document.title = 'Administration · Sur Mesure Style';
+  }
+
   @HostListener('window:popstate')
   @HostListener('window:hashchange')
   onClientPageHistory(): void {
+    if (this.isAdminEntryUrl) { this.openAdminEntry(); return; }
     const page = this.clientPageFromUrl();
     if (page) {
       if (this.demoMode || (this.auth.isAuthenticated && this.auth.appRole === 'client')) {
@@ -681,7 +698,8 @@ export class App implements AfterViewInit, OnDestroy {
       this.workspaceRole = appRole;
       this.activeView = appRole;
     }
-    if (this.clientPageFromUrl()) this.onClientPageHistory();
+    if (this.isAdminEntryUrl) this.openAdminEntry();
+    else if (this.clientPageFromUrl()) this.onClientPageHistory();
   }
 
   readonly creations: Creation[] = [
@@ -1045,7 +1063,7 @@ export class App implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     window.setTimeout(() => void this.loadPublicCatalog(true), 0);
     window.setTimeout(() => void this.loadPublicStylists(), 0);
-    if (this.auth.isAuthenticated && this.auth.appRole) {
+    if (this.auth.isAuthenticated && this.auth.appRole && (!this.isAdminEntryUrl || this.auth.appRole === 'admin')) {
       void this.restoreAuthenticatedWorkspace();
     }
     const elements = document.querySelectorAll<HTMLElement>(
@@ -2119,6 +2137,10 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   closeLogin(): void {
+    if (this.isAdminEntryUrl) {
+      window.history.replaceState(null, '', '/' + window.location.search);
+      document.title = 'Sur Mesure Style';
+    }
     this.pendingAppointmentStylist = null;
     this.loginOpen = false;
     this.pendingAuthView = null;

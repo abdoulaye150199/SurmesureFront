@@ -23,6 +23,39 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
+  it('opens the admin login when visiting /admin or /admin/', () => {
+    const previousUrl = window.location.pathname + window.location.search;
+    try {
+      for (const path of ['/admin', '/admin/']) {
+        window.history.replaceState(null, '', path);
+        const fixture = TestBed.createComponent(App);
+        expect(fixture.componentInstance.loginOpen).toBeTrue();
+        expect(fixture.componentInstance.loginRole).toBe('admin');
+        expect(fixture.componentInstance.activeView).toBe('home');
+        fixture.componentInstance.closeLogin();
+        expect(window.location.pathname).toBe('/');
+        fixture.destroy();
+      }
+    } finally { window.history.replaceState(null, '', previousUrl); }
+  });
+
+  it('keeps a client session from replacing the admin entry form', () => {
+    const previousUrl = window.location.pathname + window.location.search;
+    try {
+      const auth = TestBed.inject(AuthService);
+      spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
+      spyOnProperty(auth, 'appRole', 'get').and.returnValue('client');
+      window.history.replaceState(null, '', '/admin');
+      const fixture = TestBed.createComponent(App);
+      expect(fixture.componentInstance.loginRole).toBe('admin');
+      expect(fixture.componentInstance.loginOpen).toBeTrue();
+      const restore = spyOn<any>(fixture.componentInstance, 'restoreAuthenticatedWorkspace');
+      fixture.detectChanges();
+      expect(restore).not.toHaveBeenCalled();
+      fixture.destroy();
+    } finally { window.history.replaceState(null, '', previousUrl); }
+  });
+
   it('requires a client login before opening an appointment request', () => {
     const app = TestBed.createComponent(App).componentInstance;
     const stylist = { id: 'atelier', name: 'Awa', studio: 'Atelier Awa' } as NonNullable<App['selectedStylist']>;
