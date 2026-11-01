@@ -293,3 +293,80 @@ app-root .atelier-measurements {
     .atelier-measure-card-bottom { align-items: flex-start; }
   }
 }
+
+app-root .atelier-orders-panel {
+  padding: clamp(20px, 2.8vw, 34px); background: #fffcfa;
+  .atelier-orders-heading { display: flex; justify-content: space-between; align-items: center; gap: 22px; margin-bottom: 26px; }
+  .atelier-orders-heading > div > span { color: #aa899f; font-size: 9px; text-transform: uppercase; letter-spacing: .13em; }
+  .atelier-orders-heading h2 { margin: 10px 0; color: #4e2446; font: 30px/1.2 Georgia, serif; letter-spacing: -.02em; }
+  .atelier-orders-heading p { margin: 0; color: #a08a98; font-size: 12px; line-height: 1.6; }
+  .atelier-new-order { flex-shrink: 0; min-height: 44px; padding: 0 18px; border: 0; border-radius: 12px; background: #681263; color: #fff; font-size: 12px; cursor: pointer; box-shadow: 0 6px 16px #68126318; }
+  .atelier-orders-overview { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 12px; margin: 0 0 28px; }
+  .atelier-orders-overview > div { padding: 18px 20px; border: 1px solid #ede2e9; border-radius: 16px; background: #faf5f8; }
+  .atelier-orders-overview > div:last-child { background: #faf7f0; border-color: #eee7da; }
+  .atelier-orders-overview span { display: block; color: #a08999; font-size: 11px; line-height: 1.5; }
+  .atelier-orders-overview strong { display: block; margin-top: 9px; color: #75436b; font: 27px Georgia, serif; }
+  .atelier-orders-overview small { color: #aa959e; font: 10px Arial, sans-serif; }
+  .atelier-orders-list { display: grid; gap: 18px; }
+  .atelier-order-card { min-width: 0; padding: 22px; border: 1px solid #eaddE6; border-radius: 20px; background: #fff; box-shadow: 0 5px 20px #4d234006; }
+  .atelier-order-top { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 18px; }
+  .atelier-order-reference { color: #b39aaa; font-size: 10px; letter-spacing: .12em; }
+  .atelier-order-status { padding: 7px 12px; border-radius: 30px; font-size: 10px; }
+  .atelier-order-status.waiting { background: #faf1de; color: #a17b37; }
+  .atelier-order-status.working { background: #f3e6f1; color: #8a4580; }
+  .atelier-order-status.ready { background: #edf5ee; color: #63836a; }
+  .atelier-order-status.cancelled { background: #fae9eb; color: #af6170; }
+  .atelier-order-body { display: flex; gap: 18px; align-items: center; }
+  .atelier-order-image { width: 72px; height: 88px; flex-shrink: 0; border-radius: 12px; object-fit: cover; background: #f7f1f5; }
+  .atelier-order-description { flex: 1; min-width: 0; }
+  .atelier-order-client { color: #a38498; font-size: 11px; }
+  .atelier-order-description h3 { margin: 6px 0; color: #58334f; font: 24px/1.2 Georgia, serif; overflow-wrap: anywhere; }
+  .atelier-order-phone { color: #b09baa; font-size: 11px; }
+  .atelier-order-price { text-align: right; }
+  .atelier-order-price strong { display: block; color: #74346a; font: 26px Georgia, serif; }
+  .atelier-order-price > span { display: block; margin-top: 5px; color: #af99a7; font-size: 10px; letter-spacing: .08em; }
+  .atelier-order-logistics { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 18px; margin-top: 22px; padding: 17px; border-radius: 12px; background: #fcf9fb; }
+  .atelier-order-logistics span { display: block; color: #ad94a5; font-size: 10px; line-height: 1.5; }
+  .atelier-order-logistics strong { display: block; margin-top: 7px; color: #7c5b70; font-size: 12px; font-weight: 500; line-height: 1.5; }
+  .atelier-order-logistics small { display: block; margin-top: 4px; color: #b49eac; font-size: 9px; }
+  .atelier-order-measures { margin-top: 16px; border-top: 1px solid #f1e7ee; }
+  .atelier-order-measures summary { padding: 15px 0 0; display: flex; justify-content: space-between; gap: 10px; color: #9b788f; font-size: 11px; list-style: none; cursor: pointer; }
+  .atelier-order-measures summary::-webkit-details-marker { display: none; }
+  .atelier-order-measures summary:focus-visible { outline: 2px solid #98558d; outline-offset: 4px; }
+  .atelier-order-values { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 16px; }
+  .atelier-order-values > div { padding: 12px; border-radius: 10px; background: #faf5f8; }
+  .atelier-order-values span { display: block; color: #ac91a3; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+  .atelier-order-values strong { display: block; margin-top: 7px; color: #835175; font: 20px Georgia, serif; }
+  .atelier-order-values small { color: #ad94a4; font: 10px Arial, sans-serif; }
+  .atelier-order-measures p { color: #967e8c; font-size: 12px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .atelier-order-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; padding-top: 18px; border-top: 1px solid #f0e6ed; }
+  .atelier-order-footer button { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 40px; padding: 10px 14px; border: 1px solid #e7d8e3; border-radius: 10px; background: #fff; color: #8b5b7f; font-size: 11px; cursor: pointer; }
+  .atelier-order-contact svg { width: 15px; height: 15px; }
+  .atelier-order-footer .atelier-order-advance { border-color: #6a1964; background: #6a1964; color: #fff; }
+  .atelier-order-advance span { margin-left: 12px; }
+  .atelier-order-finished { color: #9c8392; font-size: 11px; }
+  button:disabled { opacity: .55; cursor: default; }
+  .atelier-orders-back { display: block; margin: 24px 0 0 auto; padding: 0; border: 0; background: transparent; color: #9b728f; font-size: 11px; cursor: pointer; }
+  .atelier-orders-empty { padding: 40px 20px; border: 1px dashed #e0cbd9; border-radius: 18px; text-align: center; }
+  .atelier-orders-empty > span { color: #b08ba5; font-size: 30px; }
+  .atelier-orders-empty h3 { margin: 14px 0 10px; color: #714565; font: 24px Georgia, serif; }
+  .atelier-orders-empty p { color: #a68c9c; font-size: 12px; line-height: 1.7; }
+  @media (max-width: 620px) {
+    .atelier-orders-heading { flex-direction: column; align-items: stretch; }
+    .atelier-orders-heading h2 { font-size: 27px; }
+    .atelier-orders-overview { grid-template-columns: 1fr 1fr; }
+    .atelier-orders-overview > div { padding: 14px; }
+    .atelier-orders-overview > div:last-child { grid-column: 1 / -1; }
+    .atelier-order-card { padding: 17px; }
+    .atelier-order-body { flex-wrap: wrap; gap: 13px; }
+    .atelier-order-image { width: 58px; height: 72px; }
+    .atelier-order-description h3 { font-size: 21px; }
+    .atelier-order-price { width: 100%; display: flex; align-items: baseline; gap: 6px; text-align: left; }
+    .atelier-order-price strong { font-size: 24px; }
+    .atelier-order-logistics { grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px; }
+    .atelier-order-logistics > div:first-child { grid-column: 1 / -1; }
+    .atelier-order-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .atelier-order-footer button { flex: 1; }
+    .atelier-order-footer .atelier-order-advance { flex-basis: 100%; }
+  }
+}
