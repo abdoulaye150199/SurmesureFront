@@ -565,11 +565,7 @@
       </section>
 
       <section class="atelier-measurements" id="stylist-measurements" *ngIf="stylistPage === 'measurements'" aria-label="Mensurations des clients">
-        <div class="atelier-measures-hero">
-          <div class="atelier-measures-intro"><span class="atelier-measures-eyebrow">Le sens du détail</span><h2>Chaque mesure,<br><em>une création à votre image.</em></h2><p>Retrouvez les mensurations de vos clients et vérifiez chaque fiche avant de donner vie à leur modèle.</p></div>
-          <div class="atelier-measures-symbol" aria-hidden="true"><svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="17" y="31" width="66" height="38" rx="10"/><path d="M29 31v14m11-14v9m10-9v14m11-14v9m11-9v14M29 56h42"/><circle cx="50" cy="50" r="44" stroke-dasharray="2 6"/></svg></div>
-          <div class="atelier-measures-stats"><div><strong>{{ stylistMeasurements.length }}</strong><span>Fiches enregistrées</span></div><div><strong>{{ approvedStylistMeasurementCount }}</strong><span>Validées</span></div><div><strong>{{ stylistMeasurements.length - approvedStylistMeasurementCount }}</strong><span>À vérifier</span></div></div>
-        </div>
+        <div class="atelier-measures-summary"><span><strong>{{ stylistMeasurements.length }}</strong> fiches</span><span><strong>{{ approvedStylistMeasurementCount }}</strong> validées</span><span><strong>{{ stylistMeasurements.length - approvedStylistMeasurementCount }}</strong> à vérifier</span></div>
         <div class="atelier-measures-toolbar"><div><span class="atelier-measures-eyebrow">Votre répertoire</span><h3>Les fiches de mesures</h3></div><label class="atelier-measures-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4 4"/></svg><input type="search" name="stylistMeasurementSearch" [(ngModel)]="stylistMeasurementSearch" placeholder="Nom, téléphone ou modèle" aria-label="Rechercher une fiche de mesures"></label></div>
         <div class="atelier-measures-grid">
           <details class="atelier-measure-card" *ngFor="let measurement of filteredStylistMeasurements">
@@ -577,7 +573,7 @@
               <div class="atelier-measure-card-top"><span class="atelier-measure-avatar">{{ measurementClientInitials(measurement.clientName) }}</span><span class="atelier-measure-status" [class.approved]="measurement.validatedAt">{{ measurement.validatedAt ? '✓ Validées' : '◷ À vérifier' }}</span></div>
               <div class="atelier-measure-identity"><h4>{{ measurement.clientName }}</h4><span>{{ measurement.clientPhone }}</span></div>
               <div class="atelier-measure-model"><span>Modèle</span><strong>{{ measurement.modelName || 'Fiche de mensurations' }}</strong></div>
-              <div class="atelier-measure-preview"><div *ngFor="let value of measurement.measurements | keyvalue | slice:0:3"><span>{{ measurementFieldLabel(value.key) }}</span><strong>{{ value.value }} <small>cm</small></strong></div></div>
+
               <div class="atelier-measure-card-bottom"><span>Mis à jour le {{ formatDate(measurement.updatedAt) }}</span><b>Voir la fiche <i aria-hidden="true">↗</i></b></div>
             </summary>
             <div class="atelier-measure-expanded">
