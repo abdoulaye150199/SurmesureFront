@@ -157,6 +157,8 @@
       <h2>{{ stylist.name }}</h2>
       <p class="stylist-profile-bio">{{ stylist.bio }}</p>
 
+      <button class="stylist-book-appointment" type="button" *ngIf="stylist.id" (click)="requestStylistAppointment(stylist)"><span>◷</span> Demander un rendez-vous <span>→</span></button>
+
       <div class="stylist-profile-contact" *ngIf="stylist.email || stylist.phone">
         <span class="card-label">Échanger avec {{ stylist.name }}</span>
         <div class="stylist-contact-actions">
@@ -462,8 +464,15 @@
       <div class="stylist-analytics" id="stylist-overview">
       <header class="analytics-header">
         <div><span>{{ stylistProfile?.businessName || 'Votre atelier' }}</span><h1>{{ stylistPageTitle }}</h1></div>
-        <div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" class="analytics-alert" aria-label="Aller aux commandes actives" (click)="setStylistPage('orders')">♧<b>{{ stylistActiveOrderCount }}</b></button><button type="button" class="analytics-profile" aria-label="Ouvrir les paramètres de l’atelier" (click)="setStylistPage('settings')"><img *ngIf="stylistPhotoUrl; else stylistInitials" [src]="stylistPhotoUrl" alt=""><ng-template #stylistInitials>{{ userInitials }}</ng-template></button><button class="dashboard-logout dark" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
+        <div class="analytics-header-actions"><button type="button" aria-label="Rafraîchir" (click)="refreshDashboard()" [disabled]="dashboardLoading">↻</button><button type="button" class="analytics-alert" aria-label="Demandes de rendez-vous" [attr.aria-expanded]="stylistNotificationsOpen" aria-controls="stylist-appointment-notifications" (click)="stylistNotificationsOpen = !stylistNotificationsOpen">♧<b>{{ pendingStylistAppointments.length }}</b></button><button type="button" class="analytics-profile" aria-label="Ouvrir les paramètres de l’atelier" (click)="setStylistPage('settings')"><img *ngIf="stylistPhotoUrl; else stylistInitials" [src]="stylistPhotoUrl" alt=""><ng-template #stylistInitials>{{ userInitials }}</ng-template></button><button class="dashboard-logout dark" type="button" aria-label="Se déconnecter" title="Se déconnecter" (click)="logout()" [disabled]="loggingOut"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H5v16h5M14 8l4 4-4 4M18 12H9"/></svg><span>{{ loggingOut ? 'Déconnexion…' : 'Se déconnecter' }}</span></button></div>
       </header>
+
+      <button class="appointment-pending-banner" type="button" *ngIf="pendingStylistAppointments.length && !stylistNotificationsOpen" (click)="stylistNotificationsOpen = true" aria-controls="stylist-appointment-notifications"><span>◷ {{ pendingStylistAppointments.length }} demande(s) de rendez-vous à valider</span><b>Consulter →</b></button>
+      <section class="appointment-notifications" id="stylist-appointment-notifications" *ngIf="stylistNotificationsOpen" aria-label="Demandes de rendez-vous">
+        <header><div><span>Vos notifications</span><h2>Demandes de rendez-vous <small>{{ pendingStylistAppointments.length }}</small></h2></div><button type="button" (click)="stylistNotificationsOpen = false" aria-label="Fermer les notifications">×</button></header>
+        <article *ngFor="let appointment of pendingStylistAppointments"><div><strong>{{ appointment.client?.firstName }} {{ appointment.client?.lastName }}</strong><p>{{ appointment.service }} · {{ formatDate(appointment.startsAt) }} à {{ formatDate(appointment.startsAt, 'time') }} (Dakar)</p><p *ngIf="appointment.notes">{{ appointment.notes }}</p></div><div class="appointment-notification-actions"><button type="button" (click)="changeAppointmentStatus(appointment, 'confirmed')" [disabled]="updatingAppointmentId === appointment.id">{{ updatingAppointmentId === appointment.id ? 'Mise à jour…' : 'Confirmer' }}</button><button type="button" (click)="changeAppointmentStatus(appointment, 'cancelled')" [disabled]="updatingAppointmentId === appointment.id">Refuser</button></div></article>
+        <p class="appointment-notifications-empty" *ngIf="!pendingStylistAppointments.length">Aucune demande en attente.</p><button class="appointment-open-planning" type="button" (click)="setStylistPage('planning'); stylistNotificationsOpen = false">Voir tous les rendez-vous →</button>
+      </section>
 
       <div class="dashboard-feedback dark loading" *ngIf="dashboardLoading"><i></i><span>Synchronisation de l’atelier…</span></div>
       <div class="dashboard-feedback dark error" *ngIf="dashboardError"><span>{{ dashboardError }}</span><button type="button" (click)="refreshDashboard()">Réessayer</button></div>
@@ -597,7 +606,7 @@
         <div class="analytics-panel-heading"><div><span>Agenda de l’atelier</span><h2>Rendez-vous</h2></div><b>{{ stylistAppointments.length }} rendez-vous</b></div>
         <article class="stylist-appointment" *ngFor="let appointment of stylistAppointments">
           <div><strong>{{ appointment.client?.firstName }} {{ appointment.client?.lastName }}</strong><span>{{ appointment.service }} · {{ formatDate(appointment.startsAt) }} à {{ formatDate(appointment.startsAt, 'time') }}</span></div>
-          <b [class]="appointment.status">{{ appointment.status === 'pending' ? 'À confirmer' : appointment.status === 'confirmed' ? 'Confirmé' : appointment.status === 'completed' ? 'Terminé' : 'Annulé' }}</b>
+          <p *ngIf="appointment.notes">{{ appointment.notes }}</p><b [class]="appointment.status">{{ appointment.status === 'pending' ? 'À confirmer' : appointment.status === 'confirmed' ? 'Confirmé' : appointment.status === 'completed' ? 'Terminé' : 'Annulé' }}</b>
           <button *ngIf="appointment.client?.phone as phone" type="button" (click)="copyPhone(phone)">Copier le numéro</button>
           <div class="stylist-appointment-actions" *ngIf="appointment.status === 'pending' || appointment.status === 'confirmed'">
             <button *ngIf="appointment.status === 'pending'" type="button" (click)="changeAppointmentStatus(appointment, 'confirmed')" [disabled]="updatingAppointmentId === appointment.id">Confirmer</button>
@@ -723,6 +732,18 @@
     </div>
   </ng-container>
 </section>
+
+<div class="dashboard-dialog-backdrop" *ngIf="appointmentStylist as stylist" (click)="!appointmentSaving && (appointmentStylist = null)">
+  <form #appointmentRequestForm="ngForm" class="dashboard-dialog appointment-request-dialog" role="dialog" aria-modal="true" aria-labelledby="appointment-request-title" (click)="$event.stopPropagation()" (ngSubmit)="appointmentRequestForm.valid && sendAppointmentRequest()">
+    <button class="dashboard-dialog-close" type="button" (click)="appointmentStylist = null" [disabled]="appointmentSaving" aria-label="Fermer">×</button>
+    <span>Rencontrer votre styliste</span><h2 id="appointment-request-title">Demander un rendez-vous</h2><p>Avec {{ stylist.studio || stylist.name }} · Votre demande sera confirmée par le styliste.</p>
+    <p class="appointment-request-error" *ngIf="appointmentError" role="alert">{{ appointmentError }}</p>
+    <label>Motif du rendez-vous<input name="appointmentService" [(ngModel)]="appointmentDraft.service" minlength="2" maxlength="160" placeholder="Prise de mesures, essayage, nouveau projet…" required [disabled]="appointmentSaving"></label>
+    <label>Date et heure souhaitées (Dakar)<input name="appointmentDate" type="datetime-local" [(ngModel)]="appointmentDraft.startsAt" required [disabled]="appointmentSaving"></label>
+    <label>Précisions (facultatif)<textarea name="appointmentNotes" [(ngModel)]="appointmentDraft.notes" rows="3" maxlength="1000" placeholder="Décrivez votre projet ou vos besoins…" [disabled]="appointmentSaving"></textarea></label>
+    <button class="appointment-request-submit" type="submit" [disabled]="appointmentSaving || appointmentRequestForm.invalid">{{ appointmentSaving ? 'Envoi…' : 'Envoyer la demande' }} <span>→</span></button>
+  </form>
+</div>
 
 <div class="dashboard-dialog-backdrop" *ngIf="measurementValidationRecord as record" (click)="!measurementValidationSaving && (measurementValidationRecord = null)">
   <form #validationForm="ngForm" class="dashboard-dialog stylist-editor-dialog client-model-dialog" role="dialog" aria-modal="true" aria-labelledby="measurement-validation-title" (ngSubmit)="validationForm.valid && confirmMeasurementValidation()" (click)="$event.stopPropagation()">

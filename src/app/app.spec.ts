@@ -23,6 +23,53 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
+  it('requires a client login before opening an appointment request', () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const stylist = { id: 'atelier', name: 'Awa', studio: 'Atelier Awa' } as NonNullable<App['selectedStylist']>;
+    app.requestStylistAppointment(stylist);
+    expect(app.loginOpen).toBeTrue();
+    expect(app.loginRole).toBe('client');
+    expect(app.pendingAppointmentStylist).toBe(stylist);
+    expect(app.appointmentStylist).toBeNull();
+  });
+
+  it('sends a request to the chosen stylist and displays it in client appointments', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const dashboard = TestBed.inject(DashboardService);
+    const auth = TestBed.inject(AuthService);
+    spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
+    spyOnProperty(auth, 'appRole', 'get').and.returnValue('client');
+    app.activeView = 'client';
+    const startsAt = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
+    app.appointmentStylist = { id: 'chosen-atelier', studio: 'Atelier Awa' } as NonNullable<App['selectedStylist']>;
+    app.appointmentDraft = { service: ' Essayage ', startsAt, notes: ' Ma tenue ' };
+    const create = spyOn(dashboard, 'createAppointment').and.resolveTo({ id: 'request', clientId: 'client', stylistId: 'chosen-atelier', service: 'Essayage', startsAt: startsAt + ':00.000Z', status: 'pending' });
+    await app.sendAppointmentRequest();
+    expect(create).toHaveBeenCalledWith({ stylistId: 'chosen-atelier', service: 'Essayage', startsAt: startsAt + ':00.000Z', notes: 'Ma tenue' });
+    expect(app.clientAppointments[0].status).toBe('pending');
+    expect(app.appointmentStylist).toBeNull();
+    expect(app.clientPage).toBe('appointments');
+  });
+
+  it('refreshes stylist notifications and removes confirmed requests from the pending list', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const auth = TestBed.inject(AuthService);
+    const dashboard = TestBed.inject(DashboardService);
+    spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
+    spyOnProperty(auth, 'user', 'get').and.returnValue({ id: 'owner', role: 'STYLIST' } as NonNullable<App['authenticatedUser']>);
+    spyOnProperty(document, 'hidden', 'get').and.returnValue(false);
+    app.activeView = 'stylist';
+    const request = { id: 'request', clientId: 'client', stylistId: 'atelier', service: 'Essayage', startsAt: new Date(Date.now() + 86400000).toISOString(), status: 'pending' as const };
+    spyOn(dashboard, 'listAppointments').and.resolveTo([request]);
+    spyOn(dashboard, 'updateAppointmentStatus').and.resolveTo({ ...request, status: 'confirmed' });
+    await app.refreshAppointments();
+    expect(app.pendingStylistAppointments.length).toBe(1);
+    expect(app.toast).toContain('Nouvelle demande');
+    await app.changeAppointmentStatus(request, 'confirmed');
+    expect(app.pendingStylistAppointments.length).toBe(0);
+    expect(app.stylistAppointments[0].status).toBe('confirmed');
+  });
+
   for (const role of ['stylist', 'employee'] as const) {
     it(`keeps the ${role} client dossier open during scroll and data updates`, () => {
       const fixture = TestBed.createComponent(App);

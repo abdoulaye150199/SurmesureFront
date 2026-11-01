@@ -462,3 +462,37 @@ app-root .atelier-team {
     .atelier-team-status { font-size: 9px; padding: 6px 8px; }
   }
 }
+
+app-root {
+  .stylist-book-appointment { display: flex; align-items: center; justify-content: space-between; gap: 15px; width: 100%; min-height: 48px; margin: 22px 0; padding: 12px 18px; border: 0; border-radius: 12px; background: #681263; color: #fff; font-size: 13px; cursor: pointer; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog { width: min(500px, 100%); box-sizing: border-box; max-height: calc(100dvh - 36px); overflow-y: auto; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog > span { font-size: 10px; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog h2 { padding-right: 12px; font-size: 28px; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog > p { font-size: 12px; line-height: 1.7; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog label { margin: 0 0 17px; font-size: 12px; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog input, .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 8px; padding: 12px 14px; min-height: 46px; border: 1px solid #e1cfdc; border-radius: 11px; background: white; color: #634358; font: 13px/1.5 Arial, sans-serif; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog textarea { resize: vertical; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog input:focus-visible, .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog textarea:focus-visible { outline: 2px solid #9a6390; outline-offset: 2px; }
+  .appointment-request-submit { display: flex; justify-content: space-between; width: 100%; min-height: 46px; padding: 14px 17px; border: 0; border-radius: 11px; background: #681263; color: white; font-size: 12px; cursor: pointer; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog .appointment-request-error { color: #b04765; }
+  .dashboard-dialog-backdrop .dashboard-dialog.appointment-request-dialog button:disabled { opacity: .55; cursor: default; }
+  .appointment-notifications { padding: 23px; margin: 0 0 24px; border: 1px solid #e3cadc; border-radius: 18px; background: #fffafa; }
+  .appointment-notifications > header { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+  .appointment-notifications header span { font-size: 10px; color: #a8869d; text-transform: uppercase; letter-spacing: .1em; }
+  .appointment-notifications h2 { margin: 8px 0 16px; font: 24px Georgia, serif; color: #704462; }
+  .appointment-notifications h2 small { font: 12px Arial, sans-serif; }
+  .appointment-notifications header > button { border: 0; border-radius: 50%; width: 32px; height: 32px; color: #956384; background: #f5eaf2; cursor: pointer; }
+  .appointment-notifications article { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 17px 0; border-top: 1px solid #f0e1eb; }
+  .appointment-notifications article strong { color: #7b4d6c; font-size: 13px; }
+  .appointment-notifications article p { margin: 7px 0 0; font-size: 12px; color: #a28497; line-height: 1.7; overflow-wrap: anywhere; }
+  .appointment-notification-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .appointment-notification-actions button { padding: 10px 13px; border: 1px solid #e3cddd; border-radius: 9px; color: #995d85; background: white; font-size: 11px; cursor: pointer; }
+  .appointment-notification-actions button:first-child { background: #681263; border-color: #681263; color: white; }
+  .appointment-notification-actions button:disabled { opacity: .55; cursor: default; }
+  .appointment-notifications-empty { color: #a68a9b; font-size: 12px; }
+  .appointment-open-planning { border: 0; background: transparent; color: #995d85; padding: 12px 0 0; font-size: 12px; cursor: pointer; }
+  @media (max-width:620px) { .appointment-notifications article { flex-direction: column; align-items: stretch; } .appointment-notifications h2 { font-size: 22px; } }
+}
+
+app-root .appointment-pending-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; width: 100%; padding: 16px 20px; margin-bottom: 22px; border: 1px solid #e5d0df; border-radius: 13px; background: #faf2f8; color: #8f4e80; font-size: 12px; text-align: left; cursor: pointer; }
+app-root .appointment-pending-banner b { font-size: 11px; font-weight: 500; }

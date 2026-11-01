@@ -305,6 +305,14 @@ export class DashboardService {
     return firstValueFrom(this.http.post<DashboardOrder>(getApiUrl(`/stylist/${stylistId}/orders`), input));
   }
 
+  createAppointment(input: { stylistId: string; service: string; startsAt: string; notes: string }): Promise<DashboardAppointment> {
+    return firstValueFrom(this.http.post<DashboardAppointment>(getApiUrl('/appointments'), input));
+  }
+
+  listAppointments(role: 'client' | 'stylist', userId: string): Promise<DashboardAppointment[]> {
+    return firstValueFrom(this.http.get<DashboardAppointment[]>(getApiUrl(role === 'stylist' ? `/stylist/${userId}/appointments` : '/appointments')));
+  }
+
   updateAppointmentStatus(id: string, status: DashboardAppointmentStatus): Promise<DashboardAppointment> {
     return firstValueFrom(this.http.patch<DashboardAppointment>(getApiUrl(`/appointments/${id}/status`), { status }));
   }

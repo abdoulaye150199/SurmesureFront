@@ -162,6 +162,79 @@ export class App implements AfterViewInit, OnDestroy {
   toast = '';
   email = '';
   selectedStylist: Stylist | null = null;
+  appointmentStylist: Stylist | null = null;
+  pendingAppointmentStylist: Stylist | null = null;
+  appointmentDraft = { service: '', startsAt: '', notes: '' };
+  appointmentSaving = false;
+  appointmentError = '';
+  stylistNotificationsOpen = false;
+  private appointmentsRefreshing = false;
+  private readonly appointmentPollTimer = setInterval(() => void this.refreshAppointments(), 30_000);
+
+  get pendingStylistAppointments(): DashboardAppointment[] {
+    return this.stylistAppointments.filter(item => item.status === 'pending');
+  }
+
+  requestStylistAppointment(stylist: Stylist): void {
+    if (!stylist.id) { this.showToast('Cet atelier ne prend pas encore de rendez-vous en ligne.'); return; }
+    if (!this.auth.isAuthenticated) {
+      this.pendingAppointmentStylist = stylist;
+      this.closeStylist();
+      this.openLogin('client');
+      return;
+    }
+    if (this.auth.user?.role !== 'CLIENT' || this.demoMode) { this.showToast('Connectez-vous à un compte client pour demander un rendez-vous.'); return; }
+    this.closeStylist();
+    this.appointmentDraft = { service: '', startsAt: '', notes: '' };
+    this.appointmentError = '';
+    this.appointmentStylist = stylist;
+  }
+
+  private resumeAppointmentRequest(user: AuthUser): void {
+    const stylist = this.pendingAppointmentStylist;
+    this.pendingAppointmentStylist = null;
+    if (stylist && user.role === 'CLIENT') this.requestStylistAppointment(stylist);
+  }
+
+  async sendAppointmentRequest(): Promise<void> {
+    if (this.appointmentSaving || !this.appointmentStylist?.id) return;
+    this.appointmentError = '';
+    const draft = this.appointmentDraft;
+    const startsAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(draft.startsAt) ? new Date(`${draft.startsAt}:00Z`) : null;
+    if (draft.service.trim().length < 2 || !startsAt || !Number.isFinite(startsAt.getTime()) || startsAt.getTime() <= Date.now()) {
+      this.appointmentError = 'Indiquez le motif et une date avec une heure dans le futur (heure de Dakar).'; return;
+    }
+    this.appointmentSaving = true;
+    try {
+      const saved = await this.dashboard.createAppointment({ stylistId: this.appointmentStylist.id, service: draft.service.trim(), startsAt: startsAt.toISOString(), notes: draft.notes.trim() });
+      this.clientAppointments = [...this.clientAppointments, saved].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
+      this.appointmentStylist = null;
+      this.setClientPage('appointments');
+      this.showToast('Demande envoyée au styliste. Vous retrouverez sa confirmation dans vos rendez-vous.');
+    } catch (error) {
+      const detail = error instanceof HttpErrorResponse ? error.error?.message : null;
+      this.appointmentError = Array.isArray(detail) ? detail.join(' ') : typeof detail === 'string' ? detail : 'Impossible d’envoyer la demande. Réessayez.';
+    } finally { this.appointmentSaving = false; }
+  }
+
+  async refreshAppointments(): Promise<void> {
+    if (this.appointmentsRefreshing || this.demoMode || document.hidden || !this.auth.isAuthenticated) return;
+    const user = this.auth.user;
+    const role = user?.role === 'STYLIST' ? 'stylist' : user?.role === 'CLIENT' ? 'client' : null;
+    if (!user || !role || (this.activeView !== role && !(role === 'client' && this.activeView === 'measure'))) return;
+    this.appointmentsRefreshing = true;
+    try {
+      const appointments = await this.dashboard.listAppointments(role, user.id);
+      if (this.auth.user?.id !== user.id || !this.auth.isAuthenticated) return;
+      if (role === 'stylist') {
+        const newRequest = appointments.some(item => item.status === 'pending' && !this.stylistAppointments.some(existing => existing.id === item.id));
+        this.stylistAppointments = appointments;
+        if (newRequest) this.showToast('Nouvelle demande de rendez-vous à valider.');
+      } else this.clientAppointments = appointments;
+    } catch { /* La prochaine actualisation réessaiera sans interrompre la navigation. */ }
+    finally { this.appointmentsRefreshing = false; }
+  }
+
   authenticatedUser: AuthUser | null;
   dashboardLoading = false;
   dashboardError = '';
@@ -173,7 +246,7 @@ export class App implements AfterViewInit, OnDestroy {
   private readonly orderClockTimer = setInterval(() => this.orderClock.set(Date.now()), 60_000);
 
   @HostListener('window:focus')
-  updateOrderClock(): void { this.orderClock.set(Date.now()); }
+  updateOrderClock(): void { this.orderClock.set(Date.now()); void this.refreshAppointments(); }
 
   private orderRemainingMs(order: DashboardOrder): number | null {
     const due = order.dueAt ? new Date(order.dueAt).getTime() : NaN;
@@ -994,6 +1067,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   ngOnDestroy(): void {
     clearInterval(this.orderClockTimer);
+    clearInterval(this.appointmentPollTimer);
     this.revealObserver?.disconnect();
     if (this.scrollStopTimer) clearTimeout(this.scrollStopTimer);
   }
@@ -1038,6 +1112,8 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private clearPrivateWorkspaceData(): void {
+    this.appointmentStylist = null;
+    this.stylistNotificationsOpen = false;
     this.employeePasswordDraft = { current: '', next: '', confirm: '' };
     this.employeePasswordError = '';
     this.employeePage = 'orders';
@@ -1093,6 +1169,7 @@ export class App implements AfterViewInit, OnDestroy {
   onEscape(): void {
     if (this.loginOpen) this.closeLogin();
     if (this.cartOpen) this.cartOpen = false;
+    if (this.appointmentStylist && !this.appointmentSaving) this.appointmentStylist = null;
     if (this.selectedStylist) this.closeStylist();
   }
 
@@ -2042,6 +2119,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   closeLogin(): void {
+    this.pendingAppointmentStylist = null;
     this.loginOpen = false;
     this.pendingAuthView = null;
   }
@@ -2079,6 +2157,7 @@ export class App implements AfterViewInit, OnDestroy {
     if (role !== 'admin') void this.loadDashboard(role);
     this.showToast(`Bienvenue ${user.firstName}, votre espace est prêt.`);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    this.resumeAppointmentRequest(user);
   }
 
   onAccountCreated(user: AuthUser): void {
@@ -2104,6 +2183,7 @@ export class App implements AfterViewInit, OnDestroy {
       ? 'Votre compte styliste est créé. Bienvenue dans votre atelier.'
       : 'Votre compte client est créé. Bienvenue chez vous.';
     window.setTimeout(() => this.toast = '', 3200);
+    this.resumeAppointmentRequest(user);
   }
 
   async logout(): Promise<void> {
