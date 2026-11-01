@@ -544,7 +544,7 @@
           <button class="stylist-editor-submit" type="submit" [disabled]="employeeMeasurementSaving">{{ employeeMeasurementSaving ? 'Enregistrement…' : 'Enregistrer la cliente' }} <span>→</span></button>
         </form>
         <div class="atelier-clients-grid">
-        <details class="atelier-client-card" *ngFor="let client of stylistClientRecords">
+        <details class="atelier-client-card" *ngFor="let client of stylistClientRecords; trackBy: trackClientRecord">
           <summary>
             <div class="atelier-client-identity"><span class="atelier-client-initials">{{ measurementClientInitials(client.name) }}</span><div><strong>{{ client.name }}</strong><small>{{ client.phone }}</small></div><span class="atelier-client-chevron" aria-hidden="true">↗</span></div>
             <div class="atelier-client-counters"><span><b>{{ client.measurements.length }}</b> fiches de mesures</span><span><b>{{ client.orders.length }}</b> commandes</span><span><b>{{ client.appointments.length }}</b> rendez-vous</span></div>
@@ -675,7 +675,7 @@
         <section class="analytics-panel stylist-records" id="employee-records" *ngIf="employeePage === 'clients'">
           <div class="analytics-panel-heading"><div><span>Données de l’atelier</span><h2>Mes clients</h2></div><b>{{ stylistClientRecords.length }} client(s)</b></div>
           <label class="stylist-client-search">Rechercher un client<input type="search" name="employeeClientSearch" [(ngModel)]="stylistClientSearch" placeholder="Nom ou téléphone"></label>
-          <details class="stylist-record stylist-client-record" *ngFor="let client of stylistClientRecords">
+          <details class="stylist-record stylist-client-record" *ngFor="let client of stylistClientRecords; trackBy: trackClientRecord">
             <summary><span><strong>{{ client.name }}</strong><small>{{ client.phone }} · {{ client.measurements.length }} fiche(s) de mesures</small></span><i>Ouvrir le dossier</i></summary>
             <div class="stylist-client-record-content">
               <div class="stylist-client-record-actions"><button type="button" (click)="copyPhone(client.phone)">Copier le numéro</button><button type="button" *ngIf="client.measurements[0] as latestMeasurement" (click)="copyMeasurement(latestMeasurement)">Copier les dernières mesures</button></div>

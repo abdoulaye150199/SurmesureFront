@@ -23,6 +23,37 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
+  for (const role of ['stylist', 'employee'] as const) {
+    it(`keeps the ${role} client dossier open during scroll and data updates`, () => {
+      const fixture = TestBed.createComponent(App);
+      const app = fixture.componentInstance;
+      spyOn(app, 'ngAfterViewInit');
+      app.activeView = role;
+      app.stylistPage = 'clients';
+      app.employeePage = 'clients';
+      app.stylistMeasurements = [{
+        id: 'measurement', stylistId: 'atelier', clientId: null, clientName: 'Fatou Ndiaye',
+        clientPhone: '+221770000001', measurements: { taille: 74 }, notes: '',
+        createdAt: '2026-10-31T12:00:00Z', updatedAt: '2026-10-31T12:00:00Z',
+      }];
+      fixture.detectChanges();
+      const selector = role === 'stylist' ? '#stylist-clients details' : '#employee-records details';
+      const dossier = fixture.nativeElement.querySelector(selector) as HTMLDetailsElement;
+      dossier.open = true;
+      window.dispatchEvent(new Event('scroll'));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector(selector)).toBe(dossier);
+      expect(dossier.open).toBeTrue();
+      app.stylistMeasurements = app.stylistMeasurements.map(record => ({ ...record, clientName: 'Fatou Diop' }));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector(selector)).toBe(dossier);
+      expect(dossier.open).toBeTrue();
+      expect(dossier.textContent).toContain('Fatou Diop');
+      dossier.querySelector('summary')!.click();
+      expect(dossier.open).toBeFalse();
+    });
+  }
+
   it('shows exactly four employee pages and the first-login password suggestion', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;

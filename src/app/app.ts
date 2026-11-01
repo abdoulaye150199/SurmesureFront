@@ -888,6 +888,10 @@ export class App implements AfterViewInit, OnDestroy {
     return titles[this.stylistPage];
   }
 
+  trackClientRecord(_index: number, client: StylistClientRecord): string {
+    return client.key;
+  }
+
   get stylistClientRecords(): StylistClientRecord[] {
     const records = new Map<string, StylistClientRecord>();
     const getRecord = (name: string, phone: string): StylistClientRecord | null => {
