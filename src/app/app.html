@@ -602,19 +602,20 @@
         <div class="atelier-measures-empty" *ngIf="!filteredStylistMeasurements.length && !dashboardLoading"><span aria-hidden="true">⌁</span><h3>{{ stylistMeasurementSearch ? 'Aucune fiche trouvée' : 'Vos premières mesures commencent ici' }}</h3><p>{{ stylistMeasurementSearch ? 'Essayez un autre nom, numéro ou modèle.' : 'Les mensurations enregistrées dans votre atelier apparaîtront ici.' }}</p></div>
       </section>
 
-      <section class="analytics-panel stylist-records" id="stylist-planning" *ngIf="stylistPage === 'planning'">
-        <div class="analytics-panel-heading"><div><span>Agenda de l’atelier</span><h2>Rendez-vous</h2></div><b>{{ stylistAppointments.length }} rendez-vous</b></div>
-        <article class="stylist-appointment" *ngFor="let appointment of stylistAppointments">
-          <div><strong>{{ appointment.client?.firstName }} {{ appointment.client?.lastName }}</strong><span>{{ appointment.service }} · {{ formatDate(appointment.startsAt) }} à {{ formatDate(appointment.startsAt, 'time') }}</span></div>
-          <p *ngIf="appointment.notes">{{ appointment.notes }}</p><b [class]="appointment.status">{{ appointment.status === 'pending' ? 'À confirmer' : appointment.status === 'confirmed' ? 'Confirmé' : appointment.status === 'completed' ? 'Terminé' : 'Annulé' }}</b>
-          <button *ngIf="appointment.client?.phone as phone" type="button" (click)="copyPhone(phone)">Copier le numéro</button>
-          <div class="stylist-appointment-actions" *ngIf="appointment.status === 'pending' || appointment.status === 'confirmed'">
-            <button *ngIf="appointment.status === 'pending'" type="button" (click)="changeAppointmentStatus(appointment, 'confirmed')" [disabled]="updatingAppointmentId === appointment.id">Confirmer</button>
-            <button *ngIf="appointment.status === 'confirmed'" type="button" (click)="changeAppointmentStatus(appointment, 'completed')" [disabled]="updatingAppointmentId === appointment.id">Terminer</button>
-            <button type="button" (click)="changeAppointmentStatus(appointment, 'cancelled')" [disabled]="updatingAppointmentId === appointment.id">Annuler</button>
-          </div>
-        </article>
-        <div class="dashboard-inline-empty dark" *ngIf="!stylistAppointments.length">Aucun rendez-vous planifié.</div>
+      <section class="analytics-panel atelier-planning" id="stylist-planning" *ngIf="stylistPage === 'planning'">
+        <div class="atelier-planning-heading"><div><span>Agenda de l’atelier</span><h2>Vos rendez-vous</h2><p>Un moment pour échanger, prendre les mesures et donner forme aux projets.</p></div><span class="atelier-planning-count">{{ stylistAppointments.length }} rendez-vous <b *ngIf="pendingStylistAppointments.length">{{ pendingStylistAppointments.length }} à confirmer</b></span></div>
+        <div class="atelier-planning-list">
+          <article class="atelier-planning-row" *ngFor="let appointment of stylistAppointments" [class.is-cancelled]="appointment.status === 'cancelled'">
+            <div class="atelier-planning-main">
+              <div class="atelier-planning-date" aria-hidden="true"><strong>{{ formatDate(appointment.startsAt, 'day') }}</strong><span>{{ formatDate(appointment.startsAt, 'month') }}</span></div>
+              <div class="atelier-planning-person"><span class="atelier-planning-client">{{ appointment.client ? appointment.client.firstName + ' ' + appointment.client.lastName : 'Client de l’atelier' }}</span><h3>{{ appointment.service }}</h3><p><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>{{ formatDate(appointment.startsAt) }} à {{ formatDate(appointment.startsAt, 'time') }} <small>(Dakar)</small></p></div>
+              <span class="atelier-planning-status" [ngClass]="appointment.status">{{ appointment.status === 'pending' ? '◷ À confirmer' : appointment.status === 'confirmed' ? '✓ Confirmé' : appointment.status === 'completed' ? '✓ Terminé' : 'Annulé' }}</span>
+            </div>
+            <p class="atelier-planning-note" *ngIf="appointment.notes"><span>Le projet du client</span>{{ appointment.notes }}</p>
+            <div class="atelier-planning-footer"><button class="atelier-planning-contact" *ngIf="appointment.client?.phone as phone" type="button" (click)="copyPhone(phone)" [attr.aria-label]="'Copier le numéro ' + phone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M6 3h4l2 5-3 2a14 14 0 0 0 5 5l2-3 5 2v4c0 2-2 3-4 3C8 20 4 16 3 7c0-2 1-4 3-4Z"/></svg>{{ phone }}<span>Copier</span></button><div class="atelier-planning-actions" *ngIf="appointment.status === 'pending' || appointment.status === 'confirmed'"><button class="atelier-planning-secondary" type="button" (click)="changeAppointmentStatus(appointment, 'cancelled')" [disabled]="updatingAppointmentId === appointment.id">{{ appointment.status === 'pending' ? 'Refuser' : 'Annuler' }}</button><button class="atelier-planning-primary" *ngIf="appointment.status === 'pending'" type="button" (click)="changeAppointmentStatus(appointment, 'confirmed')" [disabled]="updatingAppointmentId === appointment.id">{{ updatingAppointmentId === appointment.id ? 'Mise à jour…' : 'Confirmer le rendez-vous' }} <span aria-hidden="true">✓</span></button><button class="atelier-planning-primary" *ngIf="appointment.status === 'confirmed'" type="button" (click)="changeAppointmentStatus(appointment, 'completed')" [disabled]="updatingAppointmentId === appointment.id">{{ updatingAppointmentId === appointment.id ? 'Mise à jour…' : 'Marquer comme terminé' }} <span aria-hidden="true">✓</span></button></div></div>
+          </article>
+        </div>
+        <div class="atelier-planning-empty" *ngIf="!stylistAppointments.length && !dashboardLoading"><span aria-hidden="true">◷</span><h3>Votre agenda est libre</h3><p>Les demandes de rendez-vous de vos clients apparaîtront ici.</p></div>
       </section>
 
       <section class="analytics-panel atelier-team" id="stylist-employees" *ngIf="stylistPage === 'team'">

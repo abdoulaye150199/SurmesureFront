@@ -496,3 +496,59 @@ app-root {
 
 app-root .appointment-pending-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; width: 100%; padding: 16px 20px; margin-bottom: 22px; border: 1px solid #e5d0df; border-radius: 13px; background: #faf2f8; color: #8f4e80; font-size: 12px; text-align: left; cursor: pointer; }
 app-root .appointment-pending-banner b { font-size: 11px; font-weight: 500; }
+
+app-root .atelier-planning {
+  padding: clamp(20px, 2.5vw, 32px); background: #fffcfa;
+  .atelier-planning-heading { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 24px; }
+  .atelier-planning-heading > div > span { color: #a8899d; font-size: 10px; letter-spacing: .13em; text-transform: uppercase; }
+  .atelier-planning-heading h2 { margin: 9px 0; color: #5e3253; font: 28px Georgia, serif; }
+  .atelier-planning-heading p { max-width: 520px; margin: 0; color: #a08898; font-size: 12px; line-height: 1.7; }
+  .atelier-planning-count { flex-shrink: 0; color: #a5879b; font-size: 11px; text-align: right; }
+  .atelier-planning-count b { display: block; width: max-content; margin: 9px 0 0 auto; padding: 7px 10px; border-radius: 20px; background: #fcf3df; color: #ac863f; font-size: 10px; font-weight: 500; }
+  .atelier-planning-list { display: grid; gap: 14px; }
+  .atelier-planning-row { min-width: 0; padding: 20px; border: 1px solid #e8dae3; border-radius: 16px; background: #fff; }
+  .atelier-planning-row.is-cancelled { background: #fdfbfc; }
+  .atelier-planning-main { display: flex; align-items: center; gap: 18px; }
+  .atelier-planning-date { display: flex; flex-direction: column; justify-content: center; align-items: center; flex-shrink: 0; width: 70px; min-height: 76px; padding: 8px 4px; box-sizing: border-box; border: 1px solid #eddfE8; border-radius: 13px; background: #faf3f8; color: #8a477b; }
+  .atelier-planning-date strong { font: 29px Georgia, serif; }
+  .atelier-planning-date > span { margin-top: 5px; color: #b18bA5; font-size: 10px; text-transform: capitalize; }
+  .atelier-planning-person { flex: 1; min-width: 0; }
+  .atelier-planning-client { color: #a38398; font-size: 11px; }
+  .atelier-planning-person h3 { margin: 7px 0; color: #6a405e; font: 22px/1.3 Georgia, serif; overflow-wrap: anywhere; }
+  .atelier-planning-person p { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin: 0; color: #ac91a2; font-size: 11px; line-height: 1.6; }
+  .atelier-planning-person p svg { width: 14px; height: 14px; }
+  .atelier-planning-person p small { font-size: 10px; }
+  .atelier-planning-status { flex-shrink: 0; padding: 7px 11px; border-radius: 25px; color: #a98b9e; background: #f6f1f4; font-size: 10px; }
+  .atelier-planning-status.pending { background: #fcf3df; color: #ad853a; }
+  .atelier-planning-status.confirmed { background: #edf5ee; color: #63896c; }
+  .atelier-planning-status.completed { background: #f1ebf6; color: #9373a2; }
+  .atelier-planning-status.cancelled { background: #faecef; color: #b17d8a; }
+  .atelier-planning-note { margin: 17px 0 0 88px; padding: 12px 15px; border-radius: 10px; background: #fcf8fa; color: #9c7b91; font-size: 12px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .atelier-planning-note > span { display: block; margin-bottom: 4px; color: #b397a8; font-size: 9px; text-transform: uppercase; letter-spacing: .08em; }
+  .atelier-planning-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 15px; margin-top: 19px; padding-top: 16px; border-top: 1px solid #f0e5ec; }
+  .atelier-planning-contact { display: inline-flex; align-items: center; gap: 9px; padding: 8px 0; border: 0; background: transparent; color: #a58098; font-size: 11px; cursor: pointer; }
+  .atelier-planning-contact svg { width: 15px; height: 15px; }
+  .atelier-planning-contact > span { color: #b69eac; font-size: 10px; }
+  .atelier-planning-actions { display: flex; gap: 8px; margin-left: auto; }
+  .atelier-planning-actions button { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 39px; padding: 10px 14px; border: 1px solid #e7d6e1; border-radius: 10px; background: #fff; color: #a17990; font-size: 11px; cursor: pointer; }
+  .atelier-planning-actions .atelier-planning-primary { border-color: #6a1964; background: #6a1964; color: #fff; }
+  .atelier-planning-actions button:disabled { opacity: .55; cursor: default; }
+  .atelier-planning-empty { padding: 40px 20px; border: 1px dashed #dfcbd9; border-radius: 16px; text-align: center; }
+  .atelier-planning-empty > span { color: #b38ba6; font-size: 32px; }
+  .atelier-planning-empty h3 { margin: 12px 0; color: #835576; font: 24px Georgia, serif; }
+  .atelier-planning-empty p { color: #a4899a; font-size: 12px; line-height: 1.7; }
+  @media (max-width: 620px) {
+    .atelier-planning-heading { flex-direction: column; align-items: stretch; gap: 16px; }
+    .atelier-planning-count { display: flex; align-items: center; gap: 12px; text-align: left; }
+    .atelier-planning-count b { margin: 0; }
+    .atelier-planning-row { padding: 16px; }
+    .atelier-planning-main { flex-wrap: wrap; gap: 13px; }
+    .atelier-planning-date { width: 58px; min-height: 68px; }
+    .atelier-planning-date strong { font-size: 25px; }
+    .atelier-planning-person h3 { font-size: 20px; }
+    .atelier-planning-status { margin-left: 71px; }
+    .atelier-planning-note { margin-left: 0; }
+    .atelier-planning-actions { width: 100%; }
+    .atelier-planning-actions button { flex: 1; }
+  }
+}
