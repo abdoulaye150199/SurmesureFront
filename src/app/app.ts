@@ -25,7 +25,7 @@ import {
 
 type Collection = 'Tout' | 'Cérémonie' | 'Boubous' | 'Ensembles';
 type AppView = 'home' | 'explore' | 'measure' | 'client' | 'stylist' | 'employee' | 'admin' | 'signup';
-type StylistPage = 'overview' | 'orders' | 'clients' | 'creations' | 'measurements' | 'contacts' | 'planning' | 'team' | 'settings';
+type StylistPage = 'overview' | 'orders' | 'clients' | 'creations' | 'measurements' | 'planning' | 'team' | 'settings';
 type EmployeePage = 'orders' | 'clients' | 'creation' | 'profile';
 type ClientPage = 'overview' | 'orders' | 'measurements' | 'appointments' | 'favorites' | 'profile';
 const CLIENT_PAGE_PATHS: Record<ClientPage, string> = {
@@ -880,24 +880,11 @@ export class App implements AfterViewInit, OnDestroy {
       clients: 'Mes clientes',
       creations: 'Mes créations',
       measurements: 'Mesures',
-      contacts: 'Contacts',
       planning: 'Planning',
       team: 'Équipe',
       settings: 'Paramètres',
     };
     return titles[this.stylistPage];
-  }
-
-  get stylistClientContacts(): Array<{ name: string; phone: string }> {
-    const contacts = [
-      ...this.stylistOrders.map(order => ({ name: order.clientName, phone: order.clientPhone })),
-      ...this.stylistAppointments.flatMap(appointment => appointment.client ? [{
-        name: `${appointment.client.firstName} ${appointment.client.lastName}`,
-        phone: appointment.client.phone,
-      }] : []),
-      ...this.stylistMeasurements.map(measurement => ({ name: measurement.clientName, phone: measurement.clientPhone })),
-    ];
-    return [...new Map(contacts.filter(contact => contact.phone).map(contact => [contact.phone, contact])).values()];
   }
 
   get stylistClientRecords(): StylistClientRecord[] {

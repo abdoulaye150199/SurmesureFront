@@ -452,7 +452,6 @@
           <button type="button" [class.active]="stylistPage === 'clients'" (click)="setStylistPage('clients')"><i>♙</i><span>Mes clientes</span><b>{{ stylistClientRecords.length }}</b></button>
           <button type="button" [class.active]="stylistPage === 'creations'" (click)="setStylistPage('creations')"><i>◇</i><span>Mes créations</span><b>{{ stylistCatalog.length }}</b></button>
           <button type="button" [class.active]="stylistPage === 'measurements'" (click)="setStylistPage('measurements')"><i>⌁</i><span>Mesures</span><b>{{ stylistMeasurements.length }}</b></button>
-          <button type="button" [class.active]="stylistPage === 'contacts'" (click)="setStylistPage('contacts')"><i>✉</i><span>Contacts</span><b>{{ stylistClientContacts.length }}</b></button>
           <button type="button" [class.active]="stylistPage === 'planning'" (click)="setStylistPage('planning')"><i>◷</i><span>Planning</span><b>{{ stylistAppointments.length }}</b></button>
           <button type="button" [class.active]="stylistPage === 'team'" (click)="setStylistPage('team')"><i>♙</i><span>Équipe</span><b>{{ stylistPersonnel.length }}</b></button>
           <button type="button" [class.active]="stylistPage === 'settings'" (click)="setStylistPage('settings')"><i>⚙</i><span>Paramètres</span></button>
@@ -545,7 +544,7 @@
           <button class="stylist-editor-submit" type="submit" [disabled]="employeeMeasurementSaving">{{ employeeMeasurementSaving ? 'Enregistrement…' : 'Enregistrer la cliente' }} <span>→</span></button>
         </form>
         <div class="atelier-clients-grid">
-        <details class="stylist-record stylist-client-record atelier-client-card" *ngFor="let client of stylistClientRecords">
+        <details class="atelier-client-card" *ngFor="let client of stylistClientRecords">
           <summary>
             <div class="atelier-client-identity"><span class="atelier-client-initials">{{ measurementClientInitials(client.name) }}</span><div><strong>{{ client.name }}</strong><small>{{ client.phone }}</small></div><span class="atelier-client-chevron" aria-hidden="true">↗</span></div>
             <div class="atelier-client-counters"><span><b>{{ client.measurements.length }}</b> fiches de mesures</span><span><b>{{ client.orders.length }}</b> commandes</span><span><b>{{ client.appointments.length }}</b> rendez-vous</span></div>
@@ -607,12 +606,6 @@
           </div>
         </article>
         <div class="dashboard-inline-empty dark" *ngIf="!stylistAppointments.length">Aucun rendez-vous planifié.</div>
-      </section>
-
-      <section class="analytics-panel stylist-records" id="stylist-messages" *ngIf="stylistPage === 'contacts'">
-        <div class="analytics-panel-heading"><div><span>Contact direct</span><h2>Répertoire clients</h2></div><b>{{ stylistClientContacts.length }} contact(s)</b></div>
-        <article class="stylist-contact" *ngFor="let contact of stylistClientContacts"><span><strong>{{ contact.name }}</strong><small>{{ contact.phone }}</small></span><button type="button" (click)="copyPhone(contact.phone)">Copier le numéro</button></article>
-        <div class="dashboard-inline-empty dark" *ngIf="!stylistClientContacts.length">Les contacts apparaîtront ici avec vos commandes, rendez-vous et profils de mesures.</div>
       </section>
 
       <section class="analytics-panel stylist-records" id="stylist-employees" *ngIf="stylistPage === 'team'">

@@ -371,24 +371,24 @@ app-root .atelier-client-directory {
   .atelier-clients-search svg { width: 17px; height: 17px; flex-shrink: 0; }
   .atelier-clients-search input { width: 100%; min-width: 0; height: 42px; border: 0; outline: 0; background: transparent; color: #755369; font: 12px Arial, sans-serif; }
   .atelier-clients-search:focus-within { outline: 2px solid #9b5b92; outline-offset: 2px; }
-  .atelier-clients-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; gap: 14px; }
+  .atelier-clients-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .atelier-client-card { min-width: 0; margin: 0; padding: 0; overflow: hidden; border: 1px solid #e9dce5; border-radius: 15px; background: #fff; transition: border-color .2s, box-shadow .2s; }
   .atelier-client-card:hover, .atelier-client-card[open] { border-color: #c8a3bf; box-shadow: 0 6px 22px #60264f09; }
-  .atelier-client-card > summary { display: block; padding: 18px; list-style: none; cursor: pointer; }
+  .atelier-client-card > summary { display: grid; grid-template-columns: minmax(240px, 1.3fr) minmax(0, 1fr) auto; align-items: center; gap: 22px; padding: 16px 18px; list-style: none; cursor: pointer; }
   .atelier-client-card > summary::-webkit-details-marker { display: none; }
   .atelier-client-card > summary:focus-visible { outline: 2px solid #9b5b92; outline-offset: -3px; border-radius: 15px; }
   .atelier-client-identity { display: flex; align-items: center; gap: 11px; }
   .atelier-client-initials { width: 38px; height: 38px; flex-shrink: 0; display: grid; place-items: center; border-radius: 12px; background: #f4e9f1; color: #8a467b; font: 16px Georgia, serif; }
   .atelier-client-identity > div { min-width: 0; flex: 1; }
   .atelier-client-identity strong { display: block; color: #67415b; font: 18px/1.3 Georgia, serif; overflow-wrap: anywhere; }
-  .atelier-client-identity small { display: block; margin-top: 5px; color: #ae93a4; font-size: 11px; overflow-wrap: anywhere; }
-  .atelier-client-chevron { color: #b294a7; font-size: 16px; transition: transform .2s; }
+  .atelier-client-identity small { display: block; margin-top: 5px; color: #ae93a4; font-size: 11px; white-space: nowrap; }
+  .atelier-client-chevron { display: none; color: #b294a7; font-size: 16px; transition: transform .2s; }
   .atelier-client-card[open] .atelier-client-chevron { transform: rotate(90deg); }
-  .atelier-client-counters { display: flex; flex-wrap: wrap; gap: 7px; margin: 18px 0 15px; }
+  .atelier-client-counters { display: flex; flex-wrap: wrap; gap: 7px; margin: 0; }
   .atelier-client-counters > span { padding: 6px 8px; border-radius: 7px; background: #faf6f8; color: #a18498; font-size: 10px; line-height: 1.5; }
   .atelier-client-counters b { color: #875476; font-weight: 600; margin-right: 3px; }
-  .atelier-client-open { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 13px; border-top: 1px solid #f1e7ee; }
-  .atelier-client-open > span { color: #b39baa; font-size: 9px; }
+  .atelier-client-open { display: block; text-align: right; }
+  .atelier-client-open > span { display: none; }
   .atelier-client-open > b { color: #955086; font-size: 10px; font-weight: 500; }
   .stylist-client-record-content { margin: 0; padding: 16px; border-top: 1px solid #ede0e8; }
   .stylist-client-record-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -404,13 +404,14 @@ app-root .atelier-client-directory {
   .atelier-clients-empty > span { font-size: 30px; color: #b38ba6; }
   .atelier-clients-empty h3 { margin: 10px 0; font: 24px Georgia, serif; color: #835576; }
   .atelier-clients-empty p { color: #a4899a; font-size: 12px; line-height: 1.7; }
-  @media (max-width: 1200px) { .atelier-clients-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 1200px) { .atelier-client-card > summary { grid-template-columns: minmax(0, 1fr) auto; gap: 16px; } .atelier-client-counters { grid-column: 1; } .atelier-client-open { grid-column: 2; grid-row: 1 / 3; } }
   @media (max-width: 620px) {
     .atelier-clients-heading { flex-direction: column; align-items: stretch; gap: 18px; }
     .atelier-clients-heading h2 { font-size: 25px; }
     .atelier-clients-toolbar { flex-wrap: wrap; gap: 14px; }
     .atelier-clients-search { width: 100%; box-sizing: border-box; }
     .atelier-clients-grid { grid-template-columns: minmax(0, 1fr); }
-    .atelier-client-card > summary { padding: 16px; }
+    .atelier-client-card > summary { padding: 16px; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+    .atelier-client-open { grid-column: 1; grid-row: auto; text-align: left; }
   }
 }
