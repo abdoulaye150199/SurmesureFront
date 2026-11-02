@@ -23,6 +23,7 @@ export class LoginComponent {
   }
 
   accountRole: AccountRole = 'client';
+  isOpen = true;
   loginEmail = '';
   loginPassword = '';
   showPassword = false;
@@ -35,6 +36,8 @@ export class LoginComponent {
   }
 
   close(): void {
+    if (!this.isOpen) return;
+    this.isOpen = false;
     this.closed.emit();
   }
 
@@ -47,7 +50,7 @@ export class LoginComponent {
     this.submitting = true;
     try {
       const user = await this.auth.login(this.loginEmail, this.loginPassword, this.accountRole);
-      this.closed.emit();
+      this.close();
       this.loggedIn.emit(user);
     } catch (error) {
       this.error = error instanceof Error ? error.message : 'Connexion impossible pour le moment.';
