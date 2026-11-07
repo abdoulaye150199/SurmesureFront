@@ -1173,7 +1173,13 @@ export class App implements AfterViewInit, OnDestroy {
     this.menuOpen = false;
     if (!this.publicCatalogLoaded) void this.loadPublicCatalog();
     void this.loadPublicStylists();
-    window.setTimeout(() => document.getElementById('public-search-input')?.focus(), 0);
+    window.setTimeout(
+      () =>
+        Array.from(document.querySelectorAll<HTMLInputElement>('.nav-search-input'))
+          .find((input) => input.offsetParent !== null)
+          ?.focus(),
+      0,
+    );
   }
 
   get visibleCreations(): Creation[] {
