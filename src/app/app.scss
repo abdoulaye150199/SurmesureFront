@@ -2397,6 +2397,12 @@ footer button {
 .install-action {
   color: #d1c7af !important;
 }
+@media (min-width: 701px) {
+  .install-action,
+  .pwa-download {
+    display: none !important;
+  }
+}
 .workspace {
   min-height: 100vh;
   padding: 34px max(5vw, calc((100vw - 1380px) / 2)) 150px;
