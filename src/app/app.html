@@ -61,8 +61,8 @@
     <button
       class="icon-button"
       type="button"
-      aria-label="Explorer les créations"
-      (click)="setView('explore')"
+      aria-label="Rechercher un modèle ou un styliste"
+      (click)="openSearch()"
     >
       ⌕
     </button>
@@ -4106,7 +4106,7 @@
       </svg>
     </button>
     <button class="install-action" type="button" (click)="installPwa()">Installer l’app</button>
-    <button type="button" aria-label="Rechercher" (click)="scrollTo('collections')">⌕</button>
+    <button type="button" aria-label="Rechercher" (click)="openSearch()">⌕</button>
     <button type="button" aria-label="Ouvrir la sélection" (click)="cartOpen = true">♡</button>
   </div>
 </nav>
@@ -4164,6 +4164,80 @@
       (loggedIn)="onLoggedIn($event)"
     ></app-login>
   }
+}
+@if (searchOpen) {
+  <div class="public-search-backdrop" (click)="searchOpen = false">
+    <section
+      class="public-search-panel"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="public-search-title"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        class="close"
+        type="button"
+        aria-label="Fermer la recherche"
+        (click)="searchOpen = false"
+      >
+        ×
+      </button>
+      <h2 id="public-search-title">Trouver votre inspiration</h2>
+      <label for="public-search-input">Un modèle, un styliste ou un atelier</label>
+      <input
+        id="public-search-input"
+        type="search"
+        [(ngModel)]="searchQuery"
+        placeholder="Robe, nom du styliste, atelier…"
+      />
+      <div aria-live="polite">
+        @if (publicCatalogLoading || publicStylistsLoading) {
+          <p>Chargement…</p>
+        }
+        @if (searchQuery.trim()) {
+          <h3>Modèles · {{ searchedCreations.length }}</h3>
+          @for (item of searchedCreations; track trackCreation($index, item)) {
+            <button
+              class="public-search-result"
+              type="button"
+              (click)="searchOpen = false; openCreationCreator(item)"
+            >
+              <img [src]="item.image" alt="" loading="lazy" />
+              <span
+                ><strong>{{ item.name }}</strong
+                ><small>{{ item.stylist }}</small></span
+              >
+            </button>
+          } @empty {
+            <p>Aucun modèle trouvé dans les créations chargées.</p>
+          }
+          <h3>Stylistes · {{ searchedStylists.length }}</h3>
+          @for (stylist of searchedStylists; track trackStylist($index, stylist)) {
+            <button
+              class="public-search-result"
+              type="button"
+              (click)="searchOpen = false; openStylist(stylist)"
+            >
+              <img [src]="stylist.portrait" alt="" loading="lazy" />
+              <span
+                ><strong>{{ stylist.name }}</strong
+                ><small>{{ stylist.studio }} · {{ stylist.specialty }}</small></span
+              >
+            </button>
+          } @empty {
+            <p>Aucun styliste trouvé.</p>
+          }
+        } @else {
+          <p>Saisissez un nom pour rechercher les modèles et les stylistes.</p>
+        }
+      </div>
+      @if (publicCatalogHasMore && !publicCatalogLoading) {
+        <button type="button" (click)="loadPublicCatalog()">
+          Charger plus de modèles pour étendre la recherche
+        </button>
+      }
+    </section>
+  </div>
 }
 <div class="toast" role="status" aria-live="polite" [class.show]="toast">{{ toast }}</div>
 

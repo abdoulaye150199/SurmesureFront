@@ -1133,6 +1133,49 @@ export class App implements AfterViewInit, OnDestroy {
       : `creation:${item.id ?? JSON.stringify([item.stylist, item.name])}`;
   }
 
+  searchOpen = false;
+  searchQuery = '';
+
+  private matchesPublicSearch(values: (string | undefined)[]): boolean {
+    const normalize = (value: string) =>
+      value
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLocaleLowerCase('fr');
+    const words = normalize(this.searchQuery).trim().split(/\s+/).filter(Boolean);
+    const text = normalize(values.filter(Boolean).join(' '));
+    return words.every((word) => text.includes(word));
+  }
+
+  get searchedCreations(): Creation[] {
+    return this.publicCatalogItems
+      .map((item) => this.toCreation(item))
+      .filter((item) =>
+        this.matchesPublicSearch([item.name, item.description, item.stylist, item.category]),
+      );
+  }
+
+  get searchedStylists(): Stylist[] {
+    return this.publicStylists
+      .map((profile, index) => this.toStylistProfile(profile, index))
+      .filter((stylist) =>
+        this.matchesPublicSearch([
+          stylist.name,
+          stylist.studio,
+          stylist.specialty,
+          stylist.location,
+        ]),
+      );
+  }
+
+  openSearch(): void {
+    this.searchOpen = true;
+    this.menuOpen = false;
+    if (!this.publicCatalogLoaded) void this.loadPublicCatalog();
+    void this.loadPublicStylists();
+    window.setTimeout(() => document.getElementById('public-search-input')?.focus(), 0);
+  }
+
   get visibleCreations(): Creation[] {
     const available = this.publicCatalogLoaded
       ? this.publicCatalogItems.map((item) => this.toCreation(item))
@@ -1645,6 +1688,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   @HostListener('window:keydown.escape')
   onEscape(): void {
+    this.searchOpen = false;
     if (this.loginOpen) this.closeLogin();
     if (this.cartOpen) this.cartOpen = false;
     if (this.appointmentStylist && !this.appointmentSaving) this.appointmentStylist = null;
