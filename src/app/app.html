@@ -4148,12 +4148,14 @@
 </aside>
 <div class="drawer-overlay" [class.open]="cartOpen" aria-hidden="true"></div>
 @defer (when activeView === 'signup') {
-  <app-signup-page
-    [initialRole]="signupRole"
-    (closed)="setView('home')"
-    (loginRequested)="openLogin($event)"
-    (accountCreated)="onAccountCreated($event)"
-  ></app-signup-page>
+  @if (activeView === 'signup') {
+    <app-signup-page
+      [initialRole]="signupRole"
+      (closed)="setView('home')"
+      (loginRequested)="openLogin($event)"
+      (accountCreated)="onAccountCreated($event)"
+    ></app-signup-page>
+  }
 }
 @defer (when loginOpen) {
   @if (loginOpen) {

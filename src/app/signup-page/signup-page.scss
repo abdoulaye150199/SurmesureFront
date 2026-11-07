@@ -1,10 +1,13 @@
 :host {
   display: block;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 .signup-page {
-  min-height: 100vh;
-  padding: 24px 24px 34px;
+  min-height: 100dvh;
+  box-sizing: border-box;
+  padding: 16px;
+  display: grid;
+  place-items: center;
   background: #f0e8eb;
   color: #480048;
 }
@@ -44,8 +47,8 @@
 }
 .signup-card {
   width: min(1080px, 100%);
-  height: min(720px, calc(100vh - 76px));
-  min-height: 600px;
+  height: min(720px, calc(100dvh - 32px));
+  min-height: 580px;
   margin: 0 auto;
   position: relative;
   display: grid;
@@ -116,17 +119,29 @@
   font-size: 12px;
 }
 .signup-form-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  overflow-y: auto;
-  padding: 48px clamp(34px, 5vw, 72px) 38px;
+  padding: 44px clamp(24px, 3vw, 48px) 20px;
   background: #fffcf8;
   color: #480048;
 }
+.signup-cancel {
+  position: absolute;
+  top: 10px;
+  right: 16px;
+  min-height: 32px;
+  border: 0;
+  background: transparent;
+  color: #5e0a61;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
 .signup-account-tabs {
   width: fit-content;
-  margin: 0 0 25px;
+  margin: 0 0 12px;
   padding: 4px;
   display: flex;
   border: 1px solid #e5dbd7;
@@ -148,7 +163,7 @@
   box-shadow: 0 4px 10px rgba(94, 10, 97, 0.18);
 }
 .signup-kicker {
-  margin: 0 0 18px;
+  margin: 0 0 8px;
   color: #5e0a61;
   font-size: 10px;
   font-weight: 700;
@@ -159,7 +174,7 @@
   margin: 0;
   color: #480048;
   font:
-    clamp(40px, 4.1vw, 60px)/0.96 Arial,
+    clamp(30px, 3vw, 42px)/0.96 Arial,
     sans-serif;
   letter-spacing: -0.045em;
 }
@@ -169,7 +184,7 @@
 }
 .signup-intro {
   max-width: 280px;
-  margin: 23px 0 29px;
+  margin: 12px 0 16px;
   color: #746a6f;
   font-size: 12px;
   line-height: 1.7;
@@ -185,7 +200,7 @@
 }
 .signup-form label {
   display: block;
-  margin-bottom: 9px;
+  margin-bottom: 5px;
   color: rgba(72, 0, 72, 0.78);
   font-size: 10px;
   letter-spacing: 0.04em;
@@ -193,8 +208,8 @@
 .signup-form input:not([type='checkbox']) {
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 16px;
-  padding: 10px 0;
+  margin-bottom: 10px;
+  padding: 8px 0;
   border: 0;
   border-bottom: 1px dashed rgba(72, 0, 72, 0.35);
   outline: 0;
@@ -220,7 +235,7 @@
 .password-toggle {
   position: absolute;
   right: 0;
-  bottom: 16px;
+  bottom: 10px;
   padding: 6px 0 6px 8px;
   border: 0;
   background: transparent;
@@ -284,7 +299,7 @@
   line-height: 0.5;
 }
 .signup-login-link {
-  margin: 22px 0 0;
+  margin: 12px 0 0;
   color: #746a6f;
   text-align: center;
   font-size: 10px;
@@ -301,18 +316,30 @@
 .signup-login-link button:hover {
   text-decoration: underline;
 }
+@media (max-height: 800px) {
+  .signup-form-card h2 {
+    font-size: 32px;
+    br { display: none; }
+    em::before { content: ' '; }
+  }
+  .signup-intro { margin: 8px 0 12px; line-height: 1.4; }
+  .signup-account-tabs { margin-bottom: 8px; }
+}
 @media (max-width: 800px) {
   .signup-page {
-    padding: 15px 10px 25px;
+    padding: 10px;
   }
   .signup-page-topbar {
     margin-bottom: 12px;
   }
   .signup-card {
     height: auto;
-    min-height: calc(100vh - 65px);
+    min-height: 0;
     grid-template-columns: 1fr;
-    grid-template-rows: 220px auto;
+    max-width: 500px;
+  }
+  .signup-visual {
+    display: none;
   }
   .signup-visual-content {
     padding: 20px 24px 22px;
@@ -332,13 +359,13 @@
   }
   .signup-form-card {
     overflow: visible;
-    padding: 32px 25px 28px;
+    padding: 44px 25px 20px;
   }
   .signup-form-card h2 {
-    font-size: 38px;
+    font-size: 30px;
   }
   .signup-intro {
-    margin: 15px 0 22px;
+    margin: 10px 0 14px;
   }
 }
 @media (max-width: 560px) {
@@ -347,13 +374,12 @@
   }
   .signup-card {
     border-radius: 14px;
-    grid-template-rows: 190px auto;
   }
   .signup-visual-content {
     padding: 18px 22px 20px;
   }
   .signup-form-card {
-    padding: 27px 20px 25px;
+    padding: 44px 20px 18px;
   }
   .signup-account-tabs button {
     padding: 8px 10px;
