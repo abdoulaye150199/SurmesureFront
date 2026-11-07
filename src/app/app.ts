@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { AfterViewInit, Component, HostListener, inject, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { SeoService } from './seo.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { LoginComponent } from './login/login';
@@ -995,6 +996,8 @@ export class App implements AfterViewInit, OnDestroy {
   private pendingAuthView: 'measure' | null = null;
   private readonly routeSubscription: Subscription;
 
+  private readonly seo = inject(SeoService);
+
   constructor() {
     this.selectedCreations = this.preferences.loadCreations();
     this.favoriteKeys = this.preferences.loadFavoriteKeys();
@@ -1006,7 +1009,10 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.routeSubscription = this.router.events
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
-      .subscribe((event) => this.syncViewFromUrl(event.urlAfterRedirects));
+      .subscribe((event) => {
+        this.syncViewFromUrl(event.urlAfterRedirects);
+        this.seo.update(event.urlAfterRedirects);
+      });
 
     const legacyPage = this.legacyClientPageFromHash();
     if (legacyPage) {
@@ -1015,6 +1021,7 @@ export class App implements AfterViewInit, OnDestroy {
     } else {
       const initialUrl = this.currentBrowserUrl();
       this.syncViewFromUrl(initialUrl);
+      this.seo.update(initialUrl);
       if (initialUrl !== this.router.url) void this.router.navigateByUrl(initialUrl);
     }
   }
