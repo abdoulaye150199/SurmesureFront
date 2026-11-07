@@ -80,6 +80,25 @@ export class AuthService {
     return this.authenticate(endpoint, payload);
   }
 
+  googleConfiguration(): Promise<{ clientId: string | null }> {
+    return firstValueFrom(
+      this.http.get<{ clientId: string | null }>(getApiUrl('/auth/google/config')),
+    );
+  }
+
+  loginGoogle(credential: string): Promise<AuthUser> {
+    return this.authenticate('/auth/google/login', { credential });
+  }
+
+  registerGoogle(
+    payload: Omit<RegisterPayload, 'email' | 'password'> & {
+      credential: string;
+      role: 'client' | 'stylist';
+    },
+  ): Promise<AuthUser> {
+    return this.authenticate('/auth/google/register', payload);
+  }
+
   changeEmployeePassword(currentPassword: string, newPassword: string): Promise<AuthUser> {
     return this.authenticate('/auth/employee/password', { currentPassword, newPassword });
   }

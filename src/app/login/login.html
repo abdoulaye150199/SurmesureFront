@@ -82,7 +82,7 @@
         <span>ou continuer avec</span>
       </div>
       <div class="login-socials" *ngIf="accountRole === 'client' || accountRole === 'stylist'">
-        <button type="button" aria-label="Continuer avec Google">G</button>
+        <app-google-button (credential)="loginGoogle($event)"></app-google-button>
       </div>
       <p class="login-register" *ngIf="accountRole === 'client' || accountRole === 'stylist'">
         Pas encore de compte ?

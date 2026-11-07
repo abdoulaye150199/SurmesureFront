@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AppAccountRole, AuthService, AuthUser } from '../auth/auth.service';
+import { GoogleButtonComponent } from '../auth/google-button';
 
 export type AccountRole = AppAccountRole;
 export type SignupRole = Exclude<AccountRole, 'admin' | 'employee'>;
@@ -9,7 +10,7 @@ export type SignupRole = Exclude<AccountRole, 'admin' | 'employee'>;
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, GoogleButtonComponent],
   templateUrl: './login.html',
   styleUrl: './login.scss',
 })
@@ -54,6 +55,21 @@ export class LoginComponent {
       this.loggedIn.emit(user);
     } catch (error) {
       this.error = error instanceof Error ? error.message : 'Connexion impossible pour le moment.';
+    } finally {
+      this.submitting = false;
+    }
+  }
+
+  async loginGoogle(credential: string): Promise<void> {
+    if (this.submitting) return;
+    this.error = '';
+    this.submitting = true;
+    try {
+      const user = await this.auth.loginGoogle(credential);
+      this.close();
+      this.loggedIn.emit(user);
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : 'Connexion Google impossible.';
     } finally {
       this.submitting = false;
     }

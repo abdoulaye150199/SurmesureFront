@@ -3,11 +3,12 @@ import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignupRole } from '../login/login';
 import { AuthService, AuthUser } from '../auth/auth.service';
+import { GoogleButtonComponent } from '../auth/google-button';
 
 @Component({
   selector: 'app-signup-page',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, GoogleButtonComponent],
   templateUrl: './signup-page.html',
   styleUrl: './signup-page.scss',
 })
@@ -32,6 +33,14 @@ export class SignupPageComponent {
   showPasswordConfirmation = false;
   error = '';
   submitting = false;
+  googleCredential = '';
+
+  selectGoogle(credential: string): void {
+    this.googleCredential = credential;
+    this.password = '';
+    this.passwordConfirmation = '';
+    this.error = '';
+  }
 
   get isStylist(): boolean {
     return this.accountRole === 'stylist';
@@ -51,8 +60,14 @@ export class SignupPageComponent {
   }
 
   async submit(): Promise<void> {
+    if (this.submitting) return;
     this.error = '';
-    if (!this.firstName || !this.lastName || !this.email || !this.phone || !this.password) {
+    if (
+      !this.firstName ||
+      !this.lastName ||
+      !this.phone ||
+      (!this.googleCredential && (!this.email || !this.password))
+    ) {
       this.error = 'Remplissez tous les champs obligatoires.';
       return;
     }
@@ -60,17 +75,29 @@ export class SignupPageComponent {
       this.error = 'Indiquez le nom de votre atelier.';
       return;
     }
-    if (this.password.length < 10) {
+    if (!this.googleCredential && this.password.length < 10) {
       this.error = 'Le mot de passe doit contenir au moins 10 caractères.';
       return;
     }
-    if (this.password !== this.passwordConfirmation) {
+    if (!this.googleCredential && this.password !== this.passwordConfirmation) {
       this.error = 'Les deux mots de passe ne correspondent pas.';
       return;
     }
 
     this.submitting = true;
     try {
+      if (this.googleCredential) {
+        const user = await this.auth.registerGoogle({
+          credential: this.googleCredential,
+          role: this.accountRole,
+          firstName: this.firstName,
+          lastName: this.lastName,
+          phone: this.phone,
+          ...(this.isStylist ? { businessName: this.businessName } : {}),
+        });
+        this.accountCreated.emit(user);
+        return;
+      }
       const body = {
         firstName: this.firstName,
         lastName: this.lastName,

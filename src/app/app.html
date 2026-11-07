@@ -4158,13 +4158,12 @@
   }
 }
 @if (searchedCreation; as item) {
-  <div class="searched-model-overlay" (click)="searchedCreation = null">
+  <div class="searched-model-overlay">
     <article
       class="searched-model-card"
       role="dialog"
       aria-modal="true"
       aria-labelledby="searched-model-title"
-      (click)="$event.stopPropagation()"
     >
       <button
         class="searched-model-close"

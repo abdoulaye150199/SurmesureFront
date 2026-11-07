@@ -2838,6 +2838,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   openLogin(role: AppAccountRole = this.loginRole): void {
+    if (this.activeView === 'signup') this.setView('home');
     this.demoMode = false;
     this.loginRole = role;
     this.loginOpen = true;

@@ -38,6 +38,42 @@ describe('AuthService offline session validation', () => {
     localStorage.removeItem(AUTH_SESSION_KEY);
   });
 
+  it('uses the dedicated Google login endpoint and preserves its refusal without creating an account', async () => {
+    auth.clearSession();
+    const login = auth.loginGoogle('google-token');
+    const rejection = expectAsync(login).toBeRejectedWithError('Inscrivez-vous avec Google.');
+    const request = http.expectOne((req) => req.url.endsWith('/auth/google/login'));
+    expect(request.request.body).toEqual({ credential: 'google-token' });
+    request.flush(
+      { message: 'Inscrivez-vous avec Google.' },
+      { status: 401, statusText: 'Unauthorized' },
+    );
+    await rejection;
+    expect(auth.isAuthenticated).toBeFalse();
+  });
+
+  it('registers a Google account without sending a password or an untrusted email', async () => {
+    const payload = {
+      credential: 'google-token',
+      role: 'client' as const,
+      firstName: 'Awa',
+      lastName: 'Diop',
+      phone: '+221770000002',
+    };
+    const registration = auth.registerGoogle(payload);
+    const request = http.expectOne((req) => req.url.endsWith('/auth/google/register'));
+    expect(request.request.body).toEqual(payload);
+    expect(request.request.body.password).toBeUndefined();
+    expect(request.request.body.email).toBeUndefined();
+    request.flush({
+      token: 'signed-token',
+      refreshToken: 'refresh-token',
+      data: validUser('CLIENT'),
+    });
+    await registration;
+    expect(auth.isAuthenticated).toBeTrue();
+  });
+
   for (const [role, appRole] of [
     ['CLIENT', 'client'],
     ['STYLIST', 'stylist'],
