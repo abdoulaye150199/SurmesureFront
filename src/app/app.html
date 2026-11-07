@@ -4156,12 +4156,14 @@
   ></app-signup-page>
 }
 @defer (when loginOpen) {
-  <app-login
-    [initialRole]="loginRole"
-    (closed)="closeLogin()"
-    (signupRequested)="onSignupRequested($event)"
-    (loggedIn)="onLoggedIn($event)"
-  ></app-login>
+  @if (loginOpen) {
+    <app-login
+      [initialRole]="loginRole"
+      (closed)="closeLogin()"
+      (signupRequested)="onSignupRequested($event)"
+      (loggedIn)="onLoggedIn($event)"
+    ></app-login>
+  }
 }
 <div class="toast" role="status" aria-live="polite" [class.show]="toast">{{ toast }}</div>
 
