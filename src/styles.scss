@@ -3196,3 +3196,68 @@ app-root .atelier-planning {
   width: 25px;
   height: 25px;
 }
+
+.searched-model-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgb(40 15 34 / 46%);
+  backdrop-filter: blur(5px);
+}
+.searched-model-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: min(880px, 100%);
+  max-height: 90dvh;
+  overflow: auto;
+  border-radius: 18px;
+  background: #fffcf8;
+  color: #480048;
+}
+.searched-model-image {
+  width: 100%;
+  height: 100%;
+  max-height: 80dvh;
+  object-fit: contain;
+  background: #eee5e9;
+}
+.searched-model-details {
+  padding: 48px 28px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+.searched-model-details p,
+.searched-model-details h2 {
+  margin: 0;
+}
+.searched-model-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #d8c8d4;
+  border-radius: 50%;
+  background: #fffcf8;
+  color: #480048;
+  font-size: 24px;
+  cursor: pointer;
+}
+@media (max-width: 600px) {
+  .searched-model-card {
+    grid-template-columns: 1fr;
+  }
+  .searched-model-image {
+    height: 38dvh;
+  }
+  .searched-model-details {
+    padding: 24px;
+  }
+}

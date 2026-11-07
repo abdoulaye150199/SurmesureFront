@@ -4157,6 +4157,49 @@
     ></app-login>
   }
 }
+@if (searchedCreation; as item) {
+  <div class="searched-model-overlay" (click)="searchedCreation = null">
+    <article
+      class="searched-model-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="searched-model-title"
+      (click)="$event.stopPropagation()"
+    >
+      <button
+        class="searched-model-close"
+        type="button"
+        aria-label="Fermer le modèle"
+        (click)="searchedCreation = null"
+      >
+        ×
+      </button>
+      <img class="searched-model-image" [src]="item.image" [alt]="item.name" />
+      <div class="searched-model-details">
+        <p class="eyebrow">{{ item.category }}</p>
+        <h2 id="searched-model-title">{{ item.name }}</h2>
+        <p>
+          Créateur : <strong>{{ item.stylist }}</strong>
+        </p>
+        <p>{{ item.description?.trim() || 'Description non renseignée.' }}</p>
+        <strong
+          >{{ item.price | number: '1.0-0' }}
+          {{ item.currency === 'XOF' ? 'FCFA' : item.currency || 'FCFA' }}</strong
+        >
+        <button class="button primary" type="button" (click)="addToCart(item)">
+          Ajouter à ma sélection
+        </button>
+        <button
+          class="button"
+          type="button"
+          (click)="searchedCreation = null; openCreationCreator(item)"
+        >
+          Voir le styliste
+        </button>
+      </div>
+    </article>
+  </div>
+}
 <ng-template #navSearch>
   <div class="nav-search" [class.expanded]="searchOpen" role="search">
     <button
@@ -4198,7 +4241,7 @@
               <button
                 class="public-search-result"
                 type="button"
-                (click)="searchOpen = false; openCreationCreator(item)"
+                (click)="openSearchedCreation(item)"
               >
                 <img [src]="item.image" alt="" loading="lazy" />
                 <span

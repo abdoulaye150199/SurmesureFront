@@ -1135,6 +1135,12 @@ export class App implements AfterViewInit, OnDestroy {
 
   searchOpen = false;
   searchQuery = '';
+  searchedCreation: Creation | null = null;
+
+  openSearchedCreation(item: Creation): void {
+    this.searchOpen = false;
+    this.searchedCreation = item;
+  }
 
   private matchesPublicSearch(values: (string | undefined)[]): boolean {
     const normalize = (value: string) =>
@@ -1695,6 +1701,7 @@ export class App implements AfterViewInit, OnDestroy {
   @HostListener('window:keydown.escape')
   onEscape(): void {
     this.searchOpen = false;
+    this.searchedCreation = null;
     if (this.activeView === 'signup') this.setView('home');
     if (this.loginOpen) this.closeLogin();
     if (this.cartOpen) this.cartOpen = false;
