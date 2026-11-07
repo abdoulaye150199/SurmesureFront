@@ -3083,12 +3083,25 @@ app-root .atelier-planning {
   width: clamp(130px, 15vw, 230px);
   min-width: 0;
   padding: 9px 10px;
-  border: 1px solid currentColor;
-  border-radius: 8px;
-  background: #fffcf8;
-  color: #480048;
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 16%);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 25%),
+    0 4px 18px rgb(35 10 30 / 10%);
+  color: inherit;
   font: inherit;
   font-size: 14px;
+}
+.nav-search-input::placeholder {
+  color: inherit;
+  opacity: 0.8;
+}
+.nav-search-input:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
 }
 .nav-search-close {
   border: 0;
@@ -3158,11 +3171,28 @@ app-root .atelier-planning {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: 0;
   background: transparent;
   color: inherit;
   font-size: 22px;
   cursor: pointer;
+}
+.nav-search-toggle svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+}
+.site-header .header-actions .icon-button {
+  width: 42px;
+  height: 42px;
+  font-size: 24px;
+}
+.site-header .header-actions .login-icon-button svg {
+  width: 25px;
+  height: 25px;
 }
