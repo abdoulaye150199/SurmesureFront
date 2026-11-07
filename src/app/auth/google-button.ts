@@ -19,7 +19,14 @@ interface GoogleIdentity {
   }): void;
   renderButton(
     element: HTMLElement,
-    options: { theme: string; size: string; text: string; locale: string },
+    options: {
+      theme: string;
+      size: string;
+      text: string;
+      locale: string;
+      shape: string;
+      width: number;
+    },
   ): void;
 }
 declare global {
@@ -50,20 +57,31 @@ function loadGoogle(): Promise<void> {
 @Component({
   selector: 'app-google-button',
   standalone: true,
-  template: `<div #button></div>
+  template: `<div class="google-button-wrap" #button></div>
     @if (message) {
       <p class="google-status" role="status">{{ message }}</p>
     }`,
   styles: [
     `
       :host {
-        display: block;
-        margin: 10px 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        margin: 16px 0 20px;
+      }
+      .google-button-wrap {
+        display: flex;
+        justify-content: center;
+        max-width: 100%;
+        border-radius: 999px;
+        box-shadow: 0 4px 14px rgba(72, 0, 72, 0.08);
       }
       .google-status {
         font-size: 12px;
         color: #746a6f;
         margin: 6px 0;
+        text-align: center;
       }
     `,
   ],
@@ -104,6 +122,8 @@ export class GoogleButtonComponent implements AfterViewInit, OnDestroy {
         size: 'large',
         text: this.mode === 'signup' ? 'signup_with' : 'signin_with',
         locale: 'fr',
+        shape: 'pill',
+        width: Math.min(280, this.button.nativeElement.parentElement?.clientWidth || 280),
       });
     } catch (error) {
       if (!this.destroyed)
