@@ -1,5 +1,5 @@
 const localApiBaseUrl = 'http://localhost:3001/v1';
-const productionApiBaseUrl = 'https://backendsurmesure.onrender.com/v1';
+const productionApiBaseUrl = 'https://api.surmesurestyle.com/v1';
 
 export function getApiUrl(endpoint: string): string {
   const hostname = typeof window === 'undefined' ? '' : window.location.hostname;
