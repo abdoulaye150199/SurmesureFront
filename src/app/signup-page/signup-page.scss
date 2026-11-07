@@ -125,8 +125,8 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  padding: 44px clamp(24px, 3vw, 48px) 20px;
+  justify-content: center;
+  padding: 44px clamp(24px, 3vw, 48px);
   background: #fffcf8;
   color: #480048;
 }
@@ -203,7 +203,7 @@
 }
 .signup-form label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 8px;
   color: rgba(72, 0, 72, 0.78);
   font-size: 10px;
   letter-spacing: 0.04em;
@@ -211,8 +211,8 @@
 .signup-form input:not([type='checkbox']) {
   width: 100%;
   box-sizing: border-box;
-  margin-bottom: 10px;
-  padding: 8px 0;
+  margin-bottom: 16px;
+  padding: 10px 0;
   border: 0;
   border-bottom: 1px dashed rgba(72, 0, 72, 0.35);
   outline: 0;
@@ -238,7 +238,7 @@
 .password-toggle {
   position: absolute;
   right: 0;
-  bottom: 10px;
+  bottom: 16px;
   padding: 6px 0 6px 8px;
   border: 0;
   background: transparent;
@@ -378,6 +378,22 @@
   }
   .signup-intro {
     margin: 10px 0 14px;
+  }
+}
+@media (max-height: 700px) {
+  .signup-form-card {
+    padding-top: 44px;
+    padding-bottom: 20px;
+  }
+  .signup-form label {
+    margin-bottom: 5px;
+  }
+  .signup-form input:not([type='checkbox']) {
+    margin-bottom: 10px;
+    padding: 8px 0;
+  }
+  .password-toggle {
+    bottom: 10px;
   }
 }
 @media (max-width: 560px) {
