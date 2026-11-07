@@ -1695,6 +1695,7 @@ export class App implements AfterViewInit, OnDestroy {
   @HostListener('window:keydown.escape')
   onEscape(): void {
     this.searchOpen = false;
+    if (this.activeView === 'signup') this.setView('home');
     if (this.loginOpen) this.closeLogin();
     if (this.cartOpen) this.cartOpen = false;
     if (this.appointmentStylist && !this.appointmentSaving) this.appointmentStylist = null;

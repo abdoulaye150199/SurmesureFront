@@ -1,14 +1,17 @@
 :host {
-  display: block;
-  min-height: 100dvh;
+  display: contents;
 }
 .signup-page {
-  min-height: 100dvh;
+  position: fixed;
+  inset: 0;
+  z-index: 80;
   box-sizing: border-box;
   padding: 16px;
   display: grid;
   place-items: center;
-  background: #f0e8eb;
+  background: rgba(40, 15, 34, 0.46);
+  backdrop-filter: blur(5px);
+  overflow-y: auto;
   color: #480048;
 }
 .signup-page-topbar {
@@ -129,8 +132,8 @@
 }
 .signup-cancel {
   position: absolute;
-  top: 10px;
-  right: 16px;
+  top: 16px;
+  right: 20px;
   min-height: 32px;
   border: 0;
   background: transparent;
@@ -319,11 +322,20 @@
 @media (max-height: 800px) {
   .signup-form-card h2 {
     font-size: 32px;
-    br { display: none; }
-    em::before { content: ' '; }
+    br {
+      display: none;
+    }
+    em::before {
+      content: ' ';
+    }
   }
-  .signup-intro { margin: 8px 0 12px; line-height: 1.4; }
-  .signup-account-tabs { margin-bottom: 8px; }
+  .signup-intro {
+    margin: 8px 0 12px;
+    line-height: 1.4;
+  }
+  .signup-account-tabs {
+    margin-bottom: 8px;
+  }
 }
 @media (max-width: 800px) {
   .signup-page {

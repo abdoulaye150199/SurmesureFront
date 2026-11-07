@@ -1,5 +1,5 @@
 <main class="signup-page">
-  <section class="signup-card">
+  <section class="signup-card" role="dialog" aria-modal="true" aria-labelledby="signup-title">
     <div class="signup-visual">
       <img src="/assets/loginimage.png" alt="Création Sur Mesure Style" />
       <div class="signup-visual-shade"></div>
@@ -39,7 +39,7 @@
         </button>
       </div>
       <p class="signup-kicker">{{ isStylist ? 'Inscription styliste' : 'Inscription client' }}</p>
-      <h2>Créer mon<br /><em>compte.</em></h2>
+      <h2 id="signup-title">Créer mon<br /><em>compte.</em></h2>
       <p class="signup-intro">
         {{
           isStylist

@@ -1,7 +1,6 @@
 <div
   class="announcement"
   *ngIf="
-    activeView !== 'signup' &&
     activeView !== 'stylist' &&
     activeView !== 'employee' &&
     activeView !== 'client' &&
@@ -15,7 +14,6 @@
 <header
   class="site-header"
   *ngIf="
-    activeView !== 'signup' &&
     activeView !== 'stylist' &&
     activeView !== 'employee' &&
     activeView !== 'client' &&
@@ -65,7 +63,7 @@
   </div>
 </header>
 
-<main *ngIf="activeView === 'home'">
+<main *ngIf="activeView === 'home' || activeView === 'signup'">
   <section class="hero">
     <img
       class="hero-image"
@@ -4027,7 +4025,6 @@
 <nav
   class="bottom-nav"
   *ngIf="
-    activeView !== 'signup' &&
     activeView !== 'stylist' &&
     activeView !== 'employee' &&
     activeView !== 'client' &&
