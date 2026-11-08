@@ -51,10 +51,18 @@
       @if (!googleCredential) {
         <app-google-button mode="signup" (credential)="selectGoogle($event)"></app-google-button>
       } @else {
-        <p class="signup-google-note">
-          Compte Google sélectionné. Complétez vos coordonnées pour terminer l’inscription.
-          <button type="button" (click)="googleCredential = ''">Utiliser un e-mail</button>
-        </p>
+        <div class="signup-google-note" role="status">
+          <span class="signup-google-check" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="m6 12 4 4 8-8" /></svg>
+          </span>
+          <div class="signup-google-copy">
+            <strong>Compte Google sélectionné</strong>
+            <p>Encore quelques détails pour créer votre compte.</p>
+            <button type="button" (click)="googleCredential = ''">
+              Préférer l’inscription par e-mail <span aria-hidden="true">↗</span>
+            </button>
+          </div>
+        </div>
       }
       <form class="signup-form" (ngSubmit)="submit()">
         <div class="signup-fields-row">

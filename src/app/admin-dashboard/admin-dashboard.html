@@ -69,7 +69,8 @@
       </button>
       <button
         type="button"
-        (click)="showToast((snapshot?.summary?.catalogItems || 0) + ' création(s) publiée(s).')"
+        [class.active]="activeSection === 'catalog'"
+        (click)="selectSection('catalog')"
       >
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path d="m12 3 3 4 5 .8-3.6 3.7.8 5.2-5.2-2.3-5.2 2.3.8-5.2L4 7.8 9 7l3-4Z" /></svg
@@ -97,14 +98,14 @@
     <header class="admin-header">
       <div>
         <p><i></i> Espace propriétaire sécurisé</p>
-        <h1>Bonjour, {{ user?.firstName || 'Abdallah' }}.</h1>
+        <h1>{{ sectionTitle }}</h1>
       </div>
       <div class="admin-header-actions">
-        <label
+        <label *ngIf="activeSection === 'users'"
           ><svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="10.5" cy="10.5" r="6.5" />
             <path d="m15.5 15.5 5 5" /></svg
-          ><input type="search" [(ngModel)]="userQuery" placeholder="Rechercher un utilisateur"
+          ><input type="search" [(ngModel)]="userQuery" placeholder="Filtrer les comptes chargés"
         /></label>
         <button
           class="admin-refresh"
@@ -137,7 +138,7 @@
       ><button type="button" (click)="refresh()">Réessayer</button>
     </div>
 
-    <section class="admin-overview" id="admin-overview">
+    <section class="admin-overview" id="admin-overview" *ngIf="activeSection === 'overview'">
       <div class="admin-hero">
         <div class="admin-hero-copy">
           <span>Sur Mesure · Contrôle global</span>
@@ -175,7 +176,11 @@
       </div>
     </section>
 
-    <section class="admin-stats" aria-label="Indicateurs globaux">
+    <section
+      class="admin-stats"
+      aria-label="Indicateurs globaux"
+      *ngIf="activeSection === 'overview'"
+    >
       <article>
         <div class="stat-icon clients">
           <svg viewBox="0 0 24 24">
@@ -226,12 +231,12 @@
       </article>
     </section>
 
-    <div class="admin-grid">
+    <div class="admin-grid" *ngIf="activeSection === 'users'">
       <section class="admin-panel admin-users" id="admin-users">
         <div class="panel-heading">
           <div>
             <span>Gestion des accès</span>
-            <h2>Utilisateurs récents</h2>
+            <h2>Comptes de la plateforme</h2>
           </div>
           <select [(ngModel)]="roleFilter" aria-label="Filtrer les utilisateurs par rôle">
             <option value="ALL">Tous les rôles</option>
@@ -242,7 +247,7 @@
           </select>
         </div>
         <div class="user-table-head">
-          <span>Utilisateur</span><span>Rôle</span><span>Inscription</span><span>Accès</span>
+          <span>Utilisateur</span><span>Rôle</span><span>Inscription</span><span>Actions</span>
         </div>
         <article class="admin-user-row" *ngFor="let account of filteredUsers">
           <div class="user-identity">
@@ -254,21 +259,45 @@
           </div>
           <b [class]="account.role.toLowerCase()">{{ roleLabel(account.role) }}</b>
           <time>{{ formatDate(account.createdAt) }}</time>
-          <button
-            class="access-toggle"
-            type="button"
-            [class.active]="account.active"
-            [disabled]="updatingUserId === account.id || account.id === user?.id"
-            (click)="toggleUser(account)"
-            [attr.aria-label]="account.active ? 'Suspendre le compte' : 'Réactiver le compte'"
-          >
-            <i></i
-            ><span>{{
-              updatingUserId === account.id ? '…' : account.active ? 'Actif' : 'Suspendu'
-            }}</span>
-          </button>
+          <div class="admin-user-actions">
+            <button
+              class="access-toggle"
+              type="button"
+              [class.active]="account.active"
+              [disabled]="updatingUserId === account.id || account.id === user?.id"
+              (click)="toggleUser(account)"
+              [attr.aria-label]="account.active ? 'Suspendre le compte' : 'Réactiver le compte'"
+            >
+              <i></i
+              ><span>{{
+                updatingUserId === account.id ? '…' : account.active ? 'Actif' : 'Suspendu'
+              }}</span>
+            </button>
+            <button
+              class="admin-delete-button"
+              type="button"
+              *ngIf="account.role !== 'ADMIN'"
+              [disabled]="deleting || updatingUserId === account.id"
+              (click)="requestDeletion(account)"
+              [attr.aria-label]="
+                'Supprimer le compte de ' + account.firstName + ' ' + account.lastName
+              "
+            >
+              Supprimer
+            </button>
+          </div>
         </article>
-        <p class="admin-empty" *ngIf="!filteredUsers.length && !loading">
+        <button
+          class="admin-load-more"
+          type="button"
+          *ngIf="usersHasMore"
+          [disabled]="usersLoading"
+          (click)="loadUsers()"
+        >
+          {{ usersLoading ? 'Chargement…' : 'Charger plus de comptes' }}
+        </button>
+        <p class="admin-empty" *ngIf="usersLoading">Chargement des utilisateurs…</p>
+        <p class="admin-empty" *ngIf="!filteredUsers.length && !loading && !usersLoading">
           Aucun utilisateur ne correspond à cette recherche.
         </p>
       </section>
@@ -301,7 +330,7 @@
       </aside>
     </div>
 
-    <section class="admin-panel admin-orders" id="admin-orders">
+    <section class="admin-panel admin-orders" id="admin-orders" *ngIf="activeSection === 'orders'">
       <div class="panel-heading">
         <div>
           <span>Suivi transversal</span>
@@ -340,7 +369,11 @@
       </p>
     </section>
 
-    <section class="admin-panel admin-appointments" id="admin-appointments">
+    <section
+      class="admin-panel admin-appointments"
+      id="admin-appointments"
+      *ngIf="activeSection === 'appointments'"
+    >
       <div class="panel-heading">
         <div>
           <span>Agenda global</span>
@@ -366,7 +399,72 @@
         Aucun rendez-vous à venir.
       </p>
     </section>
+    <section class="admin-panel" *ngIf="activeSection === 'catalog'">
+      <div class="panel-heading">
+        <div>
+          <span>Créations des ateliers</span>
+          <h2>Catalogue récent</h2>
+        </div>
+        <b>{{ snapshot?.summary?.catalogItems || 0 }} au total</b>
+      </div>
+      <div class="admin-catalog-grid">
+        <article *ngFor="let item of snapshot?.catalog">
+          <img [src]="item.imageUrl" [alt]="item.title" loading="lazy" />
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.stylist?.businessName || 'Atelier' }}</p>
+            <strong>{{ number(item.price) | number: '1.0-0' }} {{ item.currency }}</strong
+            ><small>{{ item.active ? 'Publié' : 'Masqué' }}</small>
+          </div>
+        </article>
+      </div>
+      <p class="admin-empty" *ngIf="!snapshot?.catalog?.length && !loading">
+        Aucune création disponible.
+      </p>
+    </section>
   </main>
+  @if (deletionTarget; as account) {
+    <div class="admin-confirm-overlay">
+      <section
+        class="admin-confirm-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="delete-account-title"
+      >
+        <span class="admin-delete-symbol" aria-hidden="true">×</span>
+        <h2 id="delete-account-title">Supprimer ce compte ?</h2>
+        <p>
+          <strong>{{ account.firstName }} {{ account.lastName }}</strong> ·
+          {{ roleLabel(account.role) }}
+        </p>
+        <p>
+          Le compte sera retiré de l’administration et ses sessions révoquées. Les commandes et
+          l’historique seront conservés. Cette suppression ne peut pas être annulée depuis cette
+          interface.
+        </p>
+        <p *ngIf="account.role === 'STYLIST'">
+          Les comptes employés de cet atelier seront également supprimés, son catalogue masqué et
+          ses rendez-vous en attente ou confirmés annulés.
+        </p>
+        <p *ngIf="account.role === 'CLIENT'">
+          Ses rendez-vous en attente ou confirmés seront annulés.
+        </p>
+        <p *ngIf="deletionError" role="alert">{{ deletionError }}</p>
+        <div>
+          <button type="button" [disabled]="deleting" (click)="deletionTarget = null">
+            Annuler</button
+          ><button
+            class="admin-delete-button"
+            type="button"
+            [disabled]="deleting"
+            (click)="confirmDeletion()"
+          >
+            {{ deleting ? 'Suppression…' : 'Supprimer le compte' }}
+          </button>
+        </div>
+      </section>
+    </div>
+  }
 
   <div class="admin-toast" [class.show]="toast">{{ toast }}</div>
 </div>

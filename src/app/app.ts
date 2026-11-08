@@ -534,7 +534,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   get isAdminEntryUrl(): boolean {
-    return /^\/admin\/?(?:[?#].*)?$/.test(this.currentBrowserUrl());
+    return /^\/admin(?:\/[^?#]*)?(?:[?#].*)?$/.test(this.currentBrowserUrl());
   }
 
   private openAdminEntry(): void {
@@ -551,7 +551,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   private syncViewFromUrl(url: string): void {
     const path = url.split(/[?#]/, 1)[0];
-    if (path === '/admin') {
+    if (path === '/admin' || path.startsWith('/admin/')) {
       this.openAdminEntry();
       return;
     }
@@ -2902,7 +2902,9 @@ export class App implements AfterViewInit, OnDestroy {
       this.applyClientPage(page);
     } else {
       this.leaveClientPage();
-      void this.router.navigateByUrl(`/${role}`);
+      void this.router.navigateByUrl(
+        role === 'admin' && this.isAdminEntryUrl ? this.currentBrowserUrl() : `/${role}`,
+      );
     }
     if (role !== 'admin') void this.loadDashboard(role);
     this.showToast(`Bienvenue ${user.firstName}, votre espace est prêt.`);

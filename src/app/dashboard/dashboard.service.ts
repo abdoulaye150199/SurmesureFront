@@ -86,6 +86,7 @@ export interface DashboardAppointment {
 }
 
 export interface DashboardCatalogItem {
+  stylist?: { businessName: string };
   likesCount?: number;
   id: string;
   stylistId: string;
@@ -185,6 +186,7 @@ export interface AdminUser {
 }
 
 export interface AdminDashboardSnapshot {
+  catalog?: DashboardCatalogItem[];
   summary: {
     users: number;
     clients: number;
@@ -479,6 +481,15 @@ export class DashboardService {
 
   loadAdminDashboard(): Promise<AdminDashboardSnapshot> {
     return firstValueFrom(this.http.get<AdminDashboardSnapshot>(getApiUrl('/admin/dashboard')));
+  }
+  loadAdminUsers(cursor?: string): Promise<CursorPage<AdminUser>> {
+    const query = new URLSearchParams({ limit: '50' });
+    if (cursor) query.set('cursor', cursor);
+    return firstValueFrom(this.http.get<CursorPage<AdminUser>>(getApiUrl(`/admin/users?${query}`)));
+  }
+
+  deleteAdminUser(id: string): Promise<{ success: boolean }> {
+    return firstValueFrom(this.http.delete<{ success: boolean }>(getApiUrl(`/admin/users/${id}`)));
   }
 
   setAdminUserStatus(id: string, active: boolean): Promise<AdminUser> {

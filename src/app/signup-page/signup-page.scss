@@ -142,6 +142,72 @@
   font-size: 12px;
   cursor: pointer;
 }
+.signup-google-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 4px 0 22px;
+  padding: 16px;
+  border: 1px solid #e5d7e3;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f8eff6, #fffaf6);
+  box-shadow: 0 4px 16px rgba(72, 0, 72, 0.035);
+}
+.signup-google-check {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #5e0a61;
+  color: #fff;
+  svg {
+    width: 19px;
+    height: 19px;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+}
+.signup-google-copy {
+  min-width: 0;
+  strong {
+    display: block;
+    font-size: 13px;
+    line-height: 1.5;
+    font-weight: 600;
+  }
+  p {
+    margin: 4px 0 10px;
+    color: #746a6f;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 0;
+    border: 0;
+    background: transparent;
+    color: #5e0a61;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    &:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+    &:focus-visible {
+      outline: 2px solid #5e0a61;
+      outline-offset: 4px;
+      border-radius: 3px;
+    }
+  }
+}
 .signup-account-tabs {
   width: fit-content;
   margin: 0 0 12px;

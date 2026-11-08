@@ -1,5 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Input, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, inject, Input, OnInit, OnDestroy, Output } from '@angular/core';
+import { Router, NavigationEnd } from '@angular/router';
+import { Subscription, filter } from 'rxjs';
 import { FormsModule } from '@angular/forms';
 import { AuthUser } from '../auth/auth.service';
 import {
@@ -10,7 +12,14 @@ import {
   DashboardService,
 } from '../dashboard/dashboard.service';
 
-type AdminSection = 'overview' | 'users' | 'orders' | 'appointments';
+type AdminSection = 'overview' | 'users' | 'orders' | 'appointments' | 'catalog';
+const ADMIN_PATHS: Record<AdminSection, string> = {
+  overview: '/admin',
+  users: '/admin/utilisateurs',
+  orders: '/admin/commandes',
+  appointments: '/admin/rendez-vous',
+  catalog: '/admin/catalogue',
+};
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -19,8 +28,10 @@ type AdminSection = 'overview' | 'users' | 'orders' | 'appointments';
   templateUrl: './admin-dashboard.html',
   styleUrl: './admin-dashboard.scss',
 })
-export class AdminDashboardComponent implements OnInit {
+export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly dashboard = inject(DashboardService);
+  private readonly router = inject(Router);
+  private routeSubscription?: Subscription;
   @Input() user: AuthUser | null = null;
   @Output() readonly homeRequested = new EventEmitter<void>();
   @Output() readonly logoutRequested = new EventEmitter<void>();
@@ -35,9 +46,45 @@ export class AdminDashboardComponent implements OnInit {
   mobileMenuOpen = false;
   updatingUserId: string | null = null;
   updatingOrderId: string | null = null;
+  users: AdminUser[] = [];
+  usersLoading = false;
+  usersHasMore = false;
+  private usersCursor: string | null = null;
+  deletionTarget: AdminUser | null = null;
+  deleting = false;
+  deletionError = '';
+
+  get sectionTitle(): string {
+    return {
+      overview: 'Vue d’ensemble',
+      users: 'Utilisateurs',
+      orders: 'Commandes',
+      appointments: 'Rendez-vous',
+      catalog: 'Catalogue',
+    }[this.activeSection];
+  }
 
   ngOnInit(): void {
+    this.syncSection();
+    this.routeSubscription = this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.syncSection();
+        if (this.activeSection === 'users' && !this.users.length) void this.loadUsers(true);
+      });
     void this.refresh();
+  }
+  ngOnDestroy(): void {
+    this.routeSubscription?.unsubscribe();
+  }
+
+  private syncSection(): void {
+    const path = this.router.url.split(/[?#]/)[0].replace(/\/$/, '');
+    this.activeSection =
+      (Object.keys(ADMIN_PATHS) as AdminSection[]).find(
+        (section) => ADMIN_PATHS[section] === path,
+      ) ?? 'overview';
+    document.title = `${this.sectionTitle} · Administration Sur Mesure Style`;
   }
 
   get initials(): string {
@@ -46,7 +93,7 @@ export class AdminDashboardComponent implements OnInit {
 
   get filteredUsers(): AdminUser[] {
     const query = this.userQuery.trim().toLocaleLowerCase('fr');
-    return (this.snapshot?.users ?? []).filter((user) => {
+    return this.users.filter((user) => {
       const hasRole = this.roleFilter === 'ALL' || user.role === this.roleFilter;
       const searchable =
         `${user.firstName} ${user.lastName} ${user.email} ${user.stylist?.businessName ?? ''}`.toLocaleLowerCase(
@@ -71,6 +118,7 @@ export class AdminDashboardComponent implements OnInit {
     this.error = '';
     try {
       this.snapshot = await this.dashboard.loadAdminDashboard();
+      if (this.activeSection === 'users') await this.loadUsers(true);
     } catch {
       this.error =
         'Le tableau de bord global ne peut pas être chargé. Vérifiez que l’API est disponible.';
@@ -82,9 +130,54 @@ export class AdminDashboardComponent implements OnInit {
   selectSection(section: AdminSection): void {
     this.activeSection = section;
     this.mobileMenuOpen = false;
-    document
-      .getElementById(`admin-${section}`)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    void this.router.navigateByUrl(ADMIN_PATHS[section]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async loadUsers(reset = false): Promise<void> {
+    if (this.usersLoading) return;
+    this.usersLoading = true;
+    try {
+      const page = await this.dashboard.loadAdminUsers(
+        reset ? undefined : (this.usersCursor ?? undefined),
+      );
+      this.users = reset
+        ? page.data
+        : [
+            ...this.users,
+            ...page.data.filter((row) => !this.users.some((existing) => existing.id === row.id)),
+          ];
+      this.usersCursor = page.meta.nextCursor;
+      this.usersHasMore = page.meta.hasMore;
+    } catch {
+      this.error = 'Impossible de charger les utilisateurs.';
+    } finally {
+      this.usersLoading = false;
+    }
+  }
+
+  requestDeletion(account: AdminUser): void {
+    if (account.role === 'ADMIN' || this.deleting) return;
+    this.deletionTarget = account;
+    this.deletionError = '';
+  }
+
+  async confirmDeletion(): Promise<void> {
+    if (!this.deletionTarget || this.deleting) return;
+    const target = this.deletionTarget;
+    this.deleting = true;
+    this.deletionError = '';
+    try {
+      await this.dashboard.deleteAdminUser(target.id);
+      this.users = this.users.filter((account) => account.id !== target.id);
+      this.deletionTarget = null;
+      this.showToast('Compte supprimé. Accès révoqués et historique conservé.');
+      await this.refresh();
+    } catch {
+      this.deletionError = 'La suppression a échoué. Réessayez.';
+    } finally {
+      this.deleting = false;
+    }
   }
 
   async toggleUser(user: AdminUser): Promise<void> {
@@ -95,6 +188,7 @@ export class AdminDashboardComponent implements OnInit {
     this.updatingUserId = user.id;
     try {
       const updated = await this.dashboard.setAdminUserStatus(user.id, !user.active);
+      this.users = this.users.map((account) => (account.id === updated.id ? updated : account));
       if (this.snapshot) {
         this.snapshot = {
           ...this.snapshot,

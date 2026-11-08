@@ -3905,11 +3905,13 @@
 </div>
 
 @defer (when activeView === 'admin') {
-  <app-admin-dashboard
-    [user]="authenticatedUser"
-    (homeRequested)="setView('home')"
-    (logoutRequested)="logout()"
-  ></app-admin-dashboard>
+  @if (activeView === 'admin') {
+    <app-admin-dashboard
+      [user]="authenticatedUser"
+      (homeRequested)="setView('home')"
+      (logoutRequested)="logout()"
+    ></app-admin-dashboard>
+  }
 }
 
 <nav
