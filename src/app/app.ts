@@ -1579,7 +1579,7 @@ export class App implements AfterViewInit, OnDestroy {
       void this.restoreAuthenticatedWorkspace();
     }
     const elements = document.querySelectorAll<HTMLElement>(
-      'main > section:not(.hero), footer, .values article, .product-card, .stylist-card, .journey-steps article',
+      '.values article, .product-card, .stylist-card, .journey-steps article',
     );
 
     elements.forEach((element) => element.classList.add('reveal-ready'));
@@ -1592,7 +1592,7 @@ export class App implements AfterViewInit, OnDestroy {
           this.revealObserver?.unobserve(entry.target);
         });
       },
-      { threshold: 0.12, rootMargin: '0px 0px -45px' },
+      { threshold: 0, rootMargin: '0px' },
     );
 
     elements.forEach((element) => this.revealObserver?.observe(element));

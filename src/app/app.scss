@@ -1234,7 +1234,7 @@ footer button {
     background 0.25s,
     transform 0.25s;
 }
-.filters button:hover {
+.filters button:not(.active):hover {
   transform: translateY(-1px);
   color: #480048;
 }
@@ -1881,6 +1881,7 @@ footer button {
   .collection-intro {
     position: relative;
     top: auto;
+    height: auto;
     min-height: 0;
   }
   .collection-link {
@@ -2175,10 +2176,21 @@ footer button {
     grid-column: 2;
   }
   .collection-count {
-    margin: -15px 0 25px;
+    margin: 18px 0 0;
   }
   .filters {
+    width: 100%;
+    max-width: none;
+    gap: 4px;
     border-radius: 16px;
+  }
+  .filters button {
+    flex: 1 0 auto;
+    min-height: 40px;
+    padding: 10px 12px;
+  }
+  .collection-layout {
+    gap: 28px;
   }
   .product-image {
     height: 118vw;
