@@ -1,5 +1,6 @@
-const CACHE_NAME = 'sur-mesure-style-v7';
+const CACHE_NAME = 'sur-mesure-style-v8';
 const APP_SHELL = [
+  '/favicon.ico',
   '/manifest.webmanifest',
   '/assets/favicon.png',
   '/assets/pwa-icon-180.png',
