@@ -1,6 +1,6 @@
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
 import { getApiUrl } from '../api-url';
 import {
   clearStoredAuthSession,
@@ -82,7 +82,9 @@ export class AuthService {
 
   googleConfiguration(): Promise<{ clientId: string | null }> {
     return firstValueFrom(
-      this.http.get<{ clientId: string | null }>(getApiUrl('/auth/google/config')),
+      this.http
+        .get<{ clientId: string | null }>(getApiUrl('/auth/google/config'))
+        .pipe(timeout(15000)),
     );
   }
 
@@ -140,7 +142,7 @@ export class AuthService {
   private async authenticate(endpoint: string, body: object): Promise<AuthUser> {
     try {
       const response: unknown = await firstValueFrom(
-        this.http.post<unknown>(getApiUrl(endpoint), body),
+        this.http.post<unknown>(getApiUrl(endpoint), body).pipe(timeout(20000)),
       );
       if (!isAuthSession(response)) throw new Error('Réponse d’authentification invalide.');
       const session = response;
@@ -148,6 +150,9 @@ export class AuthService {
       writeAuthSession(session);
       return session.data;
     } catch (error) {
+      if (error instanceof TimeoutError) {
+        throw new Error('Le serveur met trop de temps à répondre. Réessayez.');
+      }
       if (error instanceof HttpErrorResponse) {
         const message = error.error?.message;
         throw new Error(

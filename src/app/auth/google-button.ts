@@ -5,6 +5,7 @@ import {
   EventEmitter,
   inject,
   Input,
+  NgZone,
   OnDestroy,
   Output,
   ViewChild,
@@ -44,12 +45,22 @@ function loadGoogle(): Promise<void> {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () => {
+    const fail = () => {
+      window.clearTimeout(timer);
       library = undefined;
       script.remove();
-      reject(new Error('Impossible de charger Google. Vérifiez votre connexion.'));
+      reject(new Error('Impossible de charger Google. Vérifiez votre connexion puis réessayez.'));
     };
+    const timer = window.setTimeout(fail, 15000);
+    script.onload = () => {
+      if (!window.google?.accounts.id) {
+        fail();
+        return;
+      }
+      window.clearTimeout(timer);
+      resolve();
+    };
+    script.onerror = fail;
     document.head.appendChild(script);
   }));
 }
@@ -88,13 +99,16 @@ function loadGoogle(): Promise<void> {
 })
 export class GoogleButtonComponent implements AfterViewInit, OnDestroy {
   private readonly auth = inject(AuthService);
+  private readonly zone = inject(NgZone);
   @ViewChild('button', { static: true }) button!: ElementRef<HTMLElement>;
   @Input() mode: 'login' | 'signup' = 'login';
   @Output() readonly credential = new EventEmitter<string>();
   message = '';
   private destroyed = false;
   private readonly receive = (value: string) => {
-    if (!this.destroyed) this.credential.emit(value);
+    this.zone.run(() => {
+      if (!this.destroyed) this.credential.emit(value);
+    });
   };
 
   async ngAfterViewInit(): Promise<void> {
