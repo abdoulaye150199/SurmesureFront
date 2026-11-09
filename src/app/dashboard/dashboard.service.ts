@@ -482,10 +482,24 @@ export class DashboardService {
   loadAdminDashboard(): Promise<AdminDashboardSnapshot> {
     return firstValueFrom(this.http.get<AdminDashboardSnapshot>(getApiUrl('/admin/dashboard')));
   }
-  loadAdminUsers(cursor?: string): Promise<CursorPage<AdminUser>> {
-    const query = new URLSearchParams({ limit: '50' });
-    if (cursor) query.set('cursor', cursor);
-    return firstValueFrom(this.http.get<CursorPage<AdminUser>>(getApiUrl(`/admin/users?${query}`)));
+  loadAdminUsers(
+    page = 1,
+    limit = 10,
+    search = '',
+    role = 'ALL',
+  ): Promise<{
+    data: AdminUser[];
+    meta: { total: number; page: number; totalPages: number };
+  }> {
+    const query = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (search.trim()) query.set('search', search.trim());
+    if (role !== 'ALL') query.set('role', role);
+    return firstValueFrom(
+      this.http.get<{
+        data: AdminUser[];
+        meta: { total: number; page: number; totalPages: number };
+      }>(getApiUrl(`/admin/users?${query}`)),
+    );
   }
 
   deleteAdminUser(id: string): Promise<{ success: boolean }> {

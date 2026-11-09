@@ -105,7 +105,11 @@
           ><svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="10.5" cy="10.5" r="6.5" />
             <path d="m15.5 15.5 5 5" /></svg
-          ><input type="search" [(ngModel)]="userQuery" placeholder="Filtrer les comptes chargés"
+          ><input
+            type="search"
+            [(ngModel)]="userQuery"
+            (ngModelChange)="loadUsers(true)"
+            placeholder="Rechercher un utilisateur"
         /></label>
         <button
           class="admin-refresh"
@@ -237,8 +241,13 @@
           <div>
             <span>Gestion des accès</span>
             <h2>Comptes de la plateforme</h2>
+            <p>{{ snapshot?.summary?.users || 0 }} utilisateurs au total</p>
           </div>
-          <select [(ngModel)]="roleFilter" aria-label="Filtrer les utilisateurs par rôle">
+          <select
+            [(ngModel)]="roleFilter"
+            (ngModelChange)="loadUsers(true)"
+            aria-label="Filtrer les utilisateurs par rôle"
+          >
             <option value="ALL">Tous les rôles</option>
             <option value="CLIENT">Clients</option>
             <option value="STYLIST">Stylistes</option>
@@ -287,15 +296,38 @@
             </button>
           </div>
         </article>
-        <button
-          class="admin-load-more"
-          type="button"
-          *ngIf="usersHasMore"
-          [disabled]="usersLoading"
-          (click)="loadUsers()"
-        >
-          {{ usersLoading ? 'Chargement…' : 'Charger plus de comptes' }}
-        </button>
+        <nav class="admin-pagination" aria-label="Pagination des utilisateurs">
+          <span aria-live="polite"
+            >{{ usersFirst }}–{{ usersLast }} sur {{ usersTotal }} utilisateurs</span
+          >
+          <label
+            >Par page
+            <select
+              [(ngModel)]="usersPageSize"
+              (ngModelChange)="loadUsers(true)"
+              [disabled]="usersLoading"
+            >
+              <option [ngValue]="10">10</option>
+              <option [ngValue]="20">20</option>
+              <option [ngValue]="50">50</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            [disabled]="usersLoading || usersPage <= 1"
+            (click)="loadUsers(false, usersPage - 1)"
+          >
+            Précédent
+          </button>
+          <span>Page {{ usersPage }} / {{ usersTotalPages }}</span>
+          <button
+            type="button"
+            [disabled]="usersLoading || usersPage >= usersTotalPages"
+            (click)="loadUsers(false, usersPage + 1)"
+          >
+            Suivant
+          </button>
+        </nav>
         <p class="admin-empty" *ngIf="usersLoading">Chargement des utilisateurs…</p>
         <p class="admin-empty" *ngIf="!filteredUsers.length && !loading && !usersLoading">
           Aucun utilisateur ne correspond à cette recherche.

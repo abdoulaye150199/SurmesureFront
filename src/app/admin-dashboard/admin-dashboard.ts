@@ -48,8 +48,11 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   updatingOrderId: string | null = null;
   users: AdminUser[] = [];
   usersLoading = false;
-  usersHasMore = false;
-  private usersCursor: string | null = null;
+  usersPage = 1;
+  usersPageSize = 10;
+  usersTotal = 0;
+  usersTotalPages = 1;
+  private usersRequest = 0;
   deletionTarget: AdminUser | null = null;
   deleting = false;
   deletionError = '';
@@ -92,15 +95,15 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   get filteredUsers(): AdminUser[] {
-    const query = this.userQuery.trim().toLocaleLowerCase('fr');
-    return this.users.filter((user) => {
-      const hasRole = this.roleFilter === 'ALL' || user.role === this.roleFilter;
-      const searchable =
-        `${user.firstName} ${user.lastName} ${user.email} ${user.stylist?.businessName ?? ''}`.toLocaleLowerCase(
-          'fr',
-        );
-      return hasRole && (!query || searchable.includes(query));
-    });
+    return this.users;
+  }
+
+  get usersFirst(): number {
+    return this.usersTotal ? (this.usersPage - 1) * this.usersPageSize + 1 : 0;
+  }
+
+  get usersLast(): number {
+    return Math.min(this.usersPage * this.usersPageSize, this.usersTotal);
   }
 
   get activeUserCount(): number {
@@ -134,25 +137,26 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async loadUsers(reset = false): Promise<void> {
-    if (this.usersLoading) return;
+  async loadUsers(reset = false, targetPage = this.usersPage): Promise<void> {
+    const request = ++this.usersRequest;
     this.usersLoading = true;
+    this.error = '';
     try {
       const page = await this.dashboard.loadAdminUsers(
-        reset ? undefined : (this.usersCursor ?? undefined),
+        reset ? 1 : targetPage,
+        this.usersPageSize,
+        this.userQuery,
+        this.roleFilter,
       );
-      this.users = reset
-        ? page.data
-        : [
-            ...this.users,
-            ...page.data.filter((row) => !this.users.some((existing) => existing.id === row.id)),
-          ];
-      this.usersCursor = page.meta.nextCursor;
-      this.usersHasMore = page.meta.hasMore;
+      if (request !== this.usersRequest) return;
+      this.users = page.data;
+      this.usersTotal = page.meta.total;
+      this.usersPage = page.meta.page;
+      this.usersTotalPages = page.meta.totalPages;
     } catch {
-      this.error = 'Impossible de charger les utilisateurs.';
+      if (request === this.usersRequest) this.error = 'Impossible de charger les utilisateurs.';
     } finally {
-      this.usersLoading = false;
+      if (request === this.usersRequest) this.usersLoading = false;
     }
   }
 
