@@ -42,33 +42,40 @@ let receiveCredential: ((credential: string) => void) | undefined;
 function loadGoogle(): Promise<void> {
   if (window.google?.accounts.id) return Promise.resolve();
   return (library ??= new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
+    let script = document.querySelector<HTMLScriptElement>('#google-identity-services');
+    const shouldAppend = !script;
+    if (!script) {
+      script = document.createElement('script');
+      script.id = 'google-identity-services';
+      script.src = 'https://accounts.google.com/gsi/client';
+      script.async = true;
+    }
     const fail = () => {
       window.clearTimeout(timer);
       library = undefined;
-      script.remove();
+      if (shouldAppend) script?.remove();
       reject(new Error('Impossible de charger Google. Vérifiez votre connexion puis réessayez.'));
     };
     const timer = window.setTimeout(fail, 15000);
-    script.onload = () => {
+    script.addEventListener('load', () => {
       if (!window.google?.accounts.id) {
         fail();
         return;
       }
       window.clearTimeout(timer);
       resolve();
-    };
-    script.onerror = fail;
-    document.head.appendChild(script);
+    }, { once: true });
+    script.addEventListener('error', fail, { once: true });
+    if (shouldAppend) document.head.appendChild(script);
   }));
 }
 
 @Component({
   selector: 'app-google-button',
   standalone: true,
-  template: `<div class="google-button-wrap" #button></div>
+  template: `<div class="google-button-wrap" [class.is-loading]="loading" #button>
+      @if (loading) { <span class="google-placeholder" aria-hidden="true"><i>G</i>Se connecter avec Google</span> }
+    </div>
     @if (message) {
       <p class="google-status" role="status">{{ message }}</p>
     }`,
@@ -85,9 +92,27 @@ function loadGoogle(): Promise<void> {
         display: flex;
         justify-content: center;
         max-width: 100%;
+        width: min(280px, 100%);
+        min-height: 40px;
+        position: relative;
         border-radius: 999px;
         box-shadow: 0 4px 14px rgba(72, 0, 72, 0.08);
       }
+      .google-placeholder {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 30px;
+        border: 1px solid #dadce0;
+        border-radius: 999px;
+        background: #fff;
+        color: #1f1f1f;
+        font: 500 14px Arial, sans-serif;
+      }
+      .google-placeholder i { font-size: 18px; font-style: normal; font-weight: 700; color: #4285f4; }
+      .google-button-wrap.is-loading { box-shadow: none; }
       .google-status {
         font-size: 12px;
         color: #746a6f;
@@ -104,7 +129,13 @@ export class GoogleButtonComponent implements AfterViewInit, OnDestroy {
   @Input() mode: 'login' | 'signup' = 'login';
   @Output() readonly credential = new EventEmitter<string>();
   message = '';
+  loading = true;
   private destroyed = false;
+  private readonly onGoogleFrameLoad = (event: Event) => {
+    if (event.target instanceof HTMLIFrameElement) {
+      this.zone.run(() => (this.loading = false));
+    }
+  };
   private readonly receive = (value: string) => {
     this.zone.run(() => {
       if (!this.destroyed) this.credential.emit(value);
@@ -117,6 +148,7 @@ export class GoogleButtonComponent implements AfterViewInit, OnDestroy {
       if (this.destroyed) return;
       if (!clientId) {
         this.message = 'Google n’est pas encore disponible.';
+        this.loading = false;
         return;
       }
       await loadGoogle();
@@ -131,6 +163,7 @@ export class GoogleButtonComponent implements AfterViewInit, OnDestroy {
         initializedClient = clientId;
       }
       receiveCredential = this.receive;
+      this.button.nativeElement.addEventListener('load', this.onGoogleFrameLoad, true);
       google.renderButton(this.button.nativeElement, {
         theme: 'outline',
         size: 'large',
@@ -140,14 +173,17 @@ export class GoogleButtonComponent implements AfterViewInit, OnDestroy {
         width: Math.min(280, this.button.nativeElement.parentElement?.clientWidth || 280),
       });
     } catch (error) {
-      if (!this.destroyed)
+      if (!this.destroyed) {
+        this.loading = false;
         this.message =
           error instanceof Error ? error.message : 'Google est momentanément indisponible.';
+      }
     }
   }
 
   ngOnDestroy(): void {
     this.destroyed = true;
+    this.button.nativeElement.removeEventListener('load', this.onGoogleFrameLoad, true);
     if (receiveCredential === this.receive) receiveCredential = undefined;
   }
 }

@@ -45,6 +45,7 @@ export { AUTH_SESSION_KEY } from './auth-session.storage';
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
+  private googleConfigRequest?: Promise<{ clientId: string | null }>;
   private session: AuthSession | null = this.readSession();
 
   get user(): AuthUser | null {
@@ -81,11 +82,14 @@ export class AuthService {
   }
 
   googleConfiguration(): Promise<{ clientId: string | null }> {
-    return firstValueFrom(
+    return (this.googleConfigRequest ??= firstValueFrom(
       this.http
         .get<{ clientId: string | null }>(getApiUrl('/auth/google/config'))
         .pipe(timeout(15000)),
-    );
+    ).catch((error: unknown) => {
+      this.googleConfigRequest = undefined;
+      throw error;
+    }));
   }
 
   loginGoogle(credential: string): Promise<AuthUser> {
