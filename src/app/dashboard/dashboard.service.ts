@@ -206,6 +206,27 @@ export interface AdminDashboardSnapshot {
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private readonly http = inject(HttpClient);
+  private readonly inFlightGets = new Map<string, Promise<unknown>>();
+  private readonly readCache = new Map<string, { expiresAt: number; value: unknown }>();
+
+  private getOnce<T>(url: string, factory?: () => Promise<T>, cacheMs = 0): Promise<T> {
+    const cached = this.readCache.get(url);
+    if (cached && cached.expiresAt > Date.now()) return Promise.resolve(cached.value as T);
+    if (cached) this.readCache.delete(url);
+    const existing = this.inFlightGets.get(url) as Promise<T> | undefined;
+    if (existing) return existing;
+    const request = (factory ? factory() : firstValueFrom(this.http.get<T>(url))).then((value) => {
+      if (cacheMs > 0) this.readCache.set(url, { value, expiresAt: Date.now() + cacheMs });
+      return value;
+    });
+    this.inFlightGets.set(url, request);
+    void request
+      .finally(() => {
+        if (this.inFlightGets.get(url) === request) this.inFlightGets.delete(url);
+      })
+      .catch(() => undefined);
+    return request;
+  }
 
   async loadPublicCatalogPage(
     limit = 12,
@@ -213,9 +234,7 @@ export class DashboardService {
   ): Promise<CursorPage<DashboardCatalogItem>> {
     const query = new URLSearchParams({ limit: String(limit + 1) });
     if (cursor) query.set('cursor', cursor);
-    const rows = await firstValueFrom(
-      this.http.get<DashboardCatalogItem[]>(getApiUrl(`/catalog?${query}`)),
-    );
+    const rows = await this.getOnce<DashboardCatalogItem[]>(getApiUrl(`/catalog?${query}`));
     const data = rows.slice(0, limit);
     return {
       data,
@@ -227,40 +246,58 @@ export class DashboardService {
   }
 
   loadPublicStylists(): Promise<DashboardStylist[]> {
-    return firstValueFrom(this.http.get<DashboardStylist[]>(getApiUrl('/stylists?limit=100')));
+    return this.getAllCursorPages<DashboardStylist>('/stylists');
+  }
+
+  private async getAllCursorPages<T>(path: string, limit = 100): Promise<T[]> {
+    const cacheKey = `${getApiUrl(path)}?all-pages=${limit}`;
+    return this.getOnce<T[]>(
+      cacheKey,
+      async () => {
+        const rows: T[] = [];
+        let cursor: string | null = null;
+        let hasMore = true;
+        while (hasMore) {
+          const query = new URLSearchParams({ limit: String(limit) });
+          if (cursor) query.set('cursor', cursor);
+          const page = await this.getOnce<CursorPage<T>>(`${getApiUrl(path)}?${query}`);
+          rows.push(...page.data);
+          cursor = page.meta.nextCursor;
+          hasMore = page.meta.hasMore && !!cursor;
+        }
+        return rows;
+      },
+      30_000,
+    );
+  }
+
+  private invalidateReadCache(): void {
+    this.readCache.clear();
   }
 
   async loadClientDashboard(): Promise<ClientDashboardSnapshot> {
     const [orders, measurements, appointments, catalog, stylists] = await Promise.all([
-      firstValueFrom(this.http.get<CursorPage<DashboardOrder>>(getApiUrl('/orders?limit=100'))),
-      firstValueFrom(this.http.get<DashboardMeasurement[]>(getApiUrl('/measurements'))),
-      firstValueFrom(this.http.get<DashboardAppointment[]>(getApiUrl('/appointments'))),
-      firstValueFrom(this.http.get<DashboardCatalogItem[]>(getApiUrl('/catalog?limit=100'))),
-      firstValueFrom(this.http.get<DashboardStylist[]>(getApiUrl('/stylists?limit=100'))),
+      this.getAllCursorPages<DashboardOrder>('/orders'),
+      this.getOnce<DashboardMeasurement[]>(getApiUrl('/measurements')),
+      this.getOnce<DashboardAppointment[]>(getApiUrl('/appointments')),
+      this.getAllCursorPages<DashboardCatalogItem>('/catalog'),
+      this.getAllCursorPages<DashboardStylist>('/stylists'),
     ]);
-    return { orders: orders.data, measurements, appointments, catalog, stylists };
+    return { orders, measurements, appointments, catalog, stylists };
   }
 
   async loadStylistDashboard(userId: string): Promise<StylistDashboardSnapshot> {
     const [orders, measurements, appointments, catalog, stylists] = await Promise.all([
-      firstValueFrom(
-        this.http.get<CursorPage<DashboardOrder>>(getApiUrl(`/stylist/${userId}/orders?limit=100`)),
-      ),
-      firstValueFrom(
-        this.http.get<CursorPage<DashboardMeasurement>>(
-          getApiUrl(`/stylist/${userId}/measurements?limit=100`),
-        ),
-      ),
-      firstValueFrom(
-        this.http.get<DashboardAppointment[]>(getApiUrl(`/stylist/${userId}/appointments`)),
-      ),
-      firstValueFrom(this.http.get<DashboardCatalogItem[]>(getApiUrl('/catalog?limit=100'))),
-      firstValueFrom(this.http.get<DashboardStylist[]>(getApiUrl('/stylists?limit=100'))),
+      this.getAllCursorPages<DashboardOrder>(`/stylist/${userId}/orders`),
+      this.getAllCursorPages<DashboardMeasurement>(`/stylist/${userId}/measurements`),
+      this.getOnce<DashboardAppointment[]>(getApiUrl(`/stylist/${userId}/appointments`)),
+      this.getAllCursorPages<DashboardCatalogItem>('/catalog'),
+      this.getAllCursorPages<DashboardStylist>('/stylists'),
     ]);
     const profile = stylists.find((stylist) => stylist.userId === userId) ?? null;
     return {
-      orders: orders.data,
-      measurements: measurements.data,
+      orders,
+      measurements,
       appointments,
       catalog: profile ? catalog.filter((item) => item.stylistId === profile.id) : [],
       profile,
@@ -273,24 +310,20 @@ export class DashboardService {
     orders: DashboardOrder[];
   }> {
     const [employee, measurements, orders] = await Promise.all([
-      firstValueFrom(this.http.get<EmployeeWorkspaceContext>(getApiUrl('/employee/me'))),
-      firstValueFrom(
-        this.http.get<CursorPage<DashboardMeasurement>>(
-          getApiUrl('/employee/measurements?limit=100'),
-        ),
-      ),
-      firstValueFrom(
-        this.http.get<CursorPage<DashboardOrder>>(getApiUrl('/employee/orders?limit=100')),
-      ),
+      this.getOnce<EmployeeWorkspaceContext>(getApiUrl('/employee/me')),
+      this.getAllCursorPages<DashboardMeasurement>('/employee/measurements'),
+      this.getAllCursorPages<DashboardOrder>('/employee/orders'),
     ]);
-    return { employee, measurements: measurements.data, orders: orders.data };
+    return { employee, measurements, orders };
   }
 
   createEmployeeOrder(input: OrderInput): Promise<DashboardOrder> {
+    this.invalidateReadCache();
     return firstValueFrom(this.http.post<DashboardOrder>(getApiUrl('/employee/orders'), input));
   }
 
   createEmployeeCatalog(input: CatalogItemInput): Promise<DashboardCatalogItem> {
+    this.invalidateReadCache();
     return firstValueFrom(
       this.http.post<DashboardCatalogItem>(getApiUrl('/employee/catalog'), input),
     );
@@ -319,6 +352,7 @@ export class DashboardService {
     visitorId: string,
     liked: boolean,
   ): Promise<{ liked: boolean; likesCount: number }> {
+    this.invalidateReadCache();
     return firstValueFrom(
       this.http.post<{ liked: boolean; likesCount: number }>(getApiUrl(`/catalog/${id}/like`), {
         visitorId,
@@ -349,6 +383,7 @@ export class DashboardService {
   }
 
   createEmployeeMeasurement(input: EmployeeMeasurementInput): Promise<DashboardMeasurement> {
+    this.invalidateReadCache();
     return firstValueFrom(
       this.http.post<DashboardMeasurement>(getApiUrl('/employee/measurements'), input),
     );
@@ -358,6 +393,7 @@ export class DashboardService {
     stylistId: string,
     input: EmployeeMeasurementInput,
   ): Promise<DashboardMeasurement> {
+    this.invalidateReadCache();
     return firstValueFrom(
       this.http.post<DashboardMeasurement>(getApiUrl(`/stylist/${stylistId}/measurements`), input),
     );
@@ -381,6 +417,7 @@ export class DashboardService {
   }
 
   createOrder(stylistId: string, input: OrderInput): Promise<DashboardOrder> {
+    this.invalidateReadCache();
     return firstValueFrom(
       this.http.post<DashboardOrder>(getApiUrl(`/stylist/${stylistId}/orders`), input),
     );
@@ -430,14 +467,17 @@ export class DashboardService {
   }
 
   createCatalogItem(item: CatalogItemInput): Promise<DashboardCatalogItem> {
+    this.invalidateReadCache();
     return firstValueFrom(this.http.post<DashboardCatalogItem>(getApiUrl('/catalog'), item));
   }
 
   updateCatalogItem(id: string, item: CatalogItemInput): Promise<DashboardCatalogItem> {
+    this.invalidateReadCache();
     return firstValueFrom(this.http.patch<DashboardCatalogItem>(getApiUrl(`/catalog/${id}`), item));
   }
 
   deactivateCatalogItem(id: string): Promise<{ success: boolean }> {
+    this.invalidateReadCache();
     return firstValueFrom(this.http.delete<{ success: boolean }>(getApiUrl(`/catalog/${id}`)));
   }
 

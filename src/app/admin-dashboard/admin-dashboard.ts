@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, OnInit, OnDestroy, Output } from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
-import { Subscription, filter } from 'rxjs';
+import { Subject, Subscription, filter } from 'rxjs';
+import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
 import { AuthUser } from '../auth/auth.service';
 import {
@@ -32,6 +33,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly dashboard = inject(DashboardService);
   private readonly router = inject(Router);
   private routeSubscription?: Subscription;
+  private readonly searchChanges = new Subject<string>();
+  private searchSubscription?: Subscription;
   @Input() user: AuthUser | null = null;
   @Output() readonly homeRequested = new EventEmitter<void>();
   @Output() readonly logoutRequested = new EventEmitter<void>();
@@ -68,6 +71,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    this.searchSubscription = this.searchChanges
+      .pipe(debounceTime(300), distinctUntilChanged())
+      .subscribe(() => void this.loadUsers(true));
     this.syncSection();
     this.routeSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
@@ -79,6 +85,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
   ngOnDestroy(): void {
     this.routeSubscription?.unsubscribe();
+    this.searchSubscription?.unsubscribe();
+    this.searchChanges.complete();
   }
 
   private syncSection(): void {
@@ -96,6 +104,11 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   get filteredUsers(): AdminUser[] {
     return this.users;
+  }
+
+  onUserSearchChange(value: string): void {
+    this.userQuery = value;
+    this.searchChanges.next(value.trim());
   }
 
   get usersFirst(): number {

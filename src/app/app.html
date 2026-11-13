@@ -67,7 +67,7 @@
   <section class="hero">
     <img
       class="hero-image"
-      src="/assets/hero-sur-mesure.png"
+      src="/assets/hero-sur-mesure.webp"
       alt="Création sur mesure en robe prune"
     />
     <div class="hero-copy">
@@ -196,8 +196,17 @@
             {{ item.description?.trim() || 'Description non renseignée.' }}
           </p>
         </article>
-        <div class="catalog-load-sentinel" *ngIf="publicCatalogLoading || publicCatalogHasMore">
-          <span *ngIf="publicCatalogLoading" aria-live="polite">Chargement des créations…</span>
+        <div
+          class="catalog-skeleton-grid"
+          *ngIf="publicCatalogLoading"
+          role="status"
+          aria-label="Chargement des créations"
+        >
+          <div class="catalog-skeleton-card" *ngFor="let item of [1, 2, 3, 4]">
+            <span></span><i></i><i></i>
+          </div>
+        </div>
+        <div class="catalog-load-sentinel" *ngIf="!publicCatalogLoading && publicCatalogHasMore">
           <button
             type="button"
             *ngIf="publicCatalogHasMore && !publicCatalogLoading"
@@ -213,7 +222,7 @@
   <section class="measure-section" id="mesures">
     <div class="measure-visual">
       <span class="measure-orbit one"></span><span class="measure-orbit two"></span>
-      <img src="/assets/mannequins.png" alt="Mannequins de couture" />
+      <img src="/assets/mannequins.webp" alt="Mannequins de couture" />
       <span class="measure-note top">Épaules <b>38 cm</b></span>
       <span class="measure-note bottom">Longueur <b>142 cm</b></span>
     </div>
@@ -577,8 +586,17 @@
           Ajouter à ma sélection <span>↗</span>
         </button>
       </article>
-      <div class="catalog-load-sentinel" *ngIf="publicCatalogLoading || publicCatalogHasMore">
-        <span *ngIf="publicCatalogLoading" aria-live="polite">Chargement des créations…</span>
+      <div
+        class="catalog-skeleton-grid workspace-catalog-skeleton"
+        *ngIf="publicCatalogLoading"
+        role="status"
+        aria-label="Chargement des créations"
+      >
+        <div class="catalog-skeleton-card" *ngFor="let item of [1, 2, 3, 4]">
+          <span></span><i></i><i></i>
+        </div>
+      </div>
+      <div class="catalog-load-sentinel" *ngIf="!publicCatalogLoading && publicCatalogHasMore">
         <button
           type="button"
           *ngIf="publicCatalogHasMore && !publicCatalogLoading"
@@ -1187,7 +1205,7 @@
                 [src]="
                   nextClientAppointment?.stylist?.user?.profileImage ||
                   clientStylists[0]?.user?.profileImage ||
-                  '/assets/stylist-awa.png'
+                  '/assets/stylist-awa.webp'
                 "
                 [alt]="
                   'Photo de ' +
@@ -1722,7 +1740,7 @@
               </button>
             </div>
             <img
-              [src]="stylistPhotoUrl || '/assets/stylist-awa.png'"
+              [src]="stylistPhotoUrl || '/assets/stylist-awa.webp'"
               [alt]="'Photo de ' + (authenticatedUser?.firstName || 'votre styliste')"
             />
             <i></i>

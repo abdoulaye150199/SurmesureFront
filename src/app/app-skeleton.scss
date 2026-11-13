@@ -1,0 +1,50 @@
+.catalog-skeleton-grid {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+}
+.catalog-skeleton-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.catalog-skeleton-card span,
+.catalog-skeleton-card i {
+  display: block;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #eee8e5 20%, #f8f5f2 40%, #eee8e5 60%);
+  background-size: 220% 100%;
+  animation: catalog-skeleton-shimmer 1.35s ease-in-out infinite;
+}
+.catalog-skeleton-card span {
+  aspect-ratio: 0.78;
+}
+.catalog-skeleton-card i {
+  height: 12px;
+  width: 68%;
+}
+.catalog-skeleton-card i:last-child {
+  width: 46%;
+}
+.workspace-catalog-skeleton {
+  padding: 12px 0;
+}
+@keyframes catalog-skeleton-shimmer {
+  to {
+    background-position-x: -220%;
+  }
+}
+@media (max-width: 760px) {
+  .catalog-skeleton-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .catalog-skeleton-card span,
+  .catalog-skeleton-card i {
+    animation: none;
+  }
+}

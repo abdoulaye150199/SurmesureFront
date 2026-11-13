@@ -102,7 +102,7 @@ type StylistEditor = 'catalog' | 'profile' | null;
     StylistSettingsComponent,
   ],
   templateUrl: './app.html',
-  styleUrls: ['./app.scss', './stylist-dashboard.scss'],
+  styleUrls: ['./app.scss', './app-skeleton.scss', './stylist-dashboard.scss'],
 })
 export class App implements AfterViewInit, OnDestroy {
   private readonly auth = inject(AuthService);
@@ -611,6 +611,7 @@ export class App implements AfterViewInit, OnDestroy {
   publicStylistsLoading = false;
   private publicCatalogCursor: string | null = null;
   private publicCatalogLoaded = false;
+  private catalogLoadPromise: Promise<void> | null = null;
   stylistOrders: DashboardOrder[] = [];
   stylistMeasurements: DashboardMeasurement[] = [];
   employeeDetailsId: string | null = null;
@@ -1031,7 +1032,7 @@ export class App implements AfterViewInit, OnDestroy {
       name: 'Robe Ndar',
       stylist: 'Atelier Awa',
       price: 89000,
-      image: '/assets/look-2.png',
+      image: '/assets/look-2.webp',
       category: 'Cérémonie',
       tone: 'lilac',
       badge: 'Nouveau',
@@ -1040,7 +1041,7 @@ export class App implements AfterViewInit, OnDestroy {
       name: 'Boubou Alizé',
       stylist: 'Maison Diarra',
       price: 115000,
-      image: '/assets/look-1.png',
+      image: '/assets/look-1.webp',
       category: 'Boubous',
       tone: 'sand',
     },
@@ -1048,7 +1049,7 @@ export class App implements AfterViewInit, OnDestroy {
       name: 'Ensemble Kër',
       stylist: 'Seynabou Studio',
       price: 74000,
-      image: '/assets/look-3.png',
+      image: '/assets/look-3.webp',
       category: 'Ensembles',
       tone: 'rose',
       badge: 'Favori',
@@ -1057,7 +1058,7 @@ export class App implements AfterViewInit, OnDestroy {
       name: 'Robe Sine',
       stylist: 'Atelier Awa',
       price: 97000,
-      image: '/assets/look-1.png',
+      image: '/assets/look-1.webp',
       category: 'Cérémonie',
       tone: 'plum',
     },
@@ -1065,7 +1066,7 @@ export class App implements AfterViewInit, OnDestroy {
       name: 'Boubou Héritage',
       stylist: 'Seynabou Studio',
       price: 128000,
-      image: '/assets/look-3.png',
+      image: '/assets/look-3.webp',
       category: 'Boubous',
       tone: 'cream',
     },
@@ -1073,7 +1074,7 @@ export class App implements AfterViewInit, OnDestroy {
       name: 'Ensemble Dakar',
       stylist: 'Maison Diarra',
       price: 82000,
-      image: '/assets/look-2.png',
+      image: '/assets/look-2.webp',
       category: 'Ensembles',
       tone: 'gold',
     },
@@ -1085,7 +1086,7 @@ export class App implements AfterViewInit, OnDestroy {
       studio: 'Atelier Awa',
       location: 'Dakar',
       specialty: 'Cérémonie',
-      portrait: '/assets/stylist-awa.png',
+      portrait: '/assets/stylist-awa.webp',
       bio: 'Awa imagine des silhouettes de cérémonie élégantes, avec des volumes fluides et des détails qui racontent chaque histoire.',
       email: 'awa@surmesure.sn',
       phone: '+221770000001',
@@ -1095,7 +1096,7 @@ export class App implements AfterViewInit, OnDestroy {
       studio: 'Maison Diarra',
       location: 'Saint-Louis',
       specialty: 'Moderne',
-      portrait: '/assets/stylist-mame.png',
+      portrait: '/assets/stylist-mame.webp',
       bio: 'Mame mêle lignes contemporaines, matières fortes et finitions précises pour créer un vestiaire moderne et personnel.',
       email: 'mame@surmesure.sn',
       phone: '+221770000002',
@@ -1105,7 +1106,7 @@ export class App implements AfterViewInit, OnDestroy {
       studio: 'Seynabou Studio',
       location: 'Dakar',
       specialty: 'Traditionnel',
-      portrait: '/assets/stylist-fatou.png',
+      portrait: '/assets/stylist-fatou.webp',
       bio: 'Fatou revisite les savoir-faire traditionnels avec une approche sensible, actuelle et profondément ancrée dans le savoir-faire local.',
       email: 'fatou@surmesure.sn',
       phone: '+221770000003',
@@ -1210,34 +1211,42 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   async loadPublicCatalog(reset = false): Promise<void> {
-    if (this.publicCatalogLoading || (!reset && !this.publicCatalogHasMore)) return;
+    if (this.catalogLoadPromise) return this.catalogLoadPromise;
+    if (!reset && !this.publicCatalogHasMore) return;
     if (reset) {
       this.publicCatalogItems = [];
       this.publicCatalogCursor = null;
       this.publicCatalogHasMore = true;
     }
     this.publicCatalogLoading = true;
-    try {
-      const page = await this.dashboard.loadPublicCatalogPage(
-        12,
-        this.publicCatalogCursor ?? undefined,
-      );
-      this.publicCatalogItems = reset
-        ? page.data
-        : [
-            ...this.publicCatalogItems,
-            ...page.data.filter(
-              (item) => !this.publicCatalogItems.some((existing) => existing.id === item.id),
-            ),
-          ];
-      this.publicCatalogCursor = page.meta.nextCursor;
-      this.publicCatalogHasMore = page.meta.hasMore;
-      this.publicCatalogLoaded = true;
-    } catch {
-      this.publicCatalogHasMore = false;
-    } finally {
-      this.publicCatalogLoading = false;
-    }
+    const request = (async () => {
+      try {
+        const page = await this.dashboard.loadPublicCatalogPage(
+          12,
+          this.publicCatalogCursor ?? undefined,
+        );
+        this.publicCatalogItems = reset
+          ? page.data
+          : [
+              ...this.publicCatalogItems,
+              ...page.data.filter(
+                (item) => !this.publicCatalogItems.some((existing) => existing.id === item.id),
+              ),
+            ];
+        this.publicCatalogCursor = page.meta.nextCursor;
+        this.publicCatalogHasMore = page.meta.hasMore;
+        this.publicCatalogLoaded = true;
+      } catch {
+        // Preserve the current page and allow the user to retry.
+      } finally {
+        this.publicCatalogLoading = false;
+      }
+    })();
+    this.catalogLoadPromise = request;
+    void request.finally(() => {
+      if (this.catalogLoadPromise === request) this.catalogLoadPromise = null;
+    });
+    return request;
   }
 
   async loadPublicStylists(): Promise<void> {
@@ -2980,7 +2989,7 @@ export class App implements AfterViewInit, OnDestroy {
       lastName: 'Ndiaye',
       email: 'fatou.demo@surmesure.sn',
       phone: '+221 77 000 00 01',
-      profileImage: '/assets/stylist-awa.png',
+      profileImage: '/assets/stylist-awa.webp',
       isActive: true,
     };
     const stylistUser: AuthUser = {
@@ -2990,7 +2999,7 @@ export class App implements AfterViewInit, OnDestroy {
       lastName: 'Diop',
       email: 'awa.demo@surmesure.sn',
       phone: '+221 77 000 00 02',
-      profileImage: '/assets/stylist-awa.png',
+      profileImage: '/assets/stylist-awa.webp',
       isActive: true,
     };
     const demoStylist: DashboardStylist = {
@@ -3000,7 +3009,7 @@ export class App implements AfterViewInit, OnDestroy {
       about: 'Créations de cérémonie et savoir-faire traditionnel revisité.',
       specialties: ['Cérémonie', 'Traditionnel'],
       rating: 4.9,
-      user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' },
+      user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.webp' },
     };
     const demoCatalog: DashboardCatalogItem[] = [
       {
@@ -3008,7 +3017,7 @@ export class App implements AfterViewInit, OnDestroy {
         stylistId,
         title: 'Robe Ndar',
         description: 'Robe de cérémonie sur mesure',
-        imageUrl: '/assets/look-2.png',
+        imageUrl: '/assets/look-2.webp',
         price: 89000,
         currency: 'FCFA',
         availableColors: ['Prune', 'Ivoire'],
@@ -3021,7 +3030,7 @@ export class App implements AfterViewInit, OnDestroy {
         stylistId,
         title: 'Boubou Héritage',
         description: 'Boubou traditionnel revisité',
-        imageUrl: '/assets/look-1.png',
+        imageUrl: '/assets/look-1.webp',
         price: 115000,
         currency: 'FCFA',
         availableColors: ['Sable', 'Or'],
@@ -3034,7 +3043,7 @@ export class App implements AfterViewInit, OnDestroy {
         stylistId,
         title: 'Ensemble Kër',
         description: 'Ensemble deux pièces',
-        imageUrl: '/assets/look-3.png',
+        imageUrl: '/assets/look-3.webp',
         price: 74000,
         currency: 'FCFA',
         availableColors: ['Rose', 'Noir'],
@@ -3108,7 +3117,7 @@ export class App implements AfterViewInit, OnDestroy {
       notes: 'Premier essayage à l’atelier.',
       stylist: {
         businessName: 'Atelier Awa',
-        user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.png' },
+        user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.webp' },
       },
       client: {
         firstName: 'Fatou',
