@@ -181,12 +181,17 @@
           </div>
         </div>
         <p class="signup-error" *ngIf="error">{{ error }}</p>
-        <label class="signup-consent"
-          ><input type="checkbox" required />
-          <span
-            >J’accepte les conditions d’utilisation et la politique de confidentialité.</span
-          ></label
-        >
+        <label class="signup-consent">
+          <input type="checkbox" required />
+          <span>
+            J’accepte les
+            <a href="/conditions.html" target="_blank" rel="noopener">conditions d’utilisation</a>
+            et la
+            <a href="/confidentialite.html" target="_blank" rel="noopener"
+              >politique de confidentialité</a
+            >.
+          </span>
+        </label>
         <button class="signup-submit" type="submit" [disabled]="submitting">
           {{ submitting ? 'Création en cours…' : 'Créer mon compte' }} <span>→</span>
         </button>

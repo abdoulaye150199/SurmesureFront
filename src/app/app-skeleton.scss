@@ -31,6 +31,14 @@
 .workspace-catalog-skeleton {
   padding: 12px 0;
 }
+.footer-bottom > div a {
+  font-size: 10px;
+  color: inherit;
+  text-decoration: none;
+}
+.footer-bottom > div a:hover {
+  text-decoration: underline;
+}
 @keyframes catalog-skeleton-shimmer {
   to {
     background-position-x: -220%;
