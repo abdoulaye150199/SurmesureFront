@@ -1,6 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { AfterViewInit, Component, HostListener, inject, OnDestroy, signal } from '@angular/core';
+import {
+  afterNextRender,
+  AfterViewInit,
+  Component,
+  HostListener,
+  inject,
+  Injector,
+  OnDestroy,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SeoService } from './seo.service';
 import { NavigationEnd, Router } from '@angular/router';
@@ -102,9 +111,15 @@ type StylistEditor = 'catalog' | 'profile' | null;
     StylistSettingsComponent,
   ],
   templateUrl: './app.html',
-  styleUrls: ['./app.scss', './app-skeleton.scss', './stylist-dashboard.scss'],
+  styleUrls: [
+    './app.scss',
+    './app-skeleton.scss',
+    './stylist-dashboard.scss',
+    './app-pricing.scss',
+  ],
 })
 export class App implements AfterViewInit, OnDestroy {
+  private readonly injector = inject(Injector);
   private readonly auth = inject(AuthService);
   private readonly dashboard = inject(DashboardService);
   private readonly offlineWorkspace = inject(OfflineWorkspaceStore);
@@ -2760,7 +2775,9 @@ export class App implements AfterViewInit, OnDestroy {
     this.leaveClientPage();
     this.activeView = 'home';
     void this.router.navigateByUrl('/');
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    afterNextRender(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' }), {
+      injector: this.injector,
+    });
     this.menuOpen = false;
   }
 

@@ -37,6 +37,7 @@
     <button type="button" (click)="setView('home')">Accueil</button>
     <button type="button" (click)="setView('explore')">Explorer</button>
     <button type="button" (click)="setView('measure')">Mesures</button>
+    <button type="button" (click)="scrollTo('tarifs')">Tarifs</button>
     <button type="button" (click)="openWorkspace(defaultWorkspaceRole)">Mon espace</button>
     <button type="button" (click)="cartOpen = true">Sélection</button>
   </nav>
@@ -222,7 +223,13 @@
   <section class="measure-section" id="mesures">
     <div class="measure-visual">
       <span class="measure-orbit one"></span><span class="measure-orbit two"></span>
-      <img src="/assets/mannequins.webp" alt="Mannequins de couture" />
+      <img
+        src="/assets/mannequins-transparent.png"
+        alt="Quatre mannequins portant des créations noires, dorées et ivoire"
+        width="1371"
+        height="1147"
+        loading="lazy"
+      />
       <span class="measure-note top">Épaules <b>38 cm</b></span>
       <span class="measure-note bottom">Longueur <b>142 cm</b></span>
     </div>
@@ -233,7 +240,9 @@
         Renseignez vos mensurations une seule fois. Elles sont enregistrées dans votre espace
         sécurisé et transmises au styliste pour chaque commande.
       </p>
-      <button class="button cream">Créer mon profil de mesures →</button>
+      <button class="button cream" type="button" (click)="setView('measure')">
+        Créer mon profil de mesures
+      </button>
       <small>En moins de 5 minutes · Guide illustré inclus</small>
     </div>
   </section>
@@ -270,6 +279,71 @@
       <p class="stylist-gallery-empty" *ngIf="publicStylistsLoaded && !visibleStylists.length">
         Les profils des stylistes seront bientôt disponibles.
       </p>
+    </div>
+  </section>
+
+  <section class="pricing-section section-shell" id="tarifs" aria-labelledby="pricing-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">Pour les stylistes et ateliers</p>
+        <h2 id="pricing-title">Votre talent,<br /><em>la formule qui vous suit.</em></h2>
+      </div>
+      <p>
+        Du premier catalogue à la gestion de votre équipe, découvrez nos projets d’abonnements pour
+        accompagner votre atelier.
+      </p>
+    </div>
+    <p class="pricing-notice">
+      Offres en préparation · Tarifs mensuels indicatifs, à confirmer lors de l’ouverture des
+      abonnements.
+    </p>
+    <div class="pricing-grid">
+      <article class="pricing-card" aria-labelledby="pricing-essential">
+        <p class="pricing-audience">Pour démarrer</p>
+        <h3 id="pricing-essential">Essentiel</h3>
+        <p class="pricing-description">Présentez votre univers et vos premières créations.</p>
+        <p class="pricing-amount">5 000 <span>FCFA / mois</span></p>
+        <ul>
+          <li>Profil de styliste et vitrine en ligne</li>
+          <li>Catalogue de vos créations</li>
+          <li>Suivi de vos commandes</li>
+        </ul>
+        <a class="pricing-contact" href="mailto:bonjour@surmesure.sn?subject=Abonnement%20Essentiel"
+          >Me renseigner</a
+        >
+      </article>
+      <article class="pricing-card featured" aria-labelledby="pricing-atelier">
+        <p class="pricing-audience">Pour organiser votre activité</p>
+        <h3 id="pricing-atelier">Atelier</h3>
+        <p class="pricing-description">
+          Réunissez votre clientèle et votre quotidien au même endroit.
+        </p>
+        <p class="pricing-amount">10 000 <span>FCFA / mois</span></p>
+        <ul>
+          <li>Tous les services de l’offre Essentiel</li>
+          <li>Fiches clients et mensurations</li>
+          <li>Planning et rendez-vous</li>
+        </ul>
+        <a class="pricing-contact" href="mailto:bonjour@surmesure.sn?subject=Abonnement%20Atelier"
+          >Parlons de mon atelier</a
+        >
+      </article>
+      <article class="pricing-card" aria-labelledby="pricing-studio">
+        <p class="pricing-audience">Pour travailler en équipe</p>
+        <h3 id="pricing-studio">Studio</h3>
+        <p class="pricing-description">
+          Coordonnez votre équipe et gardez une vue sur votre atelier.
+        </p>
+        <p class="pricing-amount">20 000 <span>FCFA / mois</span></p>
+        <ul>
+          <li>Tous les services de l’offre Atelier</li>
+          <li>Gestion de votre équipe</li>
+          <li>Vue d’ensemble de votre activité</li>
+        </ul>
+        <a class="pricing-contact" href="mailto:bonjour@surmesure.sn?subject=Abonnement%20Studio"
+          >Échanger sur mon projet</a
+        >
+      </article>
     </div>
   </section>
 
@@ -497,7 +571,9 @@
       <h4>Explorer</h4>
       <button (click)="scrollTo('collections')">Collections</button
       ><button (click)="scrollTo('stylistes')">Nos stylistes</button
-      ><button (click)="scrollTo('mesures')">Prendre mes mesures</button><button>Nouveautés</button>
+      ><button (click)="scrollTo('mesures')">Prendre mes mesures</button
+      ><button type="button" (click)="scrollTo('tarifs')">Tarifs stylistes</button
+      ><button>Nouveautés</button>
     </div>
     <div class="footer-links">
       <h4>Votre espace</h4>

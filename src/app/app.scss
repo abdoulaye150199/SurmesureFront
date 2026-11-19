@@ -555,6 +555,8 @@ h2 em {
 }
 .measure-visual img {
   width: 78%;
+  min-width: 0;
+  height: auto;
   position: relative;
   z-index: 2;
   filter: sepia(0.12) contrast(1.05);
@@ -1321,7 +1323,7 @@ footer button {
   min-height: 720px;
   margin: 40px;
   border-radius: 24px;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   box-shadow: 0 35px 90px rgba(55, 9, 52, 0.16);
 }
 .measure-visual {
@@ -1341,6 +1343,8 @@ footer button {
 }
 .measure-copy {
   position: relative;
+  min-width: 0;
+  padding: clamp(32px, 4vw, 72px);
   overflow: hidden;
   background: radial-gradient(circle at 100% 0, rgba(170, 92, 163, 0.27), transparent 38%);
 }

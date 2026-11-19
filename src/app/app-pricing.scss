@@ -1,0 +1,153 @@
+.pricing-section {
+  background: #f6f0e9;
+  scroll-margin-top: 105px;
+
+  .section-heading {
+    margin-bottom: 28px;
+  }
+
+  .section-heading h2 {
+    font-size: clamp(36px, 4vw, 64px);
+  }
+
+  .eyebrow {
+    font-size: 14px;
+  }
+}
+
+.pricing-notice {
+  margin: 0 0 36px;
+  color: #665660;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.pricing-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: clamp(24px, 2.6vw, 42px);
+  border: 1px solid #ddcfd6;
+  border-radius: 18px;
+  background: #fffcf8;
+  color: #480048;
+
+  h3 {
+    margin: 18px 0 12px;
+    font-size: 36px;
+  }
+
+  ul {
+    flex: 1;
+    margin: 0 0 32px;
+    padding: 24px 0 0;
+    border-top: 1px solid #ddcfd6;
+    list-style: none;
+  }
+
+  li {
+    position: relative;
+    margin-bottom: 16px;
+    padding-left: 24px;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+  }
+
+  &.featured {
+    background: #480048;
+    color: #fffcf8;
+    border-color: #480048;
+
+    .pricing-audience,
+    .pricing-description,
+    .pricing-amount span {
+      color: #e0d2db;
+    }
+
+    ul {
+      border-color: #825682;
+    }
+
+    .pricing-contact {
+      background: #fffcf8;
+      color: #480048;
+    }
+  }
+}
+
+.pricing-audience {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #74616e;
+}
+
+.pricing-description {
+  margin: 0;
+  color: #74616e;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.pricing-amount {
+  margin: 28px 0;
+  font:
+    400 clamp(32px, 3vw, 48px) / 1.2 Georgia,
+    serif;
+
+  span {
+    display: block;
+    margin-top: 8px;
+    color: #74616e;
+    font:
+      14px / 1.6 Arial,
+      sans-serif;
+  }
+}
+
+.pricing-contact {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 48px;
+  padding: 12px 16px;
+  border: 1px solid currentColor;
+  border-radius: 28px;
+  color: #480048;
+  text-decoration: none;
+  text-align: center;
+  font-size: 14px;
+  line-height: 1.6;
+
+  &:hover {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  &:focus-visible {
+    outline: 3px solid #b68b26;
+    outline-offset: 5px;
+  }
+}
+
+@media (max-width: 900px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-card {
+    padding: 32px;
+  }
+}
