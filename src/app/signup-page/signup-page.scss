@@ -2,8 +2,13 @@
   display: contents;
 }
 .signup-plan-summary {
-  margin: 22px 0;
-  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 12px 0 18px;
+  padding: 12px 14px;
   background: #f5edf3;
   border: 1px solid #e4d1df;
   border-radius: 12px;
@@ -12,13 +17,6 @@
   small {
     display: block;
     font-weight: 400;
-  }
-  ul {
-    padding-left: 18px;
-    margin: 14px 0;
-  }
-  p {
-    margin-bottom: 0;
   }
 }
 .signup-plan-choice {
@@ -164,9 +162,11 @@
 }
 .signup-form-card {
   position: relative;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 44px clamp(24px, 3vw, 48px);
   background: #fffcf8;
   color: #480048;

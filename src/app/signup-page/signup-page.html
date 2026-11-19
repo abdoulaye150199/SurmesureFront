@@ -48,25 +48,15 @@
             isStylist ? plan.name + '.' : 'compte.'
           }}</em>
         </h2>
-        <p class="signup-intro">
-          {{
-            isStylist
-              ? 'Présentez votre atelier et rejoignez les talents de notre communauté.'
-              : 'Un espace personnel pour vos mesures, vos commandes et vos inspirations.'
-          }}
+        <p class="signup-intro" *ngIf="!isStylist">
+          Un espace personnel pour vos mesures, vos commandes et vos inspirations.
         </p>
         <div class="signup-plan-summary" *ngIf="isStylist">
+          <span>{{ plan.name }}</span>
           <strong
             >{{ plan.price.toLocaleString('fr-FR') }} FCFA / mois
             <small>Tarif indicatif</small></strong
           >
-          <ul>
-            <li *ngFor="let feature of plan.features">{{ feature }}</li>
-          </ul>
-          <p>
-            Votre compte sera créé en attente. L’administrateur attribuera votre formule et activera
-            votre accès après validation.
-          </p>
         </div>
 
         @if (!googleCredential) {

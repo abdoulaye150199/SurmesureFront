@@ -6,19 +6,40 @@ import { routes } from '../app.routes';
 
 describe('Admin stylist registration notifications', () => {
   const notification: AdminRegistrationNotification = {
-    id: 'stylist', firstName: 'Awa', lastName: 'Diop', email: 'awa@example.test',
-    requestedPlan: 'ATELIER', approvalStatus: 'pending', createdAt: '2026-11-19T12:00:00Z',
-    readAt: null, stylist: { businessName: 'Atelier Awa' },
+    id: 'stylist',
+    firstName: 'Awa',
+    lastName: 'Diop',
+    email: 'awa@example.test',
+    requestedPlan: 'ATELIER',
+    approvalStatus: 'pending',
+    createdAt: '2026-11-19T12:00:00Z',
+    readAt: null,
+    stylist: { businessName: 'Atelier Awa' },
   };
-  let api: { loadAdminNotifications: jasmine.Spy; readAdminNotification: jasmine.Spy; loadAdminUsers: jasmine.Spy };
-  const page = (data: AdminRegistrationNotification[], unreadCount: number) => ({ data, unreadCount, meta: { nextCursor: null, hasMore: false } });
+  let api: {
+    loadAdminNotifications: jasmine.Spy;
+    readAdminNotification: jasmine.Spy;
+    loadAdminUsers: jasmine.Spy;
+  };
+  const page = (data: AdminRegistrationNotification[], unreadCount: number) => ({
+    data,
+    unreadCount,
+    meta: { nextCursor: null, hasMore: false },
+  });
   beforeEach(() => {
     api = {
       loadAdminNotifications: jasmine.createSpy().and.resolveTo(page([], 0)),
-      readAdminNotification: jasmine.createSpy().and.resolveTo({ id: notification.id, readAt: '2026-11-19T13:00:00Z' }),
-      loadAdminUsers: jasmine.createSpy().and.resolveTo({ data: [], meta: { total: 0, page: 1, totalPages: 1 } }),
+      readAdminNotification: jasmine
+        .createSpy()
+        .and.resolveTo({ id: notification.id, readAt: '2026-11-19T13:00:00Z' }),
+      loadAdminUsers: jasmine
+        .createSpy()
+        .and.resolveTo({ data: [], meta: { total: 0, page: 1, totalPages: 1 } }),
     };
-    TestBed.configureTestingModule({ imports: [AdminDashboardComponent], providers: [provideRouter(routes), { provide: DashboardService, useValue: api }] });
+    TestBed.configureTestingModule({
+      imports: [AdminDashboardComponent],
+      providers: [provideRouter(routes), { provide: DashboardService, useValue: api }],
+    });
   });
 
   it('announces a new registration once when the unread count increases', async () => {
@@ -48,7 +69,9 @@ describe('Admin stylist registration notifications', () => {
 
   it('keeps a notification unread if saving the read state fails', async () => {
     const component = TestBed.createComponent(AdminDashboardComponent).componentInstance;
-    component.notifications = [notification]; component.unreadNotifications = 1; component.notificationsOpen = true;
+    component.notifications = [notification];
+    component.unreadNotifications = 1;
+    component.notificationsOpen = true;
     api.readAdminNotification.and.rejectWith(new Error('offline'));
     await component.openRegistrationNotification(notification);
     expect(component.unreadNotifications).toBe(1);
@@ -59,7 +82,8 @@ describe('Admin stylist registration notifications', () => {
 
   it('preserves previous notifications if an automatic refresh fails', async () => {
     const component = TestBed.createComponent(AdminDashboardComponent).componentInstance;
-    component.notifications = [notification]; component.unreadNotifications = 7;
+    component.notifications = [notification];
+    component.unreadNotifications = 7;
     api.loadAdminNotifications.and.rejectWith(new Error('offline'));
     await component.loadNotifications();
     expect(component.notifications).toEqual([notification]);
@@ -69,9 +93,10 @@ describe('Admin stylist registration notifications', () => {
 
   it('does not restore an old unread count when a refresh finishes after reading', async () => {
     const component = TestBed.createComponent(AdminDashboardComponent).componentInstance;
-    component.notifications = [notification]; component.unreadNotifications = 1;
+    component.notifications = [notification];
+    component.unreadNotifications = 1;
     let resolve!: (value: ReturnType<typeof page>) => void;
-    api.loadAdminNotifications.and.returnValue(new Promise(done => resolve = done));
+    api.loadAdminNotifications.and.returnValue(new Promise((done) => (resolve = done)));
     const refreshing = component.loadNotifications();
     await component.openRegistrationNotification(notification);
     resolve(page([notification], 1));
