@@ -420,27 +420,43 @@
       <h2>{{ stylist.name }}</h2>
       <p class="stylist-profile-bio">{{ stylist.bio }}</p>
 
-      <button
-        class="stylist-book-appointment"
-        type="button"
-        *ngIf="stylist.id"
-        (click)="requestStylistAppointment(stylist)"
-      >
-        <span>◷</span> Demander un rendez-vous <span>→</span>
-      </button>
-
-      <div class="stylist-profile-contact" *ngIf="stylist.email || stylist.phone">
+      <div class="stylist-profile-contact">
         <span class="card-label">Échanger avec {{ stylist.name }}</span>
         <div class="stylist-contact-actions">
+          <button
+            class="button primary stylist-appointment-action"
+            type="button"
+            *ngIf="canRequestAppointment || needsAppointmentLogin"
+            (click)="requestStylistAppointment(stylist)"
+            [disabled]="!stylist.id"
+            [attr.aria-describedby]="!stylist.id ? 'appointment-unavailable' : null"
+          >
+            {{
+              canRequestAppointment
+                ? 'Écrire une demande de rendez-vous'
+                : 'Se connecter pour demander un rendez-vous'
+            }}
+          </button>
           <a
-            class="button primary"
+            class="stylist-phone-link"
+            *ngIf="stylist.email && !canRequestAppointment"
             [href]="'mailto:' + stylist.email + '?subject=Projet%20sur%20mesure'"
             >Écrire à la styliste <span>↗</span></a
           >
-          <a class="stylist-phone-link" [href]="'tel:' + stylist.phone"
+          <a class="stylist-phone-link" *ngIf="stylist.phone" [href]="'tel:' + stylist.phone"
             >Appeler {{ stylist.name }} <span>↗</span></a
           >
         </div>
+        <p class="appointment-profile-hint" id="appointment-unavailable" *ngIf="!stylist.id">
+          Ce profil de présentation ne reçoit pas de demandes en ligne. Choisissez un atelier
+          inscrit pour demander un rendez-vous.
+        </p>
+        <p
+          class="appointment-profile-hint"
+          *ngIf="stylist.id && !canRequestAppointment && !needsAppointmentLogin"
+        >
+          Les demandes de rendez-vous sont réservées aux comptes clients.
+        </p>
       </div>
 
       <div class="stylist-profile-creations">
@@ -1362,6 +1378,9 @@
             <h2>Rendez-vous</h2>
             <span>{{ clientAppointments.length }} rendez-vous</span>
           </div>
+          <button class="button outline" type="button" (click)="openClientExplore()">
+            Demander un rendez-vous
+          </button>
           <article class="client-appointment" *ngFor="let appointment of clientAppointments">
             <div class="client-card-heading">
               <h3>{{ appointment.service }}</h3>
@@ -1382,6 +1401,9 @@
                       ? 'Terminé'
                       : 'En attente de confirmation'
               }}
+            </p>
+            <p class="client-appointment-message" *ngIf="appointment.notes">
+              {{ appointment.notes }}
             </p>
           </article>
           <div class="dashboard-inline-empty" *ngIf="!clientAppointments.length">
@@ -3379,12 +3401,12 @@
         [disabled]="appointmentSaving"
     /></label>
     <label
-      >Précisions (facultatif)<textarea
+      >Votre message (facultatif)<textarea
         name="appointmentNotes"
         [(ngModel)]="appointmentDraft.notes"
         rows="3"
         maxlength="1000"
-        placeholder="Décrivez votre projet ou vos besoins…"
+        placeholder="Bonjour, je souhaiterais vous rencontrer pour discuter de mon projet…"
         [disabled]="appointmentSaving"
       ></textarea>
     </label>

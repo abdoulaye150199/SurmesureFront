@@ -242,6 +242,14 @@ export class App implements AfterViewInit, OnDestroy {
     return this.stylistAppointments.filter((item) => item.status === 'pending');
   }
 
+  get canRequestAppointment(): boolean {
+    return this.auth.isAuthenticated && this.auth.user?.role === 'CLIENT' && !this.demoMode;
+  }
+
+  get needsAppointmentLogin(): boolean {
+    return !this.auth.isAuthenticated;
+  }
+
   requestStylistAppointment(stylist: Stylist): void {
     if (!stylist.id) {
       this.showToast('Cet atelier ne prend pas encore de rendez-vous en ligne.');
@@ -253,7 +261,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.openLogin('client');
       return;
     }
-    if (this.auth.user?.role !== 'CLIENT' || this.demoMode) {
+    if (!this.canRequestAppointment) {
       this.showToast('Connectez-vous à un compte client pour demander un rendez-vous.');
       return;
     }
@@ -261,6 +269,10 @@ export class App implements AfterViewInit, OnDestroy {
     this.appointmentDraft = { service: '', startsAt: '', notes: '' };
     this.appointmentError = '';
     this.appointmentStylist = stylist;
+    afterNextRender(
+      () => document.querySelector<HTMLInputElement>('[name="appointmentService"]')?.focus(),
+      { injector: this.injector },
+    );
   }
 
   private resumeAppointmentRequest(user: AuthUser): void {
@@ -272,6 +284,10 @@ export class App implements AfterViewInit, OnDestroy {
   async sendAppointmentRequest(): Promise<void> {
     if (this.appointmentSaving || !this.appointmentStylist?.id) return;
     this.appointmentError = '';
+    if (!this.canRequestAppointment) {
+      this.appointmentError = 'Connectez-vous à un compte client pour envoyer votre demande.';
+      return;
+    }
     const draft = this.appointmentDraft;
     const startsAt = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(draft.startsAt)
       ? new Date(`${draft.startsAt}:00Z`)

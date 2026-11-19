@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpErrorResponse } from '@angular/common/http';
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { Router } from '@angular/router';
 import { App } from './app';
@@ -218,12 +218,116 @@ describe('App', () => {
     expect(app.appointmentStylist).toBeNull();
   });
 
+  it('opens the appointment form instead of email for a connected client', fakeAsync(() => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const auth = TestBed.inject(AuthService);
+    spyOn(app, 'ngAfterViewInit');
+    spyOn(auth, 'validateSession').and.resolveTo(true);
+    spyOn(app, 'loadDashboard').and.resolveTo();
+    spyOn(app, 'loadPublicCatalog').and.resolveTo();
+    spyOn(app, 'loadPublicStylists').and.resolveTo();
+    spyOn(app, 'refreshAppointments').and.resolveTo();
+    spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
+    spyOnProperty(auth, 'user', 'get').and.returnValue({
+      id: 'client',
+      role: 'CLIENT',
+    } as NonNullable<App['authenticatedUser']>);
+    const stylist = { ...app.stylists[1], id: 'registered-atelier' };
+    app.openStylist(stylist);
+    fixture.detectChanges();
+
+    const profile = fixture.nativeElement.querySelector('.stylist-profile-content');
+    expect(profile.querySelector('a[href^="mailto:"]')).toBeNull();
+    const action = profile.querySelector('.stylist-appointment-action');
+    expect(action.disabled).toBeFalse();
+    action.click();
+    fixture.detectChanges();
+    tick(0);
+    fixture.detectChanges();
+
+    expect(app.loginOpen).toBeFalse();
+    expect(app.selectedStylist).toBeNull();
+    expect(app.appointmentStylist).toBe(stylist);
+    expect(fixture.nativeElement.querySelector('[name="appointmentNotes"]')).toBeTruthy();
+    expect(fixture.nativeElement.querySelector('.appointment-request-submit').disabled).toBeTrue();
+    fixture.destroy();
+  }));
+
+  it('does not offer to send an appointment to a showcase profile without an atelier', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    const auth = TestBed.inject(AuthService);
+    spyOn(app, 'ngAfterViewInit');
+    spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
+    spyOnProperty(auth, 'user', 'get').and.returnValue({
+      id: 'client',
+      role: 'CLIENT',
+    } as NonNullable<App['authenticatedUser']>);
+    app.openStylist(app.stylists[1]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.stylist-appointment-action').disabled).toBeTrue();
+    expect(fixture.nativeElement.querySelector('#appointment-unavailable').textContent).toContain(
+      'Choisissez un atelier',
+    );
+    expect(app.appointmentStylist).toBeNull();
+  });
+
+  it('keeps the written request when the atelier cannot receive it', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const auth = TestBed.inject(AuthService);
+    spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
+    spyOnProperty(auth, 'user', 'get').and.returnValue({
+      id: 'client',
+      role: 'CLIENT',
+    } as NonNullable<App['authenticatedUser']>);
+    app.appointmentStylist = { ...app.stylists[0], id: 'atelier' };
+    const draft = {
+      service: 'Essayage',
+      startsAt: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+      notes: 'Bonjour, je souhaite faire ajuster ma tenue.',
+    };
+    app.appointmentDraft = { ...draft };
+    spyOn(TestBed.inject(DashboardService), 'createAppointment').and.rejectWith(
+      new HttpErrorResponse({ status: 409, error: { message: 'Ce créneau est déjà réservé.' } }),
+    );
+
+    await app.sendAppointmentRequest();
+
+    expect(app.appointmentError).toBe('Ce créneau est déjà réservé.');
+    expect(app.appointmentDraft).toEqual(draft);
+    expect(app.appointmentStylist?.id).toBe('atelier');
+    expect(app.appointmentSaving).toBeFalse();
+  });
+
+  it('does not send a written request after the client session expires', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    app.appointmentStylist = { ...app.stylists[0], id: 'atelier' };
+    app.appointmentDraft = {
+      service: 'Essayage',
+      startsAt: new Date(Date.now() + 86400000).toISOString().slice(0, 16),
+      notes: 'Bonjour, voici ma demande.',
+    };
+    const create = spyOn(TestBed.inject(DashboardService), 'createAppointment');
+
+    await app.sendAppointmentRequest();
+
+    expect(create).not.toHaveBeenCalled();
+    expect(app.appointmentError).toContain('Connectez-vous');
+    expect(app.appointmentDraft.notes).toBe('Bonjour, voici ma demande.');
+  });
+
   it('sends a request to the chosen stylist and displays it in client appointments', async () => {
     const app = TestBed.createComponent(App).componentInstance;
     const dashboard = TestBed.inject(DashboardService);
     const auth = TestBed.inject(AuthService);
     spyOnProperty(auth, 'isAuthenticated', 'get').and.returnValue(true);
     spyOnProperty(auth, 'appRole', 'get').and.returnValue('client');
+    spyOnProperty(auth, 'user', 'get').and.returnValue({
+      id: 'client',
+      role: 'CLIENT',
+    } as NonNullable<App['authenticatedUser']>);
     app.activeView = 'client';
     const startsAt = new Date(Date.now() + 86400000).toISOString().slice(0, 16);
     app.appointmentStylist = { id: 'chosen-atelier', studio: 'Atelier Awa' } as NonNullable<

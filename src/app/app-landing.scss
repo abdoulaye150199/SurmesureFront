@@ -7,6 +7,30 @@
   filter: sepia(0.12) contrast(1.05);
 }
 
+.stylist-appointment-action {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+  line-height: 1.6;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.appointment-profile-hint {
+  margin: 16px 0 0;
+  color: #74616e;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.client-appointment-message {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .pricing-section {
   background: #f6f0e9;
   scroll-margin-top: 105px;
