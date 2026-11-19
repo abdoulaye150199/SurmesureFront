@@ -2,6 +2,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom, timeout, TimeoutError } from 'rxjs';
 import { getApiUrl } from '../api-url';
+import { SubscriptionPlan } from '../subscription-plans';
 import {
   clearStoredAuthSession,
   isAuthSession,
@@ -23,6 +24,9 @@ export interface AuthUser {
   profileImage: string;
   isActive: boolean;
   mustChangePassword?: boolean;
+  approvalStatus?: 'pending' | 'approved';
+  requestedPlan?: SubscriptionPlan | null;
+  subscriptionPlan?: SubscriptionPlan | null;
 }
 
 export interface AuthSession {
@@ -35,9 +39,22 @@ export interface RegisterPayload {
   firstName: string;
   lastName: string;
   businessName?: string;
+  requestedPlan?: SubscriptionPlan;
   phone: string;
   email: string;
   password: string;
+}
+
+export interface PendingRegistration {
+  status: 'pending';
+  message: string;
+  data: AuthUser;
+}
+
+export function isPendingRegistration(
+  value: AuthUser | PendingRegistration,
+): value is PendingRegistration {
+  return 'status' in value && value.status === 'pending';
 }
 
 export { AUTH_SESSION_KEY } from './auth-session.storage';
@@ -76,9 +93,9 @@ export class AuthService {
   async register(
     role: Exclude<AppAccountRole, 'admin' | 'employee'>,
     payload: RegisterPayload,
-  ): Promise<AuthUser> {
+  ): Promise<AuthUser | PendingRegistration> {
     const endpoint = role === 'stylist' ? '/auth/stylist/signup' : '/auth/register';
-    return this.authenticate(endpoint, payload);
+    return this.authenticate(endpoint, payload, true);
   }
 
   googleConfiguration(): Promise<{ clientId: string | null }> {
@@ -101,8 +118,8 @@ export class AuthService {
       credential: string;
       role: 'client' | 'stylist';
     },
-  ): Promise<AuthUser> {
-    return this.authenticate('/auth/google/register', payload);
+  ): Promise<AuthUser | PendingRegistration> {
+    return this.authenticate('/auth/google/register', payload, true);
   }
 
   changeEmployeePassword(currentPassword: string, newPassword: string): Promise<AuthUser> {
@@ -143,12 +160,37 @@ export class AuthService {
     clearStoredAuthSession();
   }
 
-  private async authenticate(endpoint: string, body: object): Promise<AuthUser> {
+  private authenticate(endpoint: string, body: object): Promise<AuthUser>;
+  private authenticate(
+    endpoint: string,
+    body: object,
+    allowPending: true,
+  ): Promise<AuthUser | PendingRegistration>;
+  private async authenticate(
+    endpoint: string,
+    body: object,
+    allowPending = false,
+  ): Promise<AuthUser | PendingRegistration> {
     try {
       const response: unknown = await firstValueFrom(
         this.http.post<unknown>(getApiUrl(endpoint), body).pipe(timeout(20000)),
       );
-      if (!isAuthSession(response)) throw new Error('Réponse d’authentification invalide.');
+      if (
+        allowPending &&
+        typeof response === 'object' &&
+        response !== null &&
+        'status' in response &&
+        response.status === 'pending' &&
+        'data' in response &&
+        isAuthUser(response.data) &&
+        !response.data.isActive &&
+        'message' in response &&
+        typeof response.message === 'string'
+      ) {
+        return response as PendingRegistration;
+      }
+      if (!isAuthSession(response) || !response.data.isActive)
+        throw new Error('Réponse d’authentification invalide.');
       const session = response;
       this.session = session;
       writeAuthSession(session);

@@ -294,55 +294,28 @@
       </p>
     </div>
     <p class="pricing-notice">
-      Offres en préparation · Tarifs mensuels indicatifs, à confirmer lors de l’ouverture des
-      abonnements.
+      Tarifs mensuels indicatifs. Votre inscription sera examinée par l’administrateur, qui
+      attribuera votre formule et activera votre compte.
     </p>
     <div class="pricing-grid">
-      <article class="pricing-card" aria-labelledby="pricing-essential">
-        <p class="pricing-audience">Pour démarrer</p>
-        <h3 id="pricing-essential">Essentiel</h3>
-        <p class="pricing-description">Présentez votre univers et vos premières créations.</p>
-        <p class="pricing-amount">5 000 <span>FCFA / mois</span></p>
-        <ul>
-          <li>Profil de styliste et vitrine en ligne</li>
-          <li>Catalogue de vos créations</li>
-          <li>Suivi de vos commandes</li>
-        </ul>
-        <a class="pricing-contact" href="mailto:bonjour@surmesure.sn?subject=Abonnement%20Essentiel"
-          >Me renseigner</a
-        >
-      </article>
-      <article class="pricing-card featured" aria-labelledby="pricing-atelier">
-        <p class="pricing-audience">Pour organiser votre activité</p>
-        <h3 id="pricing-atelier">Atelier</h3>
-        <p class="pricing-description">
-          Réunissez votre clientèle et votre quotidien au même endroit.
+      <article
+        class="pricing-card"
+        *ngFor="let plan of subscriptionPlans"
+        [class.featured]="plan.id === 'ATELIER'"
+        [attr.aria-labelledby]="'pricing-' + plan.slug"
+      >
+        <p class="pricing-audience">{{ plan.audience }}</p>
+        <h3 [id]="'pricing-' + plan.slug">{{ plan.name }}</h3>
+        <p class="pricing-description">{{ plan.description }}</p>
+        <p class="pricing-amount">
+          {{ plan.price.toLocaleString('fr-FR') }} <span>FCFA / mois</span>
         </p>
-        <p class="pricing-amount">10 000 <span>FCFA / mois</span></p>
         <ul>
-          <li>Tous les services de l’offre Essentiel</li>
-          <li>Fiches clients et mensurations</li>
-          <li>Planning et rendez-vous</li>
+          <li *ngFor="let feature of plan.features">{{ feature }}</li>
         </ul>
-        <a class="pricing-contact" href="mailto:bonjour@surmesure.sn?subject=Abonnement%20Atelier"
-          >Parlons de mon atelier</a
-        >
-      </article>
-      <article class="pricing-card" aria-labelledby="pricing-studio">
-        <p class="pricing-audience">Pour travailler en équipe</p>
-        <h3 id="pricing-studio">Studio</h3>
-        <p class="pricing-description">
-          Coordonnez votre équipe et gardez une vue sur votre atelier.
-        </p>
-        <p class="pricing-amount">20 000 <span>FCFA / mois</span></p>
-        <ul>
-          <li>Tous les services de l’offre Atelier</li>
-          <li>Gestion de votre équipe</li>
-          <li>Vue d’ensemble de votre activité</li>
-        </ul>
-        <a class="pricing-contact" href="mailto:bonjour@surmesure.sn?subject=Abonnement%20Studio"
-          >Échanger sur mon projet</a
-        >
+        <button class="pricing-contact" type="button" (click)="openSignup('stylist', plan.id)">
+          Choisir {{ plan.name }}
+        </button>
       </article>
     </div>
   </section>
@@ -428,8 +401,12 @@
             type="button"
             *ngIf="canRequestAppointment || needsAppointmentLogin"
             (click)="requestStylistAppointment(stylist)"
-            [disabled]="!stylist.id"
-            [attr.aria-describedby]="!stylist.id ? 'appointment-unavailable' : null"
+            [disabled]="!stylist.id || stylist.subscriptionPlan === 'ESSENTIEL'"
+            [attr.aria-describedby]="
+              !stylist.id || stylist.subscriptionPlan === 'ESSENTIEL'
+                ? 'appointment-unavailable'
+                : null
+            "
           >
             {{
               canRequestAppointment
@@ -450,6 +427,13 @@
         <p class="appointment-profile-hint" id="appointment-unavailable" *ngIf="!stylist.id">
           Ce profil de présentation ne reçoit pas de demandes en ligne. Choisissez un atelier
           inscrit pour demander un rendez-vous.
+        </p>
+        <p
+          class="appointment-profile-hint"
+          id="appointment-unavailable"
+          *ngIf="stylist.id && stylist.subscriptionPlan === 'ESSENTIEL'"
+        >
+          Cet atelier ne propose pas de rendez-vous en ligne avec sa formule actuelle.
         </p>
         <p
           class="appointment-profile-hint"
@@ -1631,6 +1615,7 @@
           </button>
           <button
             type="button"
+            *ngIf="canUseStylistPage('clients')"
             [class.active]="stylistPage === 'clients'"
             (click)="setStylistPage('clients')"
           >
@@ -1645,6 +1630,7 @@
           </button>
           <button
             type="button"
+            *ngIf="canUseStylistPage('measurements')"
             [class.active]="stylistPage === 'measurements'"
             (click)="setStylistPage('measurements')"
           >
@@ -1652,6 +1638,7 @@
           </button>
           <button
             type="button"
+            *ngIf="canUseStylistPage('planning')"
             [class.active]="stylistPage === 'planning'"
             (click)="setStylistPage('planning')"
           >
@@ -1659,6 +1646,7 @@
           </button>
           <button
             type="button"
+            *ngIf="canUseStylistPage('team')"
             [class.active]="stylistPage === 'team'"
             (click)="setStylistPage('team')"
           >
@@ -1713,6 +1701,7 @@
               type="button"
               class="analytics-alert"
               aria-label="Demandes de rendez-vous"
+              *ngIf="canUseStylistPage('planning')"
               [attr.aria-expanded]="stylistNotificationsOpen"
               aria-controls="stylist-appointment-notifications"
               (click)="stylistNotificationsOpen = !stylistNotificationsOpen"
@@ -1747,7 +1736,11 @@
         <button
           class="appointment-pending-banner"
           type="button"
-          *ngIf="pendingStylistAppointments.length && !stylistNotificationsOpen"
+          *ngIf="
+            canUseStylistPage('planning') &&
+            pendingStylistAppointments.length &&
+            !stylistNotificationsOpen
+          "
           (click)="stylistNotificationsOpen = true"
           aria-controls="stylist-appointment-notifications"
         >
@@ -1757,7 +1750,7 @@
         <section
           class="appointment-notifications"
           id="stylist-appointment-notifications"
-          *ngIf="stylistNotificationsOpen"
+          *ngIf="stylistNotificationsOpen && canUseStylistPage('planning')"
           aria-label="Demandes de rendez-vous"
         >
           <header>
@@ -1824,11 +1817,30 @@
           ><button type="button" (click)="refreshDashboard()">Réessayer</button>
         </div>
 
-        <div class="analytics-top-grid" *ngIf="stylistPage === 'overview'">
+        <section class="stylist-subscription-banner" [attr.data-plan]="stylistSubscription">
+          <div>
+            <span>Votre formule</span><strong>{{ stylistSubscriptionConfig.name }}</strong>
+          </div>
+          <p>{{ stylistSubscriptionConfig.headline }}</p>
+          <small>Formule attribuée par l’administrateur</small>
+        </section>
+        <div
+          class="analytics-top-grid"
+          [class.compact]="!canUseStylistPage('team')"
+          *ngIf="stylistPage === 'overview'"
+        >
           <section class="analytics-hero-card">
             <div>
               <span class="analytics-kicker">Vue d’ensemble · {{ dashboardMonth }}</span>
-              <h2>Pilotez votre<br /><em>atelier.</em></h2>
+              <h2>
+                {{
+                  stylistSubscription === 'ESSENTIEL'
+                    ? 'Présentez votre'
+                    : stylistSubscription === 'ATELIER'
+                      ? 'Organisez votre'
+                      : 'Pilotez votre'
+                }}<br /><em>{{ stylistSubscription === 'ESSENTIEL' ? 'univers.' : 'atelier.' }}</em>
+              </h2>
               <p>
                 {{
                   stylistProfile?.about ||
@@ -1846,12 +1858,14 @@
             <i></i>
           </section>
 
-          <section class="analytics-chart-card">
+          <section class="analytics-chart-card" *ngIf="canUseStylistPage('team')">
             <div class="analytics-card-title">
               <div>
                 <span>Commandes par mois</span><strong>{{ stylistOrders.length }}</strong>
               </div>
-              <small>{{ stylistAppointments.length }} rendez-vous</small>
+              <small *ngIf="canUseStylistPage('planning')"
+                >{{ stylistAppointments.length }} rendez-vous</small
+              >
             </div>
             <div
               class="stylist-order-chart"
@@ -1886,7 +1900,7 @@
             ><strong>{{ stylistCatalog.length | number: '2.0-0' }}</strong
             ><small>Catalogue synchronisé</small>
           </article>
-          <article>
+          <article *ngIf="canUseStylistPage('measurements')">
             <span>Profils de mesures</span
             ><strong>{{ stylistMeasurements.length | number: '2.0-0' }}</strong
             ><small>Disponibles dans l’atelier</small>
@@ -1895,7 +1909,7 @@
 
         <div
           class="analytics-content-grid"
-          [class.orders-page]="stylistPage === 'orders'"
+          [class.orders-page]="stylistPage === 'orders' || !canUseStylistPage('team')"
           *ngIf="stylistPage === 'overview' || stylistPage === 'orders'"
         >
           <section
@@ -2148,7 +2162,10 @@
             </button>
           </section>
 
-          <div class="analytics-side-stack" *ngIf="stylistPage === 'overview'">
+          <div
+            class="analytics-side-stack"
+            *ngIf="stylistPage === 'overview' && canUseStylistPage('team')"
+          >
             <section class="analytics-panel analytics-sales">
               <div class="analytics-panel-heading">
                 <div>
@@ -2197,7 +2214,7 @@
         <section
           class="analytics-panel stylist-records stylist-client-directory atelier-client-directory"
           id="stylist-clients"
-          *ngIf="stylistPage === 'clients'"
+          *ngIf="stylistPage === 'clients' && canUseStylistPage('clients')"
         >
           <div class="atelier-clients-heading">
             <div>
@@ -2448,7 +2465,7 @@
         <section
           class="atelier-measurements"
           id="stylist-measurements"
-          *ngIf="stylistPage === 'measurements'"
+          *ngIf="stylistPage === 'measurements' && canUseStylistPage('measurements')"
           aria-label="Mensurations des clients"
         >
           <div class="atelier-measures-summary">
@@ -2573,7 +2590,7 @@
         <section
           class="analytics-panel atelier-planning"
           id="stylist-planning"
-          *ngIf="stylistPage === 'planning'"
+          *ngIf="stylistPage === 'planning' && canUseStylistPage('planning')"
         >
           <div class="atelier-planning-heading">
             <div>
@@ -2708,7 +2725,7 @@
         <section
           class="analytics-panel atelier-team"
           id="stylist-employees"
-          *ngIf="stylistPage === 'team'"
+          *ngIf="stylistPage === 'team' && canUseStylistPage('team')"
         >
           <div class="atelier-team-heading">
             <div>
@@ -4261,6 +4278,7 @@
   @if (activeView === 'signup') {
     <app-signup-page
       [initialRole]="signupRole"
+      [initialPlan]="signupPlan"
       (closed)="setView('home')"
       (loginRequested)="openLogin($event)"
       (accountCreated)="onAccountCreated($event)"

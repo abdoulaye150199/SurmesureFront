@@ -142,6 +142,15 @@
       ><button type="button" (click)="refresh()">Réessayer</button>
     </div>
 
+    <button
+      class="admin-pending-notice"
+      type="button"
+      *ngIf="snapshot?.summary?.pendingRegistrations"
+      (click)="showPendingRegistrations()"
+    >
+      {{ snapshot?.summary?.pendingRegistrations }} inscription(s) styliste(s) à valider · Choisir
+      les formules et activer les comptes
+    </button>
     <section class="admin-overview" id="admin-overview" *ngIf="activeSection === 'overview'">
       <div class="admin-hero">
         <div class="admin-hero-copy">
@@ -235,7 +244,7 @@
       </article>
     </section>
 
-    <div class="admin-grid" *ngIf="activeSection === 'users'">
+    <div class="admin-grid registrations-grid" *ngIf="activeSection === 'users'">
       <section class="admin-panel admin-users" id="admin-users">
         <div class="panel-heading">
           <div>
@@ -254,6 +263,15 @@
             <option value="EMPLOYEE">Employés</option>
             <option value="ADMIN">Administrateurs</option>
           </select>
+          <select
+            [(ngModel)]="approvalFilter"
+            (ngModelChange)="loadUsers(true)"
+            aria-label="Filtrer par validation"
+          >
+            <option value="ALL">Toutes les inscriptions</option>
+            <option value="pending">En attente de validation</option>
+            <option value="approved">Validées</option>
+          </select>
         </div>
         <div class="user-table-head">
           <span>Utilisateur</span><span>Rôle</span><span>Inscription</span><span>Actions</span>
@@ -264,22 +282,69 @@
             <div>
               <strong>{{ account.firstName }} {{ account.lastName }}</strong
               ><small>{{ account.stylist?.businessName || account.email }}</small>
+              <small *ngIf="account.approvalStatus === 'pending'" class="admin-pending-label"
+                >En attente de validation</small
+              >
             </div>
           </div>
           <b [class]="account.role.toLowerCase()">{{ roleLabel(account.role) }}</b>
           <time>{{ formatDate(account.createdAt) }}</time>
           <div class="admin-user-actions">
+            <div class="admin-plan-assignment" *ngIf="account.role === 'STYLIST'">
+              <span
+                >Demandée : {{ planLabel(account.requestedPlan) }} · Attribuée :
+                {{ planLabel(account.subscriptionPlan) }}</span
+              >
+              <label [for]="'plan-' + account.id">Formule à attribuer</label>
+              <select
+                [id]="'plan-' + account.id"
+                [ngModel]="chosenPlan(account)"
+                (ngModelChange)="planChoices[account.id] = $event"
+                [disabled]="updatingUserId === account.id"
+              >
+                <option *ngFor="let plan of plans" [value]="plan.id">
+                  {{ plan.name }} · {{ plan.price.toLocaleString('fr-FR') }} FCFA / mois
+                </option>
+              </select>
+              <button
+                class="admin-approve-button"
+                type="button"
+                (click)="approveUser(account)"
+                [disabled]="
+                  updatingUserId !== null ||
+                  (account.active && account.subscriptionPlan === chosenPlan(account))
+                "
+              >
+                {{
+                  updatingUserId === account.id
+                    ? 'Enregistrement…'
+                    : account.approvalStatus === 'pending'
+                      ? 'Valider et activer'
+                      : 'Attribuer et activer'
+                }}
+              </button>
+            </div>
             <button
               class="access-toggle"
               type="button"
               [class.active]="account.active"
-              [disabled]="updatingUserId === account.id || account.id === user?.id"
+              [disabled]="
+                updatingUserId === account.id ||
+                account.id === user?.id ||
+                account.approvalStatus === 'pending'
+              "
               (click)="toggleUser(account)"
               [attr.aria-label]="account.active ? 'Suspendre le compte' : 'Réactiver le compte'"
             >
               <i></i
               ><span>{{
-                updatingUserId === account.id ? '…' : account.active ? 'Actif' : 'Suspendu'
+                updatingUserId === account.id
+                  ? '…'
+                  : account.approvalStatus === 'pending'
+                    ? 'À valider'
+                    : account.active
+                      ? 'Actif'
+                      : 'Suspendu'
               }}</span>
             </button>
             <button

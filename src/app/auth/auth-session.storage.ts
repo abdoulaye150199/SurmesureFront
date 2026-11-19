@@ -21,7 +21,14 @@ export function isAuthUser(value: unknown): value is AuthUser {
     typeof value['email'] === 'string' &&
     typeof value['phone'] === 'string' &&
     typeof value['profileImage'] === 'string' &&
-    typeof value['isActive'] === 'boolean'
+    typeof value['isActive'] === 'boolean' &&
+    (value['approvalStatus'] === undefined ||
+      value['approvalStatus'] === 'approved' ||
+      value['approvalStatus'] === 'pending') &&
+    ['requestedPlan', 'subscriptionPlan'].every(
+      (key) =>
+        value[key] == null || ['ESSENTIEL', 'ATELIER', 'STUDIO'].includes(String(value[key])),
+    )
   );
 }
 

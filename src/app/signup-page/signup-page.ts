@@ -2,7 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { SignupRole } from '../login/login';
-import { AuthService, AuthUser } from '../auth/auth.service';
+import {
+  AuthService,
+  AuthUser,
+  isPendingRegistration,
+  PendingRegistration,
+} from '../auth/auth.service';
+import { SUBSCRIPTION_PLANS, SubscriptionPlan, subscriptionConfig } from '../subscription-plans';
 import { GoogleButtonComponent } from '../auth/google-button';
 
 @Component({
@@ -19,6 +25,30 @@ export class SignupPageComponent {
   @Output() readonly accountCreated = new EventEmitter<AuthUser>();
   @Input() set initialRole(value: SignupRole) {
     this.accountRole = value;
+  }
+  @Input() set initialPlan(value: SubscriptionPlan | null) {
+    this.planLocked = !!value;
+    this.requestedPlan = value ?? 'ESSENTIEL';
+    if (value) this.accountRole = 'stylist';
+    this.pending = null;
+  }
+
+  readonly plans = SUBSCRIPTION_PLANS;
+  requestedPlan: SubscriptionPlan = 'ESSENTIEL';
+  planLocked = false;
+  pending: PendingRegistration | null = null;
+
+  get plan() {
+    return subscriptionConfig(this.requestedPlan);
+  }
+
+  private finishRegistration(result: AuthUser | PendingRegistration): void {
+    if (isPendingRegistration(result)) {
+      this.pending = result;
+      this.password = '';
+      this.passwordConfirmation = '';
+      this.googleCredential = '';
+    } else this.accountCreated.emit(result);
   }
 
   accountRole: SignupRole = 'client';
@@ -47,6 +77,7 @@ export class SignupPageComponent {
   }
 
   chooseAccount(role: SignupRole): void {
+    if (this.planLocked) return;
     this.accountRole = role;
     this.error = '';
   }
@@ -94,8 +125,9 @@ export class SignupPageComponent {
           lastName: this.lastName,
           phone: this.phone,
           ...(this.isStylist ? { businessName: this.businessName } : {}),
+          ...(this.isStylist ? { requestedPlan: this.requestedPlan } : {}),
         });
-        this.accountCreated.emit(user);
+        this.finishRegistration(user);
         return;
       }
       const body = {
@@ -105,9 +137,10 @@ export class SignupPageComponent {
         phone: this.phone,
         password: this.password,
         ...(this.isStylist ? { businessName: this.businessName } : {}),
+        ...(this.isStylist ? { requestedPlan: this.requestedPlan } : {}),
       };
       const user = await this.auth.register(this.accountRole, body);
-      this.accountCreated.emit(user);
+      this.finishRegistration(user);
     } catch (error) {
       this.error =
         error instanceof Error

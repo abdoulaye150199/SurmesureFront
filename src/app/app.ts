@@ -11,6 +11,13 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import {
+  SUBSCRIPTION_PLANS,
+  SubscriptionPlan,
+  subscriptionConfig,
+  subscriptionFromSlug,
+  includesPlan,
+} from './subscription-plans';
 import { SeoService } from './seo.service';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
@@ -81,6 +88,7 @@ interface Stylist {
   bio: string;
   email: string;
   phone: string;
+  subscriptionPlan?: SubscriptionPlan | null;
 }
 
 interface MeasurementDefinition {
@@ -135,6 +143,8 @@ export class App implements AfterViewInit, OnDestroy {
   loginOpen = false;
   loginRole: AppAccountRole = 'client';
   signupRole: 'client' | 'stylist' = 'client';
+  signupPlan: SubscriptionPlan | null = null;
+  readonly subscriptionPlans = SUBSCRIPTION_PLANS;
   activeView: AppView = 'home';
   stylistPage: StylistPage = 'overview';
   employeePage: EmployeePage = 'orders';
@@ -250,9 +260,30 @@ export class App implements AfterViewInit, OnDestroy {
     return !this.auth.isAuthenticated;
   }
 
+  get stylistSubscription(): SubscriptionPlan {
+    return this.authenticatedUser?.subscriptionPlan ?? 'STUDIO';
+  }
+
+  get stylistSubscriptionConfig() {
+    return subscriptionConfig(this.stylistSubscription);
+  }
+
+  canUseStylistPage(page: StylistPage): boolean {
+    if (page === 'team') return includesPlan(this.stylistSubscription, 'STUDIO');
+    if (page === 'clients' || page === 'measurements' || page === 'planning')
+      return includesPlan(this.stylistSubscription, 'ATELIER');
+    return true;
+  }
+
   requestStylistAppointment(stylist: Stylist): void {
     if (!stylist.id) {
       this.showToast('Cet atelier ne prend pas encore de rendez-vous en ligne.');
+      return;
+    }
+    if (stylist.subscriptionPlan === 'ESSENTIEL') {
+      this.showToast(
+        'Cet atelier ne propose pas de rendez-vous en ligne avec sa formule actuelle.',
+      );
       return;
     }
     if (!this.auth.isAuthenticated) {
@@ -331,6 +362,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   async refreshAppointments(): Promise<void> {
+    if (this.activeView === 'stylist' && !this.canUseStylistPage('planning')) return;
     if (
       this.appointmentsRefreshing ||
       this.demoMode ||
@@ -582,6 +614,19 @@ export class App implements AfterViewInit, OnDestroy {
 
   private syncViewFromUrl(url: string): void {
     const path = url.split(/[?#]/, 1)[0];
+    if (path.startsWith('/inscription/')) {
+      const plan = subscriptionFromSlug(path.slice('/inscription/'.length));
+      if (!plan) {
+        void this.router.navigateByUrl('/');
+        return;
+      }
+      this.signupPlan = plan;
+      this.signupRole = 'stylist';
+      this.activeView = 'signup';
+      document.title = `Inscription ${subscriptionConfig(plan).name} · Sur Mesure Style`;
+      return;
+    }
+    if (path === '/signup') this.signupPlan = null;
     if (path === '/admin' || path.startsWith('/admin/')) {
       this.openAdminEntry();
       return;
@@ -1758,6 +1803,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   private toStylistProfile(profile: DashboardStylist, index = 0): Stylist {
     return {
+      subscriptionPlan: profile.user.subscriptionPlan,
       id: profile.id,
       name:
         [profile.user.firstName, profile.user.lastName].filter(Boolean).join(' ') ||
@@ -1825,6 +1871,12 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   setStylistPage(page: StylistPage): void {
+    if (!this.canUseStylistPage(page)) {
+      this.showToast(
+        'Cette fonctionnalité n’est pas incluse dans votre formule. Contactez l’administrateur.',
+      );
+      return;
+    }
     this.stylistPage = page;
     this.showAllStylistOrders = page === 'orders';
     this.mobileDashboardMenuOpen = false;
@@ -1851,7 +1903,11 @@ export class App implements AfterViewInit, OnDestroy {
     this.dashboardLoading = true;
     this.dashboardError = '';
     try {
-      const result = await this.workspaceDashboard.load(role, this.authenticatedUser?.id ?? null);
+      const result = await this.workspaceDashboard.load(
+        role,
+        this.authenticatedUser?.id ?? null,
+        this.stylistSubscription,
+      );
       if (result.kind === 'client') {
         const snapshot = result.snapshot;
         this.clientOrders = snapshot.orders;
@@ -2904,11 +2960,17 @@ export class App implements AfterViewInit, OnDestroy {
     this.pendingAuthView = null;
   }
 
-  openSignup(role: 'client' | 'stylist' = this.signupRole): void {
+  openSignup(
+    role: 'client' | 'stylist' = this.signupRole,
+    plan: SubscriptionPlan | null = null,
+  ): void {
     this.signupRole = role;
+    this.signupPlan = plan;
     this.loginOpen = false;
     this.activeView = 'signup';
-    void this.router.navigateByUrl('/signup');
+    void this.router.navigateByUrl(
+      plan ? `/inscription/${subscriptionConfig(plan).slug}` : '/signup',
+    );
     this.menuOpen = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

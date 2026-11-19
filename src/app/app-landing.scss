@@ -151,6 +151,7 @@
 }
 
 .pricing-contact {
+  background: transparent;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -173,6 +174,47 @@
     outline: 3px solid #b68b26;
     outline-offset: 5px;
   }
+}
+
+.stylist-subscription-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 28px;
+  margin: 0 0 24px;
+  padding: 20px 24px;
+  border-radius: 16px;
+  background: #f7f0e7;
+  color: #480048;
+  div {
+    display: grid;
+    gap: 5px;
+  }
+  strong {
+    font:
+      28px Georgia,
+      serif;
+  }
+  span,
+  small {
+    font-size: 14px;
+  }
+  p {
+    flex: 1;
+    min-width: 180px;
+    margin: 0;
+    font-size: 16px;
+  }
+  &[data-plan='ATELIER'] {
+    background: #f0e6f1;
+  }
+  &[data-plan='STUDIO'] {
+    background: #480048;
+    color: #fffcf8;
+  }
+}
+.analytics-top-grid.compact {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 @media (max-width: 900px) {

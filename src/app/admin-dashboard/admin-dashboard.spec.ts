@@ -11,6 +11,7 @@ describe('Admin pages and deletion', () => {
     loadAdminDashboard: jasmine.Spy;
     loadAdminUsers: jasmine.Spy;
     deleteAdminUser: jasmine.Spy;
+    approveAdminUser: jasmine.Spy;
   };
   beforeEach(() => {
     api = {
@@ -19,6 +20,7 @@ describe('Admin pages and deletion', () => {
         .createSpy()
         .and.resolveTo({ data: [account], meta: { total: 1, page: 1, totalPages: 1 } }),
       deleteAdminUser: jasmine.createSpy().and.resolveTo({ success: true }),
+      approveAdminUser: jasmine.createSpy(),
     };
     TestBed.configureTestingModule({
       imports: [AdminDashboardComponent],
@@ -54,7 +56,7 @@ describe('Admin pages and deletion', () => {
       meta: { total: 24, page: 2, totalPages: 3 },
     });
     await component.loadUsers(false, 2);
-    expect(api.loadAdminUsers).toHaveBeenCalledWith(2, 10, 'atelier', 'STYLIST');
+    expect(api.loadAdminUsers).toHaveBeenCalledWith(2, 10, 'atelier', 'STYLIST', 'ALL');
     expect(component.users).toEqual([stylist]);
     expect(component.usersTotal).toBe(24);
     expect(component.usersFirst).toBe(11);
@@ -69,6 +71,46 @@ describe('Admin pages and deletion', () => {
     expect(component.usersPage).toBe(1);
     expect(component.users).toEqual([account]);
     expect(component.usersLoading).toBeFalse();
+  });
+
+  it('lets the admin assign a different plan while activating a pending registration', async () => {
+    const component = TestBed.createComponent(AdminDashboardComponent).componentInstance;
+    const pending = {
+      ...account,
+      role: 'STYLIST',
+      active: false,
+      approvalStatus: 'pending',
+      requestedPlan: 'STUDIO',
+    } as AdminUser;
+    component.users = [pending];
+    component.planChoices[pending.id] = 'ESSENTIEL';
+    api.approveAdminUser.and.resolveTo({
+      ...pending,
+      active: true,
+      approvalStatus: 'approved',
+      subscriptionPlan: 'ESSENTIEL',
+    });
+    await component.approveUser(pending);
+    expect(api.approveAdminUser).toHaveBeenCalledOnceWith(pending.id, 'ESSENTIEL');
+    expect(component.users[0].active).toBeTrue();
+    expect(component.users[0].subscriptionPlan).toBe('ESSENTIEL');
+  });
+
+  it('keeps pending registrations inactive when approval fails', async () => {
+    const component = TestBed.createComponent(AdminDashboardComponent).componentInstance;
+    const pending = {
+      ...account,
+      role: 'STYLIST',
+      active: false,
+      approvalStatus: 'pending',
+      requestedPlan: 'ATELIER',
+    } as AdminUser;
+    component.users = [pending];
+    api.approveAdminUser.and.rejectWith(new Error('offline'));
+    await component.approveUser(pending);
+    expect(component.users[0].active).toBeFalse();
+    expect(component.users[0].approvalStatus).toBe('pending');
+    expect(component.updatingUserId).toBeNull();
   });
   it('requires confirmation before deleting and preserves administrators', async () => {
     const component = TestBed.createComponent(AdminDashboardComponent).componentInstance;

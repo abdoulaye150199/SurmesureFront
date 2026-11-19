@@ -52,6 +52,36 @@ describe('AuthService offline session validation', () => {
     expect(auth.isAuthenticated).toBeFalse();
   });
 
+  it('returns an inactive registration without persisting an authenticated session', async () => {
+    auth.clearSession();
+    const registration = auth.register('stylist', {
+      firstName: 'Awa',
+      lastName: 'Diop',
+      businessName: 'Atelier Awa',
+      email: 'awa@example.test',
+      phone: '+221770000000',
+      password: 'MotDePasse!2026',
+      requestedPlan: 'ATELIER',
+    });
+    const request = http.expectOne((req) => req.url.endsWith('/auth/stylist/signup'));
+    expect(request.request.body.requestedPlan).toBe('ATELIER');
+    request.flush({
+      status: 'pending',
+      message: 'Validation en attente',
+      data: {
+        ...validUser('STYLIST'),
+        isActive: false,
+        approvalStatus: 'pending',
+        requestedPlan: 'ATELIER',
+        subscriptionPlan: null,
+      },
+    });
+    expect(await registration).toEqual(jasmine.objectContaining({ status: 'pending' }));
+    expect(auth.isAuthenticated).toBeFalse();
+    expect(auth.token).toBeNull();
+    expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
+  });
+
   it('registers a Google account without sending a password or an untrusted email', async () => {
     const payload = {
       credential: 'google-token',

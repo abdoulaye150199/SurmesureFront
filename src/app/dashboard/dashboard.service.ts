@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { getApiUrl } from '../api-url';
+import { SubscriptionPlan, includesPlan } from '../subscription-plans';
 
 export type DashboardOrderStatus =
   'pending' | 'inProgress' | 'completed' | 'delivered' | 'cancelled';
@@ -108,7 +109,12 @@ export interface DashboardStylist {
   about: string;
   specialties: string[];
   rating: number | string;
-  user: { firstName: string; lastName: string; profileImage: string };
+  user: {
+    firstName: string;
+    lastName: string;
+    profileImage: string;
+    subscriptionPlan?: SubscriptionPlan | null;
+  };
 }
 
 export interface DashboardPersonnel {
@@ -167,6 +173,10 @@ export interface StylistDashboardSnapshot {
 }
 
 export interface AdminUser {
+  approvalStatus?: 'pending' | 'approved';
+  requestedPlan?: SubscriptionPlan | null;
+  subscriptionPlan?: SubscriptionPlan | null;
+  approvedAt?: string | null;
   id: string;
   role: 'CLIENT' | 'STYLIST' | 'EMPLOYEE' | 'ADMIN';
   firstName: string;
@@ -188,6 +198,7 @@ export interface AdminUser {
 export interface AdminDashboardSnapshot {
   catalog?: DashboardCatalogItem[];
   summary: {
+    pendingRegistrations?: number;
     users: number;
     clients: number;
     stylists: number;
@@ -286,11 +297,18 @@ export class DashboardService {
     return { orders, measurements, appointments, catalog, stylists };
   }
 
-  async loadStylistDashboard(userId: string): Promise<StylistDashboardSnapshot> {
+  async loadStylistDashboard(
+    userId: string,
+    plan: SubscriptionPlan = 'STUDIO',
+  ): Promise<StylistDashboardSnapshot> {
     const [orders, measurements, appointments, catalog, stylists] = await Promise.all([
       this.getAllCursorPages<DashboardOrder>(`/stylist/${userId}/orders`),
-      this.getAllCursorPages<DashboardMeasurement>(`/stylist/${userId}/measurements`),
-      this.getOnce<DashboardAppointment[]>(getApiUrl(`/stylist/${userId}/appointments`)),
+      includesPlan(plan, 'ATELIER')
+        ? this.getAllCursorPages<DashboardMeasurement>(`/stylist/${userId}/measurements`)
+        : Promise.resolve([]),
+      includesPlan(plan, 'ATELIER')
+        ? this.getOnce<DashboardAppointment[]>(getApiUrl(`/stylist/${userId}/appointments`))
+        : Promise.resolve([]),
       this.getAllCursorPages<DashboardCatalogItem>('/catalog'),
       this.getAllCursorPages<DashboardStylist>('/stylists'),
     ]);
@@ -527,6 +545,7 @@ export class DashboardService {
     limit = 10,
     search = '',
     role = 'ALL',
+    approvalStatus = 'ALL',
   ): Promise<{
     data: AdminUser[];
     meta: { total: number; page: number; totalPages: number };
@@ -534,6 +553,7 @@ export class DashboardService {
     const query = new URLSearchParams({ page: String(page), limit: String(limit) });
     if (search.trim()) query.set('search', search.trim());
     if (role !== 'ALL') query.set('role', role);
+    if (approvalStatus !== 'ALL') query.set('approvalStatus', approvalStatus);
     return firstValueFrom(
       this.http.get<{
         data: AdminUser[];
@@ -549,6 +569,12 @@ export class DashboardService {
   setAdminUserStatus(id: string, active: boolean): Promise<AdminUser> {
     return firstValueFrom(
       this.http.patch<AdminUser>(getApiUrl(`/admin/users/${id}/status`), { active }),
+    );
+  }
+
+  approveAdminUser(id: string, subscriptionPlan: SubscriptionPlan): Promise<AdminUser> {
+    return firstValueFrom(
+      this.http.patch<AdminUser>(getApiUrl(`/admin/users/${id}/approval`), { subscriptionPlan }),
     );
   }
 

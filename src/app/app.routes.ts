@@ -5,6 +5,7 @@ export const routes: Routes = [
   { path: 'explore', pathMatch: 'full', children: [] },
   { path: 'measure', pathMatch: 'full', children: [] },
   { path: 'signup', pathMatch: 'full', children: [] },
+  { path: 'inscription/:plan', pathMatch: 'full', children: [] },
   { path: 'admin', pathMatch: 'full', children: [] },
   { path: 'admin/:page', pathMatch: 'full', children: [] },
   { path: 'stylist', pathMatch: 'full', children: [] },

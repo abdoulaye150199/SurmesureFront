@@ -1470,3 +1470,111 @@ svg {
     background: white;
   }
 }
+:host .admin-pending-notice {
+  display: block;
+  width: 100%;
+  padding: 18px 22px;
+  margin: 20px 0;
+  background: #f7eddc;
+  border: 1px solid #dec799;
+  color: #613d14;
+  border-radius: 12px;
+  text-align: left;
+  font-size: 16px;
+  line-height: 1.6;
+}
+:host .admin-pending-label {
+  color: #e4bd7c;
+  font-weight: 700;
+}
+:host .admin-plan-assignment {
+  display: grid;
+  gap: 8px;
+  max-width: 320px;
+  label,
+  span {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  select {
+    width: 100%;
+    min-height: 44px;
+    border: 1px solid #d8c7d3;
+    border-radius: 8px;
+    background: white;
+    color: #480048;
+    padding: 8px;
+    font: inherit;
+  }
+}
+:host .admin-approve-button {
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #480048;
+  color: white;
+  font-size: 14px;
+}
+:host .admin-approve-button:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+:host .admin-user-actions {
+  flex-wrap: wrap;
+}
+
+:host .registrations-grid {
+  grid-template-columns: minmax(0, 1fr);
+  .user-table-head,
+  .admin-user-row {
+    grid-template-columns: minmax(180px, 1fr) 90px 100px minmax(250px, 1.2fr);
+  }
+  .admin-user-row {
+    padding-block: 20px;
+  }
+  .user-identity strong {
+    font-size: 14px;
+  }
+  .user-identity small {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+}
+@media (max-width: 1100px) {
+  :host .registrations-grid {
+    .user-table-head {
+      display: none;
+    }
+    .admin-user-row {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 16px;
+    }
+    .admin-user-actions {
+      grid-column: 1 / -1;
+      width: 100%;
+      min-width: 0;
+    }
+    .admin-plan-assignment {
+      flex: 1 1 100%;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .admin-user-row time {
+      display: none;
+    }
+    .panel-heading {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    .panel-heading select {
+      width: 100%;
+      min-height: 44px;
+      font-size: 14px;
+    }
+    .panel-heading h2 {
+      font-size: 18px;
+    }
+  }
+}

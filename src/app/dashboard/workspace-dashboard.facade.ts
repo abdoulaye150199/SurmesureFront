@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core';
+import { SubscriptionPlan, includesPlan } from '../subscription-plans';
 import { OfflineWorkspaceSnapshot, OfflineWorkspaceStore } from './offline-workspace.store';
 import {
   ClientDashboardSnapshot,
@@ -27,6 +28,7 @@ export class WorkspaceDashboardFacade {
   async load(
     role: 'client' | 'stylist' | 'employee',
     userId: string | null,
+    plan: SubscriptionPlan = 'STUDIO',
   ): Promise<WorkspaceDashboardResult> {
     try {
       if (role === 'client')
@@ -47,7 +49,7 @@ export class WorkspaceDashboardFacade {
         return { kind: 'employee', ...snapshot };
       }
 
-      const snapshot = await this.dashboard.loadStylistDashboard(userId);
+      const snapshot = await this.dashboard.loadStylistDashboard(userId, plan);
       await this.saveOfflineSnapshot({
         userId,
         role,
@@ -55,15 +57,23 @@ export class WorkspaceDashboardFacade {
         measurements: snapshot.measurements,
         stylistProfile: snapshot.profile,
       });
-      const personnel = snapshot.profile
-        ? await this.dashboard.listStylistPersonnel(snapshot.profile.id)
-        : [];
+      const personnel =
+        snapshot.profile && includesPlan(plan, 'STUDIO')
+          ? await this.dashboard.listStylistPersonnel(snapshot.profile.id)
+          : [];
       return { kind: 'stylist', snapshot, personnel };
     } catch (error) {
       if (role === 'client' || !userId) throw error;
 
       const snapshot = await this.offlineWorkspace.load(userId, role).catch(() => null);
-      if (snapshot) return { kind: 'offline', snapshot };
+      if (snapshot)
+        return {
+          kind: 'offline',
+          snapshot:
+            role === 'stylist' && !includesPlan(plan, 'ATELIER')
+              ? { ...snapshot, measurements: [] }
+              : snapshot,
+        };
       throw error;
     }
   }

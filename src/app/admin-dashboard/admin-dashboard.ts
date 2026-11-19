@@ -5,6 +5,7 @@ import { Subject, Subscription, filter } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
 import { AuthUser } from '../auth/auth.service';
+import { SUBSCRIPTION_PLANS, SubscriptionPlan, subscriptionConfig } from '../subscription-plans';
 import {
   AdminDashboardSnapshot,
   AdminUser,
@@ -45,6 +46,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   toast = '';
   userQuery = '';
   roleFilter: 'ALL' | AdminUser['role'] = 'ALL';
+  approvalFilter: 'ALL' | 'pending' | 'approved' = 'ALL';
+  readonly plans = SUBSCRIPTION_PLANS;
+  planChoices: Record<string, SubscriptionPlan> = {};
   activeSection: AdminSection = 'overview';
   mobileMenuOpen = false;
   updatingUserId: string | null = null;
@@ -160,6 +164,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         this.usersPageSize,
         this.userQuery,
         this.roleFilter,
+        this.approvalFilter,
       );
       if (request !== this.usersRequest) return;
       this.users = page.data;
@@ -198,6 +203,10 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   async toggleUser(user: AdminUser): Promise<void> {
+    if (user.approvalStatus === 'pending') {
+      this.showToast('Choisissez une formule, puis validez l’inscription.');
+      return;
+    }
     if (user.id === this.user?.id) {
       this.showToast('Votre propre compte administrateur reste protégé.');
       return;
@@ -217,6 +226,42 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       );
     } catch {
       this.showToast('Le statut de ce compte n’a pas pu être modifié.');
+    } finally {
+      this.updatingUserId = null;
+    }
+  }
+
+  planLabel(plan?: SubscriptionPlan | null): string {
+    return plan ? subscriptionConfig(plan).name : 'Non attribuée';
+  }
+
+  chosenPlan(user: AdminUser): SubscriptionPlan {
+    return this.planChoices[user.id] ?? user.subscriptionPlan ?? user.requestedPlan ?? 'ESSENTIEL';
+  }
+
+  showPendingRegistrations(): void {
+    this.roleFilter = 'STYLIST';
+    this.approvalFilter = 'pending';
+    this.selectSection('users');
+    void this.loadUsers(true);
+  }
+
+  async approveUser(user: AdminUser): Promise<void> {
+    if (user.role !== 'STYLIST' || this.updatingUserId) return;
+    this.updatingUserId = user.id;
+    try {
+      const updated = await this.dashboard.approveAdminUser(user.id, this.chosenPlan(user));
+      this.users = this.users.map((account) => (account.id === updated.id ? updated : account));
+      if (this.snapshot)
+        this.snapshot.users = this.snapshot.users.map((account) =>
+          account.id === updated.id ? updated : account,
+        );
+      this.showToast(
+        `Compte activé avec la formule ${this.planLabel(updated.subscriptionPlan)}. Le styliste peut se connecter.`,
+      );
+      await this.refresh();
+    } catch {
+      this.showToast('La validation a échoué. Le compte et sa formule n’ont pas été modifiés.');
     } finally {
       this.updatingUserId = null;
     }
