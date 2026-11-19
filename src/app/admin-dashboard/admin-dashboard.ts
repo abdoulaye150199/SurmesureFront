@@ -1,5 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Input, OnInit, OnDestroy, Output } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  inject,
+  Input,
+  OnInit,
+  OnDestroy,
+  Output,
+  HostListener,
+  NgZone,
+} from '@angular/core';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subject, Subscription, filter } from 'rxjs';
 import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
@@ -12,6 +22,7 @@ import {
   DashboardOrder,
   DashboardOrderStatus,
   DashboardService,
+  AdminRegistrationNotification,
 } from '../dashboard/dashboard.service';
 
 type AdminSection = 'overview' | 'users' | 'orders' | 'appointments' | 'catalog';
@@ -33,6 +44,12 @@ const ADMIN_PATHS: Record<AdminSection, string> = {
 export class AdminDashboardComponent implements OnInit, OnDestroy {
   private readonly dashboard = inject(DashboardService);
   private readonly router = inject(Router);
+  private readonly zone = inject(NgZone);
+  private notificationTimer?: ReturnType<typeof setInterval>;
+  private toastTimer?: ReturnType<typeof setTimeout>;
+  private destroyed = false;
+  private notificationsLoaded = false;
+  private notificationVersion = 0;
   private routeSubscription?: Subscription;
   private readonly searchChanges = new Subject<string>();
   private searchSubscription?: Subscription;
@@ -63,6 +80,14 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   deletionTarget: AdminUser | null = null;
   deleting = false;
   deletionError = '';
+  notifications: AdminRegistrationNotification[] = [];
+  notificationsOpen = false;
+  notificationsLoading = false;
+  notificationsError = '';
+  unreadNotifications = 0;
+  notificationsCursor: string | null = null;
+  notificationsHasMore = false;
+  openingNotificationId: string | null = null;
 
   get sectionTitle(): string {
     return {
@@ -86,8 +111,16 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         if (this.activeSection === 'users' && !this.users.length) void this.loadUsers(true);
       });
     void this.refresh();
+    this.notificationTimer = this.zone.runOutsideAngular(() =>
+      setInterval(() => {
+        if (!document.hidden) this.zone.run(() => void this.loadNotifications());
+      }, 30_000),
+    );
   }
   ngOnDestroy(): void {
+    this.destroyed = true;
+    clearInterval(this.notificationTimer);
+    clearTimeout(this.toastTimer);
     this.routeSubscription?.unsubscribe();
     this.searchSubscription?.unsubscribe();
     this.searchChanges.complete();
@@ -134,6 +167,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   async refresh(): Promise<void> {
+    void this.loadNotifications();
     this.loading = true;
     this.error = '';
     try {
@@ -144,6 +178,81 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
         'Le tableau de bord global ne peut pas être chargé. Vérifiez que l’API est disponible.';
     } finally {
       this.loading = false;
+    }
+  }
+
+  @HostListener('window:focus')
+  @HostListener('document:visibilitychange')
+  refreshNotificationActivity(): void {
+    if (!document.hidden && !this.destroyed) void this.loadNotifications();
+  }
+
+  @HostListener('window:keydown.escape')
+  closeNotifications(): void {
+    this.notificationsOpen = false;
+  }
+
+  toggleNotifications(): void {
+    this.notificationsOpen = !this.notificationsOpen;
+    if (this.notificationsOpen) void this.loadNotifications();
+  }
+
+  async loadNotifications(more = false): Promise<void> {
+    if (this.destroyed || this.notificationsLoading || (more && !this.notificationsCursor)) return;
+    this.notificationsLoading = true;
+    this.notificationsError = '';
+    const version = this.notificationVersion;
+    try {
+      const page = await this.dashboard.loadAdminNotifications(
+        more ? this.notificationsCursor! : undefined,
+      );
+      if (this.destroyed || version !== this.notificationVersion) return;
+      if (this.notificationsLoaded && page.unreadCount > this.unreadNotifications) {
+        this.showToast('Nouvelle inscription styliste : une demande est à consulter.');
+      }
+      this.notifications = more
+        ? [
+            ...this.notifications,
+            ...page.data.filter(
+              (item) => !this.notifications.some((existing) => existing.id === item.id),
+            ),
+          ]
+        : page.data;
+      this.unreadNotifications = page.unreadCount;
+      this.notificationsCursor = page.meta.nextCursor;
+      this.notificationsHasMore = page.meta.hasMore;
+      this.notificationsLoaded = true;
+    } catch {
+      if (!this.destroyed)
+        this.notificationsError = 'Impossible de charger les notifications. Réessayez.';
+    } finally {
+      this.notificationsLoading = false;
+    }
+  }
+
+  async openRegistrationNotification(notification: AdminRegistrationNotification): Promise<void> {
+    if (this.openingNotificationId) return;
+    this.openingNotificationId = notification.id;
+    ++this.notificationVersion;
+    try {
+      if (!notification.readAt) {
+        const read = await this.dashboard.readAdminNotification(notification.id);
+        if (this.destroyed) return;
+        this.notifications = this.notifications.map((item) =>
+          item.id === read.id ? { ...item, readAt: read.readAt } : item,
+        );
+        this.unreadNotifications = Math.max(0, this.unreadNotifications - 1);
+      }
+      this.notificationsOpen = false;
+      this.userQuery = notification.email;
+      this.roleFilter = 'STYLIST';
+      this.approvalFilter = 'ALL';
+      this.selectSection('users');
+      await this.loadUsers(true);
+    } catch {
+      this.notificationsError = 'La notification n’a pas pu être ouverte. Réessayez.';
+    } finally {
+      this.openingNotificationId = null;
     }
   }
 
@@ -240,6 +349,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   showPendingRegistrations(): void {
+    this.userQuery = '';
     this.roleFilter = 'STYLIST';
     this.approvalFilter = 'pending';
     this.selectSection('users');
@@ -300,8 +410,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   }
 
   showToast(message: string): void {
+    clearTimeout(this.toastTimer);
     this.toast = message;
-    window.setTimeout(() => (this.toast = ''), 2800);
+    this.toastTimer = setTimeout(() => (this.toast = ''), 4000);
   }
 
   roleLabel(role: AdminUser['role']): string {

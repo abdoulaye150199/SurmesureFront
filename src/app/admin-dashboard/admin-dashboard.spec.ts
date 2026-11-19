@@ -12,6 +12,8 @@ describe('Admin pages and deletion', () => {
     loadAdminUsers: jasmine.Spy;
     deleteAdminUser: jasmine.Spy;
     approveAdminUser: jasmine.Spy;
+    loadAdminNotifications: jasmine.Spy;
+    readAdminNotification: jasmine.Spy;
   };
   beforeEach(() => {
     api = {
@@ -21,6 +23,8 @@ describe('Admin pages and deletion', () => {
         .and.resolveTo({ data: [account], meta: { total: 1, page: 1, totalPages: 1 } }),
       deleteAdminUser: jasmine.createSpy().and.resolveTo({ success: true }),
       approveAdminUser: jasmine.createSpy(),
+      loadAdminNotifications: jasmine.createSpy().and.resolveTo({ data: [], unreadCount: 0, meta: { nextCursor: null, hasMore: false } }),
+      readAdminNotification: jasmine.createSpy(),
     };
     TestBed.configureTestingModule({
       imports: [AdminDashboardComponent],

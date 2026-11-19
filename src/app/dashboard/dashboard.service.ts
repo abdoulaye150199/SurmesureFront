@@ -214,6 +214,22 @@ export interface AdminDashboardSnapshot {
   appointments: DashboardAppointment[];
 }
 
+export interface AdminRegistrationNotification {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  requestedPlan: SubscriptionPlan;
+  approvalStatus: 'pending' | 'approved';
+  createdAt: string;
+  readAt: string | null;
+  stylist: { businessName: string } | null;
+}
+
+export interface AdminNotificationsPage extends CursorPage<AdminRegistrationNotification> {
+  unreadCount: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
   private readonly http = inject(HttpClient);
@@ -539,6 +555,23 @@ export class DashboardService {
 
   loadAdminDashboard(): Promise<AdminDashboardSnapshot> {
     return firstValueFrom(this.http.get<AdminDashboardSnapshot>(getApiUrl('/admin/dashboard')));
+  }
+
+  loadAdminNotifications(cursor?: string): Promise<AdminNotificationsPage> {
+    const query = new URLSearchParams({ limit: '20' });
+    if (cursor) query.set('cursor', cursor);
+    return firstValueFrom(
+      this.http.get<AdminNotificationsPage>(getApiUrl(`/admin/notifications?${query}`)),
+    );
+  }
+
+  readAdminNotification(id: string): Promise<{ id: string; readAt: string }> {
+    return firstValueFrom(
+      this.http.patch<{ id: string; readAt: string }>(
+        getApiUrl(`/admin/notifications/${id}/read`),
+        {},
+      ),
+    );
   }
   loadAdminUsers(
     page = 1,

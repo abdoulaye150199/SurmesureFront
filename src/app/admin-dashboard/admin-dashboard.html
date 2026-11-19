@@ -101,6 +101,21 @@
         <h1>{{ sectionTitle }}</h1>
       </div>
       <div class="admin-header-actions">
+        <button
+          class="admin-notification-bell"
+          type="button"
+          (click)="toggleNotifications()"
+          [attr.aria-expanded]="notificationsOpen"
+          aria-controls="admin-registration-notifications"
+          [attr.aria-label]="'Notifications : ' + unreadNotifications + ' non lue(s)'"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+          </svg>
+          <b *ngIf="unreadNotifications">{{
+            unreadNotifications > 99 ? '99+' : unreadNotifications
+          }}</b>
+        </button>
         <label *ngIf="activeSection === 'users'"
           ><svg viewBox="0 0 24 24" aria-hidden="true">
             <circle cx="10.5" cy="10.5" r="6.5" />
@@ -133,6 +148,83 @@
         </button>
       </div>
     </header>
+
+    <section
+      class="admin-notification-panel"
+      id="admin-registration-notifications"
+      *ngIf="notificationsOpen"
+      aria-labelledby="admin-notifications-title"
+    >
+      <div class="admin-notification-heading">
+        <div>
+          <h2 id="admin-notifications-title">Inscriptions des stylistes</h2>
+          <p>{{ unreadNotifications }} notification(s) non lue(s)</p>
+        </div>
+        <button type="button" aria-label="Fermer les notifications" (click)="closeNotifications()">
+          ×
+        </button>
+      </div>
+      <p class="admin-notification-error" role="alert" *ngIf="notificationsError">
+        {{ notificationsError }}
+        <button type="button" (click)="loadNotifications()">Réessayer</button>
+      </p>
+      <button
+        class="admin-registration-notification"
+        type="button"
+        *ngFor="let notification of notifications"
+        [class.unread]="!notification.readAt"
+        [disabled]="openingNotificationId !== null"
+        (click)="openRegistrationNotification(notification)"
+      >
+        <span
+          class="admin-notification-marker"
+          *ngIf="!notification.readAt"
+          aria-label="Non lue"
+        ></span>
+        <span class="admin-notification-copy">
+          <strong>{{
+            notification.stylist?.businessName ||
+              notification.firstName + ' ' + notification.lastName
+          }}</strong>
+          <span
+            >{{ notification.firstName }} {{ notification.lastName }} s’est inscrit(e) · Formule
+            {{ planLabel(notification.requestedPlan) }}</span
+          >
+          <time [attr.datetime]="notification.createdAt">{{
+            formatDate(notification.createdAt, true)
+          }}</time>
+          <small>{{
+            notification.approvalStatus === 'pending'
+              ? 'Inscription à valider'
+              : 'Inscription déjà validée'
+          }}</small>
+        </span>
+        <span class="admin-notification-open">{{
+          openingNotificationId === notification.id ? 'Ouverture…' : 'Voir l’inscription'
+        }}</span>
+      </button>
+      <p
+        class="admin-notification-empty"
+        *ngIf="!notifications.length && !notificationsLoading && !notificationsError"
+      >
+        Aucune inscription styliste à signaler pour le moment.
+      </p>
+      <p class="admin-notification-empty" role="status" *ngIf="notificationsLoading">
+        Chargement des notifications…
+      </p>
+      <button
+        class="admin-notification-more"
+        type="button"
+        *ngIf="notificationsHasMore"
+        [disabled]="notificationsLoading"
+        (click)="loadNotifications(true)"
+      >
+        Voir les inscriptions précédentes
+      </button>
+    </section>
+    <span class="admin-notification-announcement" role="status" aria-live="polite"
+      >{{ unreadNotifications }} notification(s) d’inscription non lue(s)</span
+    >
 
     <div class="admin-feedback loading" *ngIf="loading">
       <i></i><span>Synchronisation de toute la plateforme…</span>
@@ -563,5 +655,5 @@
     </div>
   }
 
-  <div class="admin-toast" [class.show]="toast">{{ toast }}</div>
+  <div class="admin-toast" [class.show]="toast" role="status" aria-live="polite">{{ toast }}</div>
 </div>
