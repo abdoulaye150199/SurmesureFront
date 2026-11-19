@@ -115,7 +115,7 @@ type StylistEditor = 'catalog' | 'profile' | null;
     './app.scss',
     './app-skeleton.scss',
     './stylist-dashboard.scss',
-    './app-pricing.scss',
+    './app-landing.scss',
   ],
 })
 export class App implements AfterViewInit, OnDestroy {

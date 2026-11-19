@@ -27,6 +27,24 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
+  it('renders the home section before scrolling to pricing from the explorer', () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    spyOn(app, 'ngAfterViewInit');
+    const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
+    app.activeView = 'explore';
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#tarifs')).toBeNull();
+
+    app.scrollTo('tarifs');
+    fixture.detectChanges();
+
+    const pricing = fixture.nativeElement.querySelector('#tarifs');
+    expect(pricing).toBeTruthy();
+    expect(scroll).toHaveBeenCalledWith({ behavior: 'smooth' });
+    expect(scroll.calls.mostRecent().object).toBe(pricing);
+  });
+
   for (const [role, destination] of [
     ['CLIENT', 'client'],
     ['STYLIST', 'stylist'],

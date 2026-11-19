@@ -553,14 +553,6 @@ h2 em {
   background: #d1c7af;
   overflow: hidden;
 }
-.measure-visual img {
-  width: 78%;
-  min-width: 0;
-  height: auto;
-  position: relative;
-  z-index: 2;
-  filter: sepia(0.12) contrast(1.05);
-}
 .measure-orbit {
   position: absolute;
   border: 1px solid rgba(72, 0, 72, 0.25);

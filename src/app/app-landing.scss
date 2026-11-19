@@ -1,3 +1,12 @@
+.measure-visual img {
+  width: 78%;
+  min-width: 0;
+  height: auto;
+  position: relative;
+  z-index: 2;
+  filter: sepia(0.12) contrast(1.05);
+}
+
 .pricing-section {
   background: #f6f0e9;
   scroll-margin-top: 105px;
