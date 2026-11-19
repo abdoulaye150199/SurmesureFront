@@ -27,7 +27,7 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
-  it('renders the home section before scrolling to pricing from the explorer', () => {
+  it('renders the home section before scrolling to pricing from the explorer', async () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     spyOn(app, 'ngAfterViewInit');
@@ -36,13 +36,19 @@ describe('App', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#tarifs')).toBeNull();
 
-    app.scrollTo('tarifs');
-    fixture.detectChanges();
+    document.body.appendChild(fixture.nativeElement);
+    try {
+      app.scrollTo('tarifs');
+      fixture.detectChanges();
+      await fixture.whenStable();
 
-    const pricing = fixture.nativeElement.querySelector('#tarifs');
-    expect(pricing).toBeTruthy();
-    expect(scroll).toHaveBeenCalledWith({ behavior: 'smooth' });
-    expect(scroll.calls.mostRecent().object).toBe(pricing);
+      const pricing = fixture.nativeElement.querySelector('#tarifs');
+      expect(pricing).toBeTruthy();
+      expect(scroll).toHaveBeenCalledWith({ behavior: 'smooth' });
+      expect(scroll.calls.mostRecent().object).toBe(pricing);
+    } finally {
+      fixture.nativeElement.remove();
+    }
   });
 
   for (const [role, destination] of [
