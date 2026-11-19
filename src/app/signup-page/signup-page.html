@@ -51,7 +51,7 @@
         <p class="signup-intro" *ngIf="!isStylist">
           Un espace personnel pour vos mesures, vos commandes et vos inspirations.
         </p>
-        <div class="signup-plan-summary" *ngIf="isStylist">
+        <div class="signup-plan-summary" *ngIf="isStylist && planLocked">
           <span>{{ plan.name }}</span>
           <strong
             >{{ plan.price.toLocaleString('fr-FR') }} FCFA / mois
@@ -76,19 +76,30 @@
           </div>
         }
         <form class="signup-form" (ngSubmit)="submit()">
-          <div class="signup-plan-choice" *ngIf="isStylist && !planLocked">
-            <label for="signup-plan">Formule demandée</label>
-            <select
-              id="signup-plan"
-              name="requestedPlan"
-              [(ngModel)]="requestedPlan"
-              [disabled]="submitting"
-            >
-              <option *ngFor="let option of plans" [value]="option.id">
-                {{ option.name }} · {{ option.price.toLocaleString('fr-FR') }} FCFA / mois
-              </option>
-            </select>
-          </div>
+          <fieldset class="signup-plan-choice" *ngIf="isStylist && !planLocked">
+            <legend>Formule demandée</legend>
+            <div class="signup-plan-options">
+              <label class="signup-plan-option" *ngFor="let option of plans">
+                <input
+                  type="radio"
+                  name="requestedPlan"
+                  [value]="option.id"
+                  [(ngModel)]="requestedPlan"
+                  [disabled]="submitting"
+                />
+                <span class="signup-plan-option-card">
+                  <span class="signup-plan-option-name">
+                    {{ option.name }}
+                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                      <path d="m5 10 3 3 7-7" />
+                    </svg>
+                  </span>
+                  <strong>{{ option.price.toLocaleString('fr-FR') }}</strong>
+                  <span class="signup-plan-option-period">FCFA / mois</span>
+                </span>
+              </label>
+            </div>
+          </fieldset>
           <div class="signup-fields-row">
             <div>
               <label for="page-first-name">Prénom</label
