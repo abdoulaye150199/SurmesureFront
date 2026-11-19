@@ -27,10 +27,11 @@ describe('App', () => {
     document.title = 'Sur Mesure Style';
   });
 
-  it('renders the home section before scrolling to pricing from the explorer', async () => {
+  it('renders the home section before scrolling to pricing from the explorer', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     spyOn(app, 'ngAfterViewInit');
+    spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
     const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
     app.activeView = 'explore';
     fixture.detectChanges();
@@ -40,7 +41,7 @@ describe('App', () => {
     try {
       app.scrollTo('tarifs');
       fixture.detectChanges();
-      await fixture.whenStable();
+      TestBed.tick();
 
       const pricing = fixture.nativeElement.querySelector('#tarifs');
       expect(pricing).toBeTruthy();
