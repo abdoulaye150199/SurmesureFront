@@ -5,7 +5,7 @@ import { provideRouter } from '@angular/router';
 import { Router } from '@angular/router';
 import { App } from './app';
 import { routes } from './app.routes';
-import { DashboardOrder, DashboardService } from './dashboard/dashboard.service';
+import { DashboardCatalogItem, DashboardOrder, DashboardService } from './dashboard/dashboard.service';
 import { OfflineWorkspaceStore } from './dashboard/offline-workspace.store';
 import { AuthService } from './auth/auth.service';
 
@@ -25,6 +25,100 @@ describe('App', () => {
   afterEach(() => {
     window.history.replaceState(null, '', '/');
     document.title = 'Sur Mesure Style';
+  });
+
+  const catalogItem = (id: string, title: string): DashboardCatalogItem => ({
+    id,
+    title,
+    stylistId: 'atelier',
+    description: '',
+    imageUrl: '/assets/look-1.webp',
+    price: 1000,
+    currency: 'XOF',
+    availableColors: [],
+    active: true,
+    createdAt: '',
+    updatedAt: '',
+  });
+
+  it('keeps inspiration cards and category filters available when the API catalog is empty', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    spyOn(app, 'ngAfterViewInit');
+    spyOn(TestBed.inject(DashboardService), 'loadPublicCatalogPage').and.resolveTo({
+      data: [], meta: { hasMore: false, nextCursor: null },
+    });
+
+    await app.loadPublicCatalog();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.product-card').length).toBe(6);
+    expect(fixture.nativeElement.querySelector('.collection-status').textContent).toContain('Modèles d’inspiration');
+    for (const category of ['Cérémonie', 'Boubous', 'Ensembles'] as const) {
+      await app.setCreationFilter(category);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelectorAll('.product-card').length).toBe(2);
+      expect(app.visibleCreations.every(item => item.category === category)).toBeTrue();
+    }
+  });
+
+  it('shows an empty category message without mixing inspiration cards into the published catalog', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    spyOn(app, 'ngAfterViewInit');
+    spyOn(TestBed.inject(DashboardService), 'loadPublicCatalogPage').and.resolveTo({
+      data: [catalogItem('published', 'Robe de cérémonie')],
+      meta: { hasMore: false, nextCursor: null },
+    });
+    await app.loadPublicCatalog();
+    await app.setCreationFilter('Ensembles');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelectorAll('.product-card').length).toBe(0);
+    expect(fixture.nativeElement.querySelector('.collection-empty').textContent).toContain('Aucune création');
+    fixture.nativeElement.querySelector('.collection-empty button').click();
+    fixture.detectChanges();
+    expect(app.visibleCreations.map(item => item.id)).toEqual(['published']);
+    expect(app.showingCreationInspirations).toBeFalse();
+  });
+
+  it('continues pagination for a filter selected during the initial request', async () => {
+    const app = TestBed.createComponent(App).componentInstance;
+    const service = TestBed.inject(DashboardService);
+    let resolvePage!: (page: Awaited<ReturnType<DashboardService['loadPublicCatalogPage']>>) => void;
+    const initialPage = new Promise<Awaited<ReturnType<DashboardService['loadPublicCatalogPage']>>>(resolve => {
+      resolvePage = resolve;
+    });
+    const load = spyOn(service, 'loadPublicCatalogPage').and.returnValues(initialPage, Promise.resolve({
+      data: [catalogItem('ensemble', 'Ensemble Dakar')],
+      meta: { hasMore: false, nextCursor: null },
+    }));
+    const loading = app.loadPublicCatalog();
+    const filtering = app.setCreationFilter('Ensembles');
+    resolvePage({ data: [catalogItem('robe', 'Robe Ndar')], meta: { hasMore: true, nextCursor: 'robe' } });
+    await Promise.all([loading, filtering]);
+    expect(load).toHaveBeenCalledWith(12, 'robe');
+    expect(app.visibleCreations.map(item => item.id)).toEqual(['ensemble']);
+  });
+
+  it('allows retrying a failed catalog request and replaces inspiration cards with published creations', async () => {
+    const fixture = TestBed.createComponent(App);
+    const app = fixture.componentInstance;
+    spyOn(app, 'ngAfterViewInit');
+    spyOn(TestBed.inject(DashboardService), 'loadPublicCatalogPage').and.returnValues(
+      Promise.reject(new Error('Network unavailable')),
+      Promise.resolve({ data: [catalogItem('published', 'Ensemble Dakar')], meta: { hasMore: false, nextCursor: null } }),
+    );
+    await app.loadPublicCatalog();
+    fixture.detectChanges();
+    expect(app.publicCatalogError).toBeTrue();
+    expect(fixture.nativeElement.querySelector('.collection-status button').textContent).toContain('Réessayer');
+    expect(app.visibleCreations.length).toBe(6);
+    const retry = spyOn(app, 'loadPublicCatalog').and.callThrough();
+    fixture.nativeElement.querySelector('.collection-status button').click();
+    await retry.calls.mostRecent().returnValue;
+    fixture.detectChanges();
+    expect(app.publicCatalogError).toBeFalse();
+    expect(app.visibleCreations.map(item => item.id)).toEqual(['published']);
+    expect(fixture.nativeElement.querySelectorAll('.product-card').length).toBe(1);
   });
 
   it('renders the home section before scrolling to pricing from the explorer', () => {
@@ -127,7 +221,7 @@ describe('App', () => {
     );
   });
 
-  it('keeps client inspiration images stable across repeated rendering', () => {
+  it('deduplicates client inspirations and keeps their images stable across repeated rendering', () => {
     const fixture = TestBed.createComponent(App);
     const app = fixture.componentInstance;
     spyOn(app, 'ngAfterViewInit');
@@ -154,7 +248,7 @@ describe('App', () => {
     app.clientCatalog = [...app.publicCatalogItems];
     fixture.detectChanges();
     const images = [...fixture.nativeElement.querySelectorAll('.client-inspiration-grid img')];
-    expect(images.length).toBe(2);
+    expect(images.length).toBe(1);
     window.dispatchEvent(new Event('scroll'));
     fixture.detectChanges();
     const updatedImages = [

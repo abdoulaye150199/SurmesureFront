@@ -1289,7 +1289,7 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   get showingCreationInspirations(): boolean {
-    return this.publicCatalogLoaded && !this.publicCatalogItems.length;
+    return !this.publicCatalogItems.length;
   }
 
   get visibleCreations(): Creation[] {

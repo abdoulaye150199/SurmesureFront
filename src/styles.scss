@@ -1,6 +1,28 @@
 * {
   box-sizing: border-box;
 }
+app-root .collection-status {
+  max-width: 340px;
+  color: #71656d;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+app-root .collection-empty {
+  grid-column: 1 / -1;
+  padding: 32px;
+  border: 1px solid #e6dedb;
+  border-radius: 3px;
+}
+app-root .collection-status button,
+app-root .collection-empty button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #480048;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
 app-root .measurement-validation {
   display: inline-block;
   padding: 6px 10px;
