@@ -149,7 +149,14 @@
         <div class="collection-count">
           {{ visibleCreations.length | number: '2.0-0' }} pièces sélectionnées
         </div>
-        <button class="collection-link" (click)="selectedFilter = 'Tout'">
+        <p class="collection-status" *ngIf="showingCreationInspirations && !publicCatalogLoading" role="status">
+          Modèles d’inspiration. Les créations des ateliers seront affichées dès leur publication.
+        </p>
+        <p class="collection-status" *ngIf="publicCatalogError" role="status">
+          Le catalogue n’a pas pu être chargé.
+          <button type="button" (click)="loadPublicCatalog()">Réessayer</button>
+        </p>
+        <button class="collection-link" (click)="setCreationFilter('Tout')">
           Explorer tout le vestiaire <span>↗</span>
         </button>
       </aside>
@@ -197,6 +204,14 @@
             {{ item.description?.trim() || 'Description non renseignée.' }}
           </p>
         </article>
+        <div
+          class="collection-empty"
+          *ngIf="!publicCatalogLoading && !publicCatalogError && !visibleCreations.length"
+          role="status"
+        >
+          <p>Aucune création dans cette catégorie pour le moment.</p>
+          <button type="button" (click)="setCreationFilter('Tout')">Voir toutes les créations</button>
+        </div>
         <div
           class="catalog-skeleton-grid"
           *ngIf="publicCatalogLoading"

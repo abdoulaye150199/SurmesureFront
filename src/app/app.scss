@@ -1214,6 +1214,28 @@ footer button {
   text-transform: uppercase;
   letter-spacing: 0.16em;
 }
+.collection-status {
+  max-width: 340px;
+  color: #71656d;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+.collection-empty {
+  grid-column: 1 / -1;
+  padding: 32px;
+  border: 1px solid #e6dedb;
+  border-radius: 3px;
+}
+.collection-status button,
+.collection-empty button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #480048;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
 .filters {
   max-width: 350px;
   padding: 5px;

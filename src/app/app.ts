@@ -683,6 +683,7 @@ export class App implements AfterViewInit, OnDestroy {
   publicCatalogItems: DashboardCatalogItem[] = [];
   publicStylists: DashboardStylist[] = [];
   publicCatalogLoading = false;
+  publicCatalogError = false;
   publicCatalogHasMore = true;
   publicStylistsLoaded = false;
   publicStylistsLoading = false;
@@ -1287,8 +1288,12 @@ export class App implements AfterViewInit, OnDestroy {
     );
   }
 
+  get showingCreationInspirations(): boolean {
+    return this.publicCatalogLoaded && !this.publicCatalogItems.length;
+  }
+
   get visibleCreations(): Creation[] {
-    const available = this.publicCatalogLoaded
+    const available = this.publicCatalogItems.length
       ? this.publicCatalogItems.map((item) => this.toCreation(item))
       : this.creations;
     return this.selectedFilter === 'Tout'
@@ -1310,6 +1315,7 @@ export class App implements AfterViewInit, OnDestroy {
       this.publicCatalogHasMore = true;
     }
     this.publicCatalogLoading = true;
+    this.publicCatalogError = false;
     const request = (async () => {
       try {
         const page = await this.dashboard.loadPublicCatalogPage(
@@ -1329,6 +1335,7 @@ export class App implements AfterViewInit, OnDestroy {
         this.publicCatalogLoaded = true;
       } catch {
         // Preserve the current page and allow the user to retry.
+        this.publicCatalogError = true;
       } finally {
         this.publicCatalogLoading = false;
       }
@@ -1406,8 +1413,11 @@ export class App implements AfterViewInit, OnDestroy {
 
   async setCreationFilter(filter: Collection): Promise<void> {
     this.selectedFilter = filter;
+    // A filter can be selected before the initial page has finished loading.
+    if (this.catalogLoadPromise) await this.catalogLoadPromise;
     while (
       filter !== 'Tout' &&
+      this.selectedFilter === filter &&
       this.publicCatalogItems.length &&
       !this.visibleCreations.length &&
       this.publicCatalogHasMore &&
