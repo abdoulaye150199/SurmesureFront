@@ -224,7 +224,10 @@
     <div class="measure-visual">
       <span class="measure-orbit one"></span><span class="measure-orbit two"></span>
       <img
-        src="/assets/mannequins-transparent.png"
+        src="/assets/mannequins-960.webp"
+        srcset="/assets/mannequins-480.webp 480w, /assets/mannequins-960.webp 960w, /assets/mannequins-1371.webp 1371w"
+        sizes="(max-width: 900px) 78vw, 39vw"
+        decoding="async"
         alt="Quatre mannequins portant des créations noires, dorées et ivoire"
         width="1371"
         height="1147"
@@ -276,6 +279,7 @@
           </button>
         </div>
       </article>
+      <button type="button" *ngIf="publicStylistsCursor" [disabled]="publicStylistsLoading" (click)="loadPublicStylists(true)">Voir plus de stylistes</button>
       <p class="stylist-gallery-empty" *ngIf="publicStylistsLoaded && !visibleStylists.length">
         Les profils des stylistes seront bientôt disponibles.
       </p>
@@ -710,7 +714,8 @@
             </button>
           </div>
         </article>
-        <p class="stylist-gallery-empty" *ngIf="publicStylistsLoaded && !visibleStylists.length">
+        <button type="button" *ngIf="publicStylistsCursor" [disabled]="publicStylistsLoading" (click)="loadPublicStylists(true)">Voir plus de stylistes</button>
+      <p class="stylist-gallery-empty" *ngIf="publicStylistsLoaded && !visibleStylists.length">
           Les profils des stylistes seront bientôt disponibles.
         </p>
       </div>
@@ -1626,7 +1631,7 @@
             [class.active]="stylistPage === 'creations'"
             (click)="setStylistPage('creations')"
           >
-            <i>◇</i><span>Mes créations</span><b>{{ stylistCatalog.length }}</b>
+            <i>◇</i><span>Mes créations</span><b>{{ stylistCatalogTotal }}</b>
           </button>
           <button
             type="button"
@@ -1897,7 +1902,7 @@
           </article>
           <article>
             <span>Créations publiées</span
-            ><strong>{{ stylistCatalog.length | number: '2.0-0' }}</strong
+            ><strong>{{ stylistCatalogTotal | number: '2.0-0' }}</strong
             ><small>Catalogue synchronisé</small>
           </article>
           <article *ngIf="canUseStylistPage('measurements')">
@@ -2456,6 +2461,10 @@
                 </div>
               </div>
             </article>
+            <button *ngIf="stylistCatalogCursor" type="button" class="analytics-add"
+              [disabled]="stylistCatalogLoading || dashboardLoading" (click)="moreStylistCreations()">
+              {{ stylistCatalogLoading ? 'Chargement…' : 'Voir plus de créations' }}
+            </button>
             <button class="analytics-add" type="button" (click)="openStylistEditor('catalog')">
               <span>＋</span><strong>Ajouter une création</strong>
             </button>
@@ -3535,12 +3544,14 @@
           [disabled]="clientModelSaving"
         >
           <option value="" disabled>Choisir un atelier</option>
+          <option *ngIf="missingModelStylist as record" [value]="record.stylistId">{{ measurementAtelierName(record) }}</option>
           <option *ngFor="let stylist of clientStylists" [value]="stylist.id">
             {{ stylist.businessName }}
           </option>
         </select></label
       >
       <ng-container>
+        <button type="button" *ngIf="clientStylistsCursor" [disabled]="clientStylistsLoading" (click)="moreClientStylists()">Voir plus d’ateliers</button>
         <label *ngFor="let field of clientModelFields"
           >{{ field.label }} (cm)<input
             type="number"
@@ -4409,6 +4420,9 @@
             <p>Saisissez un nom pour rechercher les modèles et les stylistes.</p>
           }
         </div>
+        @if (publicStylistsCursor) {
+          <button type="button" [disabled]="publicStylistsLoading" (click)="loadPublicStylists(true)">Charger plus de stylistes pour étendre la recherche</button>
+        }
         @if (publicCatalogHasMore && !publicCatalogLoading) {
           <button type="button" (click)="loadPublicCatalog()">
             Charger plus de modèles pour étendre la recherche

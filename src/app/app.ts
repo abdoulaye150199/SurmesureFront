@@ -580,6 +580,7 @@ export class App implements AfterViewInit, OnDestroy {
   private applyClientPage(page: ClientPage): void {
     this.clientPage = page;
     this.showFavoritesOnly = page === 'favorites';
+    if (this.showFavoritesOnly) void this.loadFavoriteItems();
     this.workspaceRole = 'client';
     this.activeView = page === 'measurements' ? 'measure' : 'client';
     this.clientBottomTab =
@@ -685,6 +686,14 @@ export class App implements AfterViewInit, OnDestroy {
   publicCatalogHasMore = true;
   publicStylistsLoaded = false;
   publicStylistsLoading = false;
+  publicStylistsCursor: string | null = null;
+  clientStylistsCursor: string | null = null;
+  clientStylistsLoading = false;
+  stylistCatalogCursor: string | null = null;
+  stylistCatalogTotal = 0;
+  stylistCatalogLoading = false;
+  private dashboardRevision = 0;
+  private favoriteItems: DashboardCatalogItem[] = [];
   private publicCatalogCursor: string | null = null;
   private publicCatalogLoaded = false;
   private catalogLoadPromise: Promise<void> | null = null;
@@ -760,6 +769,11 @@ export class App implements AfterViewInit, OnDestroy {
 
   get clientModelFields(): MeasurementDefinition[] {
     return this.measurementDefinitions;
+  }
+
+  get missingModelStylist() {
+    const record = this.latestClientMeasurement;
+    return record && !this.clientStylists.some(profile => profile.id === record.stylistId) ? record : null;
   }
 
   openClientModelEditor(): void {
@@ -1088,6 +1102,7 @@ export class App implements AfterViewInit, OnDestroy {
       .pipe(filter((event): event is NavigationEnd => event instanceof NavigationEnd))
       .subscribe((event) => {
         this.syncViewFromUrl(event.urlAfterRedirects);
+        this.ensurePublicShowcase();
         this.seo.update(event.urlAfterRedirects);
       });
 
@@ -1325,16 +1340,67 @@ export class App implements AfterViewInit, OnDestroy {
     return request;
   }
 
-  async loadPublicStylists(): Promise<void> {
-    if (this.publicStylistsLoading || this.publicStylistsLoaded) return;
+  async loadPublicStylists(more = false): Promise<void> {
+    if (this.publicStylistsLoading || (this.publicStylistsLoaded && (!more || !this.publicStylistsCursor))) return;
     this.publicStylistsLoading = true;
     try {
-      this.publicStylists = await this.dashboard.loadPublicStylists();
+      const page = await this.dashboard.loadPublicStylistsPage(this.publicStylistsCursor ?? undefined);
+      this.publicStylists = this.appendPage(this.publicStylists, page.data);
+      this.publicStylistsCursor = page.meta.nextCursor;
       this.publicStylistsLoaded = true;
     } catch {
       // Keep the local showcase available when the public API is temporarily unavailable.
     } finally {
       this.publicStylistsLoading = false;
+    }
+  }
+
+  private appendPage<T extends { id: string }>(existing: T[], page: T[]): T[] {
+    const known = new Set(existing.map(row => row.id));
+    return [...existing, ...page.filter(row => !known.has(row.id))];
+  }
+
+  async moreClientStylists(): Promise<void> {
+    const cursor = this.clientStylistsCursor;
+    if (!cursor || this.clientStylistsLoading) return;
+    const revision = this.dashboardRevision;
+    this.clientStylistsLoading = true;
+    try {
+      const page = await this.dashboard.loadPublicStylistsPage(cursor);
+      if (revision !== this.dashboardRevision) return;
+      this.clientStylists = this.appendPage(this.clientStylists, page.data);
+      this.clientStylistsCursor = page.meta.nextCursor;
+    } catch {
+      this.showToast('Chargement des ateliers impossible. Réessayez.');
+    } finally {
+      if (revision === this.dashboardRevision) this.clientStylistsLoading = false;
+    }
+  }
+
+  async moreStylistCreations(): Promise<void> {
+    const cursor = this.stylistCatalogCursor;
+    if (!cursor || this.stylistCatalogLoading || this.dashboardLoading) return;
+    const revision = this.dashboardRevision;
+    this.stylistCatalogLoading = true;
+    try {
+      const page = await this.dashboard.loadOwnCatalogPage(cursor);
+      if (revision !== this.dashboardRevision) return;
+      this.stylistCatalog = this.appendPage(this.stylistCatalog, page.data);
+      this.stylistCatalogCursor = page.meta.nextCursor;
+    } catch {
+      this.showToast('Chargement des créations impossible. Réessayez.');
+    } finally {
+      if (revision === this.dashboardRevision) this.stylistCatalogLoading = false;
+    }
+  }
+
+  private async loadFavoriteItems(): Promise<void> {
+    if (this.demoMode) return;
+    const ids = this.favoriteKeys.filter(key => /^catalog:[0-9a-f-]{36}$/i.test(key)).map(key => key.slice(8));
+    try {
+      this.favoriteItems = await this.dashboard.favoriteCatalog(ids);
+    } catch {
+      this.showToast('Chargement des favoris impossible. Réessayez.');
     }
   }
 
@@ -1347,7 +1413,9 @@ export class App implements AfterViewInit, OnDestroy {
       this.publicCatalogHasMore &&
       !this.publicCatalogLoading
     ) {
+      const cursor = this.publicCatalogCursor;
       await this.loadPublicCatalog();
+      if (cursor === this.publicCatalogCursor) break;
     }
   }
 
@@ -1385,7 +1453,9 @@ export class App implements AfterViewInit, OnDestroy {
     const items = this.showFavoritesOnly
       ? available.filter((item) => this.isFavorite(item))
       : available;
-    return this.showFavoritesOnly ? items : items.slice(0, 3);
+    const matches = this.showFavoritesOnly ? [...items, ...this.favoriteItems.filter(item => this.isFavorite(item))] : items;
+    const unique = [...new Map(matches.map(item => [this.favoriteKey(item), item])).values()];
+    return this.showFavoritesOnly ? unique : unique.slice(0, 3);
   }
 
   inspirationName(item: Creation | DashboardCatalogItem): string {
@@ -1456,6 +1526,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   measurementAtelierName(record: DashboardMeasurement): string {
     return (
+      record.stylist?.businessName ??
       this.clientStylists.find((stylist) => stylist.id === record.stylistId)?.businessName ??
       'Atelier partenaire'
     );
@@ -1653,9 +1724,14 @@ export class App implements AfterViewInit, OnDestroy {
     return value.charAt(0).toUpperCase() + value.slice(1);
   }
 
+  private ensurePublicShowcase(): void {
+    if (this.activeView !== 'home' && this.activeView !== 'explore') return;
+    if (!this.publicCatalogLoaded) void this.loadPublicCatalog();
+    void this.loadPublicStylists();
+  }
+
   ngAfterViewInit(): void {
-    window.setTimeout(() => void this.loadPublicCatalog(true), 0);
-    window.setTimeout(() => void this.loadPublicStylists(), 0);
+    window.setTimeout(() => this.ensurePublicShowcase(), 0);
     if (
       this.auth.isAuthenticated &&
       this.auth.appRole &&
@@ -1735,6 +1811,13 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   private clearPrivateWorkspaceData(): void {
+    this.dashboardRevision++;
+    this.stylistCatalogCursor = this.clientStylistsCursor = null;
+    this.stylistCatalogLoading = this.clientStylistsLoading = false;
+    this.stylistCatalogTotal = 0;
+    this.favoriteItems = [];
+    this.clientCatalog = [];
+    this.clientStylists = [];
     this.appointmentStylist = null;
     this.stylistNotificationsOpen = false;
     this.employeePasswordDraft = { current: '', next: '', confirm: '' };
@@ -1819,12 +1902,20 @@ export class App implements AfterViewInit, OnDestroy {
     };
   }
 
-  openCreationCreator(item: Creation | DashboardCatalogItem): void {
+  async openCreationCreator(item: Creation | DashboardCatalogItem): Promise<void> {
     const stylistId = item.stylistId;
-    const profile = stylistId
+    let profile = stylistId
       ? (this.publicStylists.find((stylist) => stylist.id === stylistId) ??
         this.clientStylists.find((stylist) => stylist.id === stylistId))
       : undefined;
+    if (!profile && stylistId && !this.demoMode) {
+      try {
+        profile = await this.dashboard.publicStylist(stylistId);
+      } catch {
+        this.showToast('Chargement du profil impossible. Réessayez.');
+        return;
+      }
+    }
     const studio = 'title' in item ? this.catalogStylistName(item) : item.stylist;
     const stylist = profile
       ? this.toStylistProfile(profile)
@@ -1900,6 +1991,8 @@ export class App implements AfterViewInit, OnDestroy {
       this.dashboardError = '';
       return;
     }
+    const revision = ++this.dashboardRevision;
+    this.stylistCatalogLoading = this.clientStylistsLoading = false;
     this.dashboardLoading = true;
     this.dashboardError = '';
     try {
@@ -1908,6 +2001,7 @@ export class App implements AfterViewInit, OnDestroy {
         this.authenticatedUser?.id ?? null,
         this.stylistSubscription,
       );
+      if (revision !== this.dashboardRevision) return;
       if (result.kind === 'client') {
         const snapshot = result.snapshot;
         this.clientOrders = snapshot.orders;
@@ -1915,6 +2009,7 @@ export class App implements AfterViewInit, OnDestroy {
         this.clientAppointments = snapshot.appointments;
         this.clientCatalog = snapshot.catalog;
         this.clientStylists = snapshot.stylists;
+        this.clientStylistsCursor = snapshot.stylistsCursor;
       } else if (result.kind === 'employee') {
         const snapshot = result;
         this.employeeContext = snapshot.employee;
@@ -1926,6 +2021,8 @@ export class App implements AfterViewInit, OnDestroy {
         this.stylistMeasurements = snapshot.measurements;
         this.stylistAppointments = snapshot.appointments;
         this.stylistCatalog = snapshot.catalog;
+        this.stylistCatalogCursor = snapshot.catalogCursor;
+        this.stylistCatalogTotal = snapshot.catalogTotal;
         this.stylistProfile = snapshot.profile;
         this.employeeContext = null;
         this.stylistPersonnel = result.personnel;
@@ -1933,9 +2030,10 @@ export class App implements AfterViewInit, OnDestroy {
         this.applyOfflineDashboard(result.snapshot);
       }
     } catch {
+      if (revision !== this.dashboardRevision) return;
       this.dashboardError = 'Impossible de charger les données. Vérifiez votre connexion Internet.';
     } finally {
-      this.dashboardLoading = false;
+      if (revision === this.dashboardRevision) this.dashboardLoading = false;
     }
   }
 
@@ -1946,6 +2044,8 @@ export class App implements AfterViewInit, OnDestroy {
       this.stylistOrders = [];
       this.stylistAppointments = [];
       this.stylistCatalog = [];
+      this.stylistCatalogCursor = null;
+      this.stylistCatalogTotal = 0;
       this.stylistPersonnel = [];
       this.employeeContext = null;
     } else {
@@ -2278,6 +2378,7 @@ export class App implements AfterViewInit, OnDestroy {
           : this.editingCatalogId
             ? await this.dashboard.updateCatalogItem(this.editingCatalogId, item)
             : await this.dashboard.createCatalogItem(item);
+        if (!this.editingCatalogId) this.stylistCatalogTotal++;
         this.stylistCatalog = this.editingCatalogId
           ? this.stylistCatalog.map((existing) => (existing.id === saved.id ? saved : existing))
           : [saved, ...this.stylistCatalog];
@@ -2321,6 +2422,7 @@ export class App implements AfterViewInit, OnDestroy {
     if (!window.confirm(`Retirer « ${item.title} » de votre vitrine ?`)) return;
     try {
       if (!this.demoMode) await this.dashboard.deactivateCatalogItem(item.id);
+      this.stylistCatalogTotal = Math.max(0, this.stylistCatalogTotal - 1);
       this.stylistCatalog = this.stylistCatalog.filter((existing) => existing.id !== item.id);
       this.publicCatalogItems = this.publicCatalogItems.filter(
         (existing) => existing.id !== item.id,
@@ -2733,6 +2835,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   catalogStylistName(item: DashboardCatalogItem): string {
     return (
+      item.stylist?.businessName ??
       this.publicStylists.find((stylist) => stylist.id === item.stylistId)?.businessName ??
       this.clientStylists.find((stylist) => stylist.id === item.stylistId)?.businessName ??
       'Atelier partenaire'
@@ -3238,6 +3341,8 @@ export class App implements AfterViewInit, OnDestroy {
     this.stylistMeasurements = [demoMeasurement];
     this.stylistAppointments = [demoAppointment];
     this.stylistCatalog = demoCatalog;
+    this.stylistCatalogTotal = demoCatalog.length;
+    this.stylistCatalogCursor = null;
     this.stylistProfile = demoStylist;
     this.activeView = role;
     this.menuOpen = false;
