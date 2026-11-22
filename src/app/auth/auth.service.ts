@@ -86,6 +86,9 @@ export class AuthService {
   }
 
   async login(email: string, password: string, role: AppAccountRole): Promise<AuthUser> {
+    if (role === 'admin' && !/^\/admin(?:\/|$)/.test(window.location.pathname)) {
+      throw new Error('Accès administrateur réservé à /admin.');
+    }
     const endpoint = role === 'admin' ? '/auth/admin/login' : '/auth/login';
     return this.authenticate(endpoint, { email, password });
   }
@@ -191,6 +194,12 @@ export class AuthService {
       }
       if (!isAuthSession(response) || !response.data.isActive)
         throw new Error('Réponse d’authentification invalide.');
+      if (
+        response.data.role === 'ADMIN' &&
+        (endpoint !== '/auth/admin/login' || !/^\/admin(?:\/|$)/.test(window.location.pathname))
+      ) {
+        throw new Error('Réponse d’authentification invalide.');
+      }
       const session = response;
       this.session = session;
       writeAuthSession(session);

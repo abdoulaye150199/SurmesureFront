@@ -632,6 +632,11 @@ export class App implements AfterViewInit, OnDestroy {
       this.openAdminEntry();
       return;
     }
+    if (this.loginRole === 'admin') {
+      this.loginRole = 'client';
+      this.loginOpen = false;
+    }
+    if (this.activeView === 'admin') this.activeView = 'home';
 
     const pagePath = path.startsWith('/client/') ? path.slice('/client/'.length) : '';
     const page =
@@ -1095,7 +1100,7 @@ export class App implements AfterViewInit, OnDestroy {
     this.favoriteKeys = this.preferences.loadFavoriteKeys();
     this.authenticatedUser = this.auth.user;
     const appRole = this.auth.appRole;
-    if (appRole && this.auth.isAuthenticated) {
+    if (appRole && this.auth.isAuthenticated && (appRole !== 'admin' || this.isAdminEntryUrl)) {
       this.workspaceRole = appRole;
       this.activeView = appRole;
     }
@@ -1172,13 +1177,14 @@ export class App implements AfterViewInit, OnDestroy {
     },
   ];
 
+  readonly stylistAvatarUrl = '/assets/stylist-avatar.svg';
   readonly stylists: Stylist[] = [
     {
       name: 'Awa Diop',
       studio: 'Atelier Awa',
       location: 'Dakar',
       specialty: 'Cérémonie',
-      portrait: '/assets/stylist-awa.webp',
+      portrait: this.stylistAvatarUrl,
       bio: 'Awa imagine des silhouettes de cérémonie élégantes, avec des volumes fluides et des détails qui racontent chaque histoire.',
       email: 'awa@surmesure.sn',
       phone: '+221770000001',
@@ -1188,7 +1194,7 @@ export class App implements AfterViewInit, OnDestroy {
       studio: 'Maison Diarra',
       location: 'Saint-Louis',
       specialty: 'Moderne',
-      portrait: '/assets/stylist-mame.webp',
+      portrait: this.stylistAvatarUrl,
       bio: 'Mame mêle lignes contemporaines, matières fortes et finitions précises pour créer un vestiaire moderne et personnel.',
       email: 'mame@surmesure.sn',
       phone: '+221770000002',
@@ -1198,7 +1204,7 @@ export class App implements AfterViewInit, OnDestroy {
       studio: 'Seynabou Studio',
       location: 'Dakar',
       specialty: 'Traditionnel',
-      portrait: '/assets/stylist-fatou.webp',
+      portrait: this.stylistAvatarUrl,
       bio: 'Fatou revisite les savoir-faire traditionnels avec une approche sensible, actuelle et profondément ancrée dans le savoir-faire local.',
       email: 'fatou@surmesure.sn',
       phone: '+221770000003',
@@ -1263,7 +1269,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   get searchedStylists(): Stylist[] {
     return this.publicStylists
-      .map((profile, index) => this.toStylistProfile(profile, index))
+      .map((profile) => this.toStylistProfile(profile))
       .filter((stylist) =>
         this.matchesPublicSearch([
           stylist.name,
@@ -1303,7 +1309,7 @@ export class App implements AfterViewInit, OnDestroy {
 
   get visibleStylists(): Stylist[] {
     if (!this.publicStylistsLoaded) return this.stylists;
-    return this.publicStylists.map((profile, index) => this.toStylistProfile(profile, index));
+    return this.publicStylists.map((profile) => this.toStylistProfile(profile));
   }
 
   async loadPublicCatalog(reset = false): Promise<void> {
@@ -1745,7 +1751,8 @@ export class App implements AfterViewInit, OnDestroy {
     if (
       this.auth.isAuthenticated &&
       this.auth.appRole &&
-      (!this.isAdminEntryUrl || this.auth.appRole === 'admin')
+      (!this.isAdminEntryUrl || this.auth.appRole === 'admin') &&
+      (this.auth.appRole !== 'admin' || this.isAdminEntryUrl)
     ) {
       void this.restoreAuthenticatedWorkspace();
     }
@@ -1780,6 +1787,7 @@ export class App implements AfterViewInit, OnDestroy {
   private async restoreAuthenticatedWorkspace(): Promise<void> {
     const role = this.auth.appRole;
     if (!role || !this.auth.isAuthenticated) return;
+    if (role === 'admin' && !this.isAdminEntryUrl) return;
 
     if (!(await this.auth.validateSession())) {
       this.authenticatedUser = null;
@@ -1791,6 +1799,7 @@ export class App implements AfterViewInit, OnDestroy {
       return;
     }
 
+    if (role === 'admin' && !this.isAdminEntryUrl) return;
     this.authenticatedUser = this.auth.user;
     this.workspaceRole = role;
     this.activeView = role;
@@ -1814,7 +1823,7 @@ export class App implements AfterViewInit, OnDestroy {
     void this.offlineWorkspace.clear().catch(() => undefined);
     this.authenticatedUser = null;
     this.activeView = 'home';
-    void this.router.navigateByUrl('/');
+    void this.router.navigateByUrl(role === 'admin' && this.isAdminEntryUrl ? '/admin' : '/');
     this.workspaceRole = role;
     this.openLogin(role);
     this.showToast('Votre session a expiré. Reconnectez-vous.');
@@ -1894,7 +1903,7 @@ export class App implements AfterViewInit, OnDestroy {
     if (this.selectedStylist) this.closeStylist();
   }
 
-  private toStylistProfile(profile: DashboardStylist, index = 0): Stylist {
+  private toStylistProfile(profile: DashboardStylist): Stylist {
     return {
       subscriptionPlan: profile.user.subscriptionPlan,
       id: profile.id,
@@ -1904,7 +1913,7 @@ export class App implements AfterViewInit, OnDestroy {
       studio: profile.businessName,
       location: '',
       specialty: profile.specialties.join(' · ') || 'Styliste partenaire',
-      portrait: profile.user.profileImage || this.stylists[index % this.stylists.length].portrait,
+      portrait: profile.user.profileImage || this.stylistAvatarUrl,
       bio:
         profile.about || `Découvrez les créations et le savoir-faire de ${profile.businessName}.`,
       email: '',
@@ -2986,6 +2995,10 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   async openWorkspace(role: AppAccountRole): Promise<void> {
+    if (role === 'admin' && !this.isAdminEntryUrl) {
+      this.showToast('Accès administrateur réservé à /admin.');
+      return;
+    }
     if (this.demoMode && (role === 'client' || role === 'stylist')) {
       this.workspaceRole = role;
       this.activeView = role;
@@ -3058,7 +3071,7 @@ export class App implements AfterViewInit, OnDestroy {
   openLogin(role: AppAccountRole = this.loginRole): void {
     if (this.activeView === 'signup') this.setView('home');
     this.demoMode = false;
-    this.loginRole = role;
+    this.loginRole = role === 'admin' && !this.isAdminEntryUrl ? 'client' : role;
     this.loginOpen = true;
     this.menuOpen = false;
   }
@@ -3070,6 +3083,7 @@ export class App implements AfterViewInit, OnDestroy {
     }
     this.pendingAppointmentStylist = null;
     this.loginOpen = false;
+    this.loginRole = 'client';
     this.pendingAuthView = null;
   }
 
@@ -3093,6 +3107,14 @@ export class App implements AfterViewInit, OnDestroy {
   }
 
   onLoggedIn(user: AuthUser): void {
+    if (user.role === 'ADMIN' && !this.isAdminEntryUrl) {
+      this.auth.clearSession();
+      this.authenticatedUser = null;
+      this.activeView = 'home';
+      this.loginOpen = false;
+      this.showToast('Accès administrateur réservé à /admin.');
+      return;
+    }
     this.demoMode = false;
     if (this.authenticatedUser && this.authenticatedUser.id !== user.id) {
       this.clearPrivateWorkspaceData();
@@ -3207,7 +3229,7 @@ export class App implements AfterViewInit, OnDestroy {
       lastName: 'Diop',
       email: 'awa.demo@surmesure.sn',
       phone: '+221 77 000 00 02',
-      profileImage: '/assets/stylist-awa.webp',
+      profileImage: '',
       isActive: true,
     };
     const demoStylist: DashboardStylist = {
@@ -3217,7 +3239,7 @@ export class App implements AfterViewInit, OnDestroy {
       about: 'Créations de cérémonie et savoir-faire traditionnel revisité.',
       specialties: ['Cérémonie', 'Traditionnel'],
       rating: 4.9,
-      user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.webp' },
+      user: { firstName: 'Awa', lastName: 'Diop', profileImage: '' },
     };
     const demoCatalog: DashboardCatalogItem[] = [
       {
@@ -3325,7 +3347,7 @@ export class App implements AfterViewInit, OnDestroy {
       notes: 'Premier essayage à l’atelier.',
       stylist: {
         businessName: 'Atelier Awa',
-        user: { firstName: 'Awa', lastName: 'Diop', profileImage: '/assets/stylist-awa.webp' },
+        user: { firstName: 'Awa', lastName: 'Diop', profileImage: '' },
       },
       client: {
         firstName: 'Fatou',

@@ -8,6 +8,7 @@ describe('AuthService offline session validation', () => {
   let http: HttpTestingController;
 
   beforeEach(() => {
+    window.history.replaceState(null, '', '/');
     sessionStorage.setItem(
       AUTH_SESSION_KEY,
       JSON.stringify({
@@ -33,6 +34,7 @@ describe('AuthService offline session validation', () => {
   });
 
   afterEach(() => {
+    window.history.replaceState(null, '', '/');
     http.verify();
     sessionStorage.removeItem(AUTH_SESSION_KEY);
     localStorage.removeItem(AUTH_SESSION_KEY);
@@ -127,6 +129,7 @@ describe('AuthService offline session validation', () => {
   }
 
   it('keeps the dedicated administrator login endpoint', async () => {
+    window.history.replaceState(null, '', '/admin');
     const login = auth.login('owner@example.com', 'PrivatePassword2026', 'admin');
     http
       .expectOne((req) => req.url.endsWith('/auth/admin/login'))
@@ -136,6 +139,53 @@ describe('AuthService offline session validation', () => {
         data: validUser('ADMIN'),
       });
     expect((await login).role).toBe('ADMIN');
+  });
+
+  for (const path of ['/', '/explore', '/administrator', '/signup']) {
+    it(`refuses an administrator login outside /admin (${path})`, async () => {
+      window.history.replaceState(null, '', path);
+      await expectAsync(
+        auth.login('owner@example.com', 'PrivatePassword2026', 'admin'),
+      ).toBeRejectedWithError('Accès administrateur réservé à /admin.');
+      http.expectNone((req) => req.url.endsWith('/auth/admin/login'));
+    });
+  }
+
+  it('never stores an administrator session returned by the public endpoint', async () => {
+    auth.clearSession();
+    const login = auth.login('owner@example.com', 'PrivatePassword2026', 'client');
+    const rejection = expectAsync(login).toBeRejectedWithError(
+      'Réponse d’authentification invalide.',
+    );
+    http
+      .expectOne((req) => req.url.endsWith('/auth/login'))
+      .flush({
+        token: 'signed-token',
+        refreshToken: 'refresh-token',
+        data: validUser('ADMIN'),
+      });
+    await rejection;
+    expect(auth.token).toBeNull();
+    expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
+  });
+
+  it('refuses a pending administrator login if navigation leaves /admin', async () => {
+    auth.clearSession();
+    window.history.replaceState(null, '', '/admin');
+    const login = auth.login('owner@example.com', 'PrivatePassword2026', 'admin');
+    const rejection = expectAsync(login).toBeRejectedWithError(
+      'Réponse d’authentification invalide.',
+    );
+    window.history.replaceState(null, '', '/');
+    http
+      .expectOne((req) => req.url.endsWith('/auth/admin/login'))
+      .flush({
+        token: 'signed-token',
+        refreshToken: 'refresh-token',
+        data: validUser('ADMIN'),
+      });
+    await rejection;
+    expect(auth.token).toBeNull();
   });
 
   it('keeps the signed-in user when session validation fails because the network is unavailable', async () => {

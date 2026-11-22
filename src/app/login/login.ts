@@ -51,7 +51,7 @@ export class LoginComponent {
     this.submitting = true;
     try {
       const user = await this.auth.login(this.loginEmail, this.loginPassword, this.accountRole);
-      this.close();
+      this.isOpen = false;
       this.loggedIn.emit(user);
     } catch (error) {
       this.error = error instanceof Error ? error.message : 'Connexion impossible pour le moment.';
@@ -66,7 +66,7 @@ export class LoginComponent {
     this.submitting = true;
     try {
       const user = await this.auth.loginGoogle(credential);
-      this.close();
+      this.isOpen = false;
       this.loggedIn.emit(user);
     } catch (error) {
       this.error = error instanceof Error ? error.message : 'Connexion Google impossible.';

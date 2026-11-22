@@ -1303,10 +1303,10 @@
                 [src]="
                   nextClientAppointment?.stylist?.user?.profileImage ||
                   clientStylists[0]?.user?.profileImage ||
-                  '/assets/stylist-awa.webp'
+                  stylistAvatarUrl
                 "
                 [alt]="
-                  'Photo de ' +
+                  'Profil de ' +
                   (nextClientAppointment?.stylist?.user?.firstName ||
                     clientStylists[0]?.user?.firstName ||
                     'votre styliste')
@@ -1684,10 +1684,9 @@
           <button type="button" (click)="openStylistEditor('profile')">
             <b
               ><img
-                *ngIf="stylistPhotoUrl; else stylistSidebarInitials"
-                [src]="stylistPhotoUrl"
+                [src]="stylistPhotoUrl || stylistAvatarUrl"
                 alt=""
-              /><ng-template #stylistSidebarInitials>{{ userInitials }}</ng-template></b
+              /></b
             ><span
               >{{ authenticatedUser?.firstName }} {{ authenticatedUser?.lastName
               }}<small>{{ stylistProfile?.businessName || 'Atelier styliste' }}</small></span
@@ -1734,10 +1733,9 @@
               (click)="setStylistPage('settings')"
             >
               <img
-                *ngIf="stylistPhotoUrl; else stylistInitials"
-                [src]="stylistPhotoUrl"
+                [src]="stylistPhotoUrl || stylistAvatarUrl"
                 alt=""
-              /><ng-template #stylistInitials>{{ userInitials }}</ng-template></button
+              /></button
             ><button
               class="dashboard-logout dark"
               type="button"
@@ -1872,8 +1870,9 @@
               </button>
             </div>
             <img
-              [src]="stylistPhotoUrl || '/assets/stylist-awa.webp'"
-              [alt]="'Photo de ' + (authenticatedUser?.firstName || 'votre styliste')"
+              [src]="stylistPhotoUrl || stylistAvatarUrl"
+              [class.is-avatar]="!stylistPhotoUrl"
+              [alt]="'Profil de ' + (authenticatedUser?.firstName || 'votre styliste')"
             />
             <i></i>
           </section>
@@ -2892,7 +2891,7 @@
             [businessName]="stylistProfile?.businessName || ''"
             [about]="stylistProfile?.about || ''"
             [specialties]="stylistProfile?.specialties || []"
-            [photoUrl]="stylistPhotoUrl"
+            [photoUrl]="stylistPhotoUrl || stylistAvatarUrl"
             [initials]="userInitials"
             [ownerName]="
               (authenticatedUser?.firstName || '') + ' ' + (authenticatedUser?.lastName || '')

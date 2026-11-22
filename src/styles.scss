@@ -3283,3 +3283,10 @@ app-root .atelier-planning {
     padding: 24px;
   }
 }
+app-root .analytics-hero-card img.is-avatar {
+  height: 80%;
+  bottom: 10%;
+  object-fit: contain;
+  mix-blend-mode: normal;
+  filter: none;
+}
