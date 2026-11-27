@@ -161,6 +161,16 @@
   background: #f5edf3;
   border-radius: 10px;
 }
+.signup-payment-notice {
+  margin: 0 0 18px;
+  color: #74526e;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.signup-pending > .signup-submit {
+  width: 100%;
+  margin-top: 20px;
+}
 .signup-page {
   position: fixed;
   inset: 0;

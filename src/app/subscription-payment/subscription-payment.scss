@@ -1,0 +1,87 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.wave-payment {
+  padding: 20px;
+  border: 1px solid #d6e6ee;
+  border-radius: 14px;
+  background: #f1f9fd;
+  color: #163d50;
+  overflow-wrap: anywhere;
+}
+
+.wave-payment-kicker {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.wave-payment-amount {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.3;
+
+  span {
+    font-size: 16px;
+  }
+}
+
+ol {
+  display: grid;
+  gap: 10px;
+  padding-left: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.wave-payment-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 16px;
+  box-sizing: border-box;
+  border-radius: 24px;
+  background: #075d7c;
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:hover {
+    background: #064962;
+  }
+}
+
+.wave-verification-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: #075d7c;
+  font-size: 14px;
+  text-underline-offset: 3px;
+}
+
+a:focus-visible {
+  outline: 3px solid #946817;
+  outline-offset: 4px;
+}
+
+.wave-payment-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

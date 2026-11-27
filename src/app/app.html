@@ -308,13 +308,13 @@
         <h2 id="pricing-title">Votre talent,<br /><em>la formule qui vous suit.</em></h2>
       </div>
       <p>
-        Du premier catalogue à la gestion de votre équipe, découvrez nos projets d’abonnements pour
+        Du premier catalogue à la gestion de votre équipe, découvrez nos abonnements pour
         accompagner votre atelier.
       </p>
     </div>
     <p class="pricing-notice">
-      Tarifs mensuels indicatifs. Votre inscription sera examinée par l’administrateur, qui
-      attribuera votre formule et activera votre compte.
+      Paiement mensuel par Wave après l’inscription. L’administrateur vérifie votre paiement,
+      attribue votre formule et active votre compte. Aucun prélèvement automatique.
     </p>
     <div class="pricing-grid">
       <article
@@ -1842,6 +1842,14 @@
           <p>{{ stylistSubscriptionConfig.headline }}</p>
           <small>Formule attribuée par l’administrateur</small>
         </section>
+        <details class="stylist-subscription-payment">
+          <summary>Payer ma formule avec Wave</summary>
+          <app-subscription-payment
+            [plan]="stylistSubscriptionConfig"
+            [email]="authenticatedUser?.email || ''"
+            [phone]="authenticatedUser?.phone || ''"
+          ></app-subscription-payment>
+        </details>
         <div
           class="analytics-top-grid"
           [class.compact]="!canUseStylistPage('team')"

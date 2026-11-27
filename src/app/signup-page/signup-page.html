@@ -55,7 +55,7 @@
           <span>{{ plan.name }}</span>
           <strong
             >{{ plan.price.toLocaleString('fr-FR') }} FCFA / mois
-            <small>Tarif indicatif</small></strong
+            <small>Paiement Wave après l’inscription</small></strong
           >
         </div>
 
@@ -100,6 +100,10 @@
               </label>
             </div>
           </fieldset>
+          <p class="signup-payment-notice" *ngIf="isStylist">
+            Après la création de votre compte, réglez votre formule avec Wave. Votre accès sera
+            activé après vérification du paiement par l’administrateur.
+          </p>
           <div class="signup-fields-row">
             <div>
               <label for="page-first-name">Prénom</label
@@ -242,17 +246,23 @@
           <button type="button" (click)="goToLogin()">Se connecter</button>
         </p>
       } @else {
-        <section class="signup-pending" role="status" aria-live="polite">
+        <section class="signup-pending">
           <span class="signup-kicker">Inscription reçue · {{ plan.name }}</span>
           <h2 id="signup-title">Votre compte est créé.<br /><em>Validation en attente.</em></h2>
-          <p>
+          <p role="status">
             Votre inscription pour <strong>{{ pending.data.email }}</strong> a bien été enregistrée.
           </p>
           <p>
-            L’administrateur doit attribuer votre formule et activer votre compte avant votre
-            première connexion.
+            Réglez votre formule avec Wave puis transmettez votre référence de transaction.
+            L’administrateur vérifiera le paiement avant d’activer votre compte pour votre première
+            connexion.
           </p>
           <p class="signup-pending-status">Compte inactif · Formule demandée : {{ plan.name }}</p>
+          <app-subscription-payment
+            [plan]="plan"
+            [email]="pending.data.email"
+            [phone]="pending.data.phone"
+          ></app-subscription-payment>
           <button class="signup-submit" type="button" (click)="back()">Revenir à l’accueil</button>
           <p class="signup-login-link">
             Compte validé ? <button type="button" (click)="goToLogin()">Se connecter</button>

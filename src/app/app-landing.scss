@@ -217,6 +217,31 @@
   grid-template-columns: minmax(0, 1fr);
 }
 
+.stylist-subscription-payment {
+  margin: 0 0 24px;
+  border: 1px solid #e4d1df;
+  border-radius: 14px;
+  background: #fffcf8;
+  color: #480048;
+
+  summary {
+    padding: 16px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 3px solid #b68b26;
+      outline-offset: 3px;
+      border-radius: 14px;
+    }
+  }
+
+  app-subscription-payment {
+    margin: 0 16px 16px;
+  }
+}
+
 @media (max-width: 900px) {
   .pricing-grid {
     grid-template-columns: 1fr;

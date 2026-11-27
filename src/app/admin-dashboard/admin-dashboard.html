@@ -387,6 +387,12 @@
                 >Demandée : {{ planLabel(account.requestedPlan) }} · Attribuée :
                 {{ planLabel(account.subscriptionPlan) }}</span
               >
+              <p class="admin-wave-verification">
+                Avant l’activation, vérifiez dans Wave Business le paiement et son montant pour la
+                formule choisie. Rapprochez la référence de transaction transmise avec ce compte.
+                L’inscription ne confirme pas le paiement.
+              </p>
+              <span class="admin-wave-account">{{ account.email }} · {{ account.phone }}</span>
               <label [for]="'plan-' + account.id">Formule à attribuer</label>
               <select
                 [id]="'plan-' + account.id"

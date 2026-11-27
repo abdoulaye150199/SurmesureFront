@@ -1516,6 +1516,17 @@ svg {
   color: white;
   font-size: 14px;
 }
+:host .admin-wave-verification {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #d8c7d3;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+:host .admin-wave-account {
+  overflow-wrap: anywhere;
+}
 :host .admin-approve-button:disabled {
   opacity: 0.55;
   cursor: default;

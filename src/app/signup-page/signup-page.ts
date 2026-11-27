@@ -10,11 +10,12 @@ import {
 } from '../auth/auth.service';
 import { SUBSCRIPTION_PLANS, SubscriptionPlan, subscriptionConfig } from '../subscription-plans';
 import { GoogleButtonComponent } from '../auth/google-button';
+import { SubscriptionPaymentComponent } from '../subscription-payment/subscription-payment';
 
 @Component({
   selector: 'app-signup-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, GoogleButtonComponent],
+  imports: [CommonModule, FormsModule, GoogleButtonComponent, SubscriptionPaymentComponent],
   templateUrl: './signup-page.html',
   styleUrl: './signup-page.scss',
 })
@@ -39,7 +40,7 @@ export class SignupPageComponent {
   pending: PendingRegistration | null = null;
 
   get plan() {
-    return subscriptionConfig(this.requestedPlan);
+    return subscriptionConfig(this.pending?.data.requestedPlan ?? this.requestedPlan);
   }
 
   private finishRegistration(result: AuthUser | PendingRegistration): void {

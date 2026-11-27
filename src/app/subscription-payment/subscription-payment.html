@@ -1,0 +1,27 @@
+<section class="wave-payment" aria-label="Paiement de l’abonnement par Wave">
+  <p class="wave-payment-kicker">Abonnement {{ plan.name }} · 1 mois</p>
+  <p class="wave-payment-amount">{{ plan.price.toLocaleString('fr-FR') }} <span>FCFA</span></p>
+  <ol>
+    <li>Ouvrez Wave et saisissez exactement ce montant avant de confirmer le paiement.</li>
+    <li>
+      Conservez la référence de transaction Wave et transmettez-la à l’administrateur avec votre
+      e-mail et le numéro utilisé pour payer.
+    </li>
+  </ol>
+  <a class="wave-payment-link" [href]="waveUrl" target="_blank" rel="noopener noreferrer">
+    Payer avec Wave <span aria-hidden="true">↗</span>
+    <span class="visually-hidden">(nouvel onglet)</span>
+  </a>
+  <p class="wave-payment-note">
+    Déjà payé ? Attendez la vérification de l’administrateur avant de payer à nouveau. L’ouverture
+    de Wave ne confirme pas le paiement. Aucun prélèvement automatique.
+  </p>
+  <a class="wave-verification-link" [href]="verificationEmailUrl">
+    Transmettre ma référence par e-mail
+  </a>
+  <p class="wave-payment-note">
+    Un brouillon s’ouvre dans votre messagerie. Complétez la référence de transaction, le numéro
+    utilisé et la date du paiement avant l’envoi à bonjour@surmesure.sn. Si vous n’utilisez pas de
+    messagerie sur cet appareil, contactez l’administrateur avec ces informations.
+  </p>
+</section>

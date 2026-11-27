@@ -23,6 +23,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { LoginComponent } from './login/login';
 import { SignupPageComponent } from './signup-page/signup-page';
+import { SubscriptionPaymentComponent } from './subscription-payment/subscription-payment';
 import { AppAccountRole, AuthService, AuthUser } from './auth/auth.service';
 import { AdminDashboardComponent } from './admin-dashboard/admin-dashboard';
 import { StylistSettingsComponent } from './stylist-settings/stylist-settings';
@@ -115,6 +116,7 @@ type StylistEditor = 'catalog' | 'profile' | null;
     FormsModule,
     LoginComponent,
     SignupPageComponent,
+    SubscriptionPaymentComponent,
     AdminDashboardComponent,
     StylistSettingsComponent,
   ],
